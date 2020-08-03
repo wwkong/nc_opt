@@ -1,6 +1,6 @@
 % A class defintion for composite optimization models
 classdef CompModel < handle
-
+  
   % -----------------------------------------------------------------------
   %% CONSTRUCTORS
   % -----------------------------------------------------------------------

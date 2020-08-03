@@ -11,7 +11,7 @@
 n = 200;
 k = 100;
 r = 50;
-density = 0.05;
+density = 0.1;
 seed = 777;
 [oracle, hparams] = test_fn_svm_01(n, k, seed, density, r);
 
