@@ -1,25 +1,34 @@
 %{
 
-The accelerated composite gradient (ACG) method for use inside of the 
-accelerated inexact proximal point (AIPP) method.
-
-VERSION 1.0
+DESCRIPTION
 -----------
+The accelerated composite gradient (ACG) method for use inside of the 
+accelerated inexact proximal point (AIPP) method (see AIPP.m). Based on 
+the iteration scheme in the paper:
 
-Input
-------
+"An adaptive accelerated first-order method for convex optimization", 
+Computational Optimization and Applications.
+
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong, Jiaming Liang
+
+INPUT
+-----
 oracle:
   An Oracle object.
 params:
-  Input parameters of this function.
+  A struct containing input parameters for this function.
 
-Output
+OUTPUT
 ------
 model:
-  A struct array containing model related outputs.
+  A struct containing model related outputs (e.g. solutions).
 history:
-  A struct array containing history (e.g. iteration counts, runtime, etc.)
-  related outputs.
+  A struct containing history related outputs (e.g. runtimes).
 
 %}
 
@@ -54,11 +63,11 @@ function [model, history] = ACG(oracle, params)
   y_prev = params.y_prev;
   A_prev = params.A_prev;
   
-  % Solver params
+  % Solver params.
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
-  % Pull in some constants to save compute time (based on the caller)
+  % Pull in some constants to save compute time (based on the caller).
   if (termination_type == "aicg")
     phi_at_Z0 = params.phi_at_Z0;
     f1_at_Z0 = params.f1_at_Z0;
@@ -83,7 +92,7 @@ function [model, history] = ACG(oracle, params)
     epsilon_bar = params.epsilon_bar;
   end
   
-  % Initialize constants related to Gamma
+  % Initialize constants related to Gamma.
   if (strcmp(params.eta_type, 'recursive'))
     Gamma_at_x_prev = 0;
     grad_Gamma_at_x_prev = zeros(size(x0));
@@ -95,7 +104,7 @@ function [model, history] = ACG(oracle, params)
     error('Unknown eta type!');
   end
     
-  % Check if we should use variable stepsize approach
+  % Check if we should use variable stepsize approach.
   if (params.acg_steptype == "variable")
     if (~isfield(params, 'mult_L'))
       mult_L = 1.25; % Default multiplier
@@ -120,25 +129,25 @@ function [model, history] = ACG(oracle, params)
   % Compute an estimate of L based on two points.
   function L_est  = compute_L_est(L, mu, A_prev, y_prev, x_prev)
 
-    % Simple quantities
+    % Simple quantities.
     nu = nu_fn(mu, L);
     nu_prev = (1 + mu * A_prev) * nu;
     a_prev = (nu_prev + sqrt(nu_prev ^ 2 + 4 * nu_prev * A_prev)) / 2;
     A = A_prev + a_prev;
     x_tilde_prev = (A_prev / A) * y_prev + a_prev / A * x_prev;
 
-    % Oracle at x_tilde_prev
+    % Oracle at x_tilde_prev.
     o_x_tilde_prev = oracle.eval(x_tilde_prev);
     f_s_at_x_tilde_prev = o_x_tilde_prev.f_s();
     grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
     
-    % Oracle at y
+    % Oracle at y.
     y_prox_mult = nu / (1 + nu * mu);
     y_prox_ctr = x_tilde_prev - y_prox_mult * grad_f_s_at_x_tilde_prev;
     [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
     f_s_at_y = o_y.f_s();
     
-    % Estimate of L based on y and x_tilde_prev
+    % Estimate of L based on y and x_tilde_prev.
     L_est = ...
       max(0, 2 * (f_s_at_y - ...
         (f_s_at_x_tilde_prev + ...
@@ -146,7 +155,7 @@ function [model, history] = ACG(oracle, params)
       norm_fn(y - x_tilde_prev) ^ 2);
   end
 
-  % Function for efficiently obtaining y
+  % Function for efficiently obtaining y.
   function [y, o_y] = get_y(prox_ctr, prox_mult)
     o_y_prox = oracle.eval(prox_ctr);
     if not(isfield(o_y_prox, 'f_s_at_prox_f_n') && ...
@@ -185,14 +194,14 @@ function [model, history] = ACG(oracle, params)
     %% COMPUTE y AND L ADAPTIVELY + OTHER KEY VARIABLES.
     % ---------------------------------------------------------------------
         
-    % Variable L updates
+    % Variable L updates.
     if (params.acg_steptype == "variable")
       
-      % Compute L_est
+      % Compute L_est.
       L = max(L, mu);
       L_est = compute_L_est(L, mu, A_prev, y_prev, x_prev);
       
-      % Loop if a violation occurs
+      % Loop if a violation occurs.
       while (L < min([L_est, L_max]))
         L = min(L_max, L_est * mult_L);
         L_est = compute_L_est(L, mu, A_prev, y_prev, x_prev);
@@ -201,19 +210,19 @@ function [model, history] = ACG(oracle, params)
       
     end
             
-    % Iteration parameters
+    % Iteration parameters.
     nu = nu_fn(mu, L);
     nu_prev = (1 + mu * A_prev) * nu;
     a_prev = (nu_prev + sqrt(nu_prev ^ 2 + 4 * nu_prev * A_prev)) / 2;
     A = A_prev + a_prev;
     x_tilde_prev = (A_prev / A) * y_prev + (a_prev / A) * x_prev;
 
-    % Oracle at x_tilde_prev
+    % Oracle at x_tilde_prev.
     o_x_tilde_prev = oracle.eval(x_tilde_prev); 
     f_s_at_x_tilde_prev = o_x_tilde_prev.f_s();
     grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
 
-    % Oracle at y
+    % Oracle at y.
     y_prox_mult = nu / (1 + nu * mu);
     y_prox_ctr = x_tilde_prev - y_prox_mult * grad_f_s_at_x_tilde_prev;
     [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
@@ -225,13 +234,13 @@ function [model, history] = ACG(oracle, params)
     %% COMPUTE (u, η), Γ, and x.
     % ---------------------------------------------------------------------
            
-    % Compute x and u
+    % Compute x and u.
     x = 1 / (1 + mu * A) * ...
       (x_prev  - a_prev / nu * (x_tilde_prev - y) + ...
        mu * (A_prev * x_prev + a_prev * y));
     u = (x0 - x) / A;
 
-    % Compute eta
+    % Compute eta.
     if (strcmp(params.eta_type, 'recursive'))
       % -------- Gamma Function (recursive) --------
       gamma_at_x = ...
@@ -271,12 +280,12 @@ function [model, history] = ACG(oracle, params)
       error('Unknown eta type!');
     end
     
-    % NOTE: Gamma minorizes the function f := f_s + f_n
+    % NOTE: Gamma minorizes the function f := f_s + f_n.
         
-    % Compute eta
+    % Compute eta.
     exact_eta = eta;
     eta = max([0, exact_eta]);
-    % Check the negativity of eta in a relative sense
+    % Check the negativity of eta in a relative sense.
     if (termination_type == "aipp")
       relative_exact_eta = exact_eta / (norm_fn(u + x0 - y) ^ 2 / 2);
       if (relative_exact_eta < -INEQ_COND_ERR_TOL)
@@ -288,7 +297,7 @@ function [model, history] = ACG(oracle, params)
     %% CHECK INVARIANTS.
     % ---------------------------------------------------------------------
         
-    % Sufficient descent
+    % Sufficient descent.
     if (any(strcmp(termination_type, {'gd'})))
       large_gd = f_at_x0;
       small_gd = f_at_y + prod_fn(u, x0 - y) - eta;
@@ -296,11 +305,11 @@ function [model, history] = ACG(oracle, params)
       base = max([abs(large_gd), abs(small_gd), 0.01]);
       if (del_gd / base < -INEQ_COND_ERR_TOL)
         model.status = -1;
-        return;
+        break;
       end
     end
     
-    % Minorization
+    % Minorization.
     if (any(strcmp(termination_type, {'gd', 'aicg', 'd_aicg'})))
       small_gd = norm_fn(A * u + y - x0) ^ 2 + 2 * A * eta;
       large_gd = norm_fn(y - x0) ^ 2;
@@ -308,7 +317,7 @@ function [model, history] = ACG(oracle, params)
       base = max([abs(large_gd), abs(small_gd), 0.01]);
       if (del_gd / base < -INEQ_COND_ERR_TOL)
         model.status = -2;
-        return;
+        break;
       end
     end
     
@@ -316,19 +325,19 @@ function [model, history] = ACG(oracle, params)
     %% CHECK FOR TERMINATION.
     % ---------------------------------------------------------------------
     
-    % Termination for the AIPP method (Phase 1)
+    % Termination for the AIPP method (Phase 1).
     if (termination_type == "aipp")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2)
         break;
       end
       
-    % Termination for the AIPP method (Phase 2)
+    % Termination for the AIPP method (Phase 2).
     elseif (termination_type == "aipp_phase2")
       if (eta <= lambda * epsilon_bar)
         break;
       end
            
-    % Termination for the R-AIPP method
+    % Termination for the R-AIPP method.
     elseif (termination_type == "gd")
       phi_tilde_at_y = f_at_y - 1 / 2 * norm_fn(y - x0) ^ 2;
       phi_tilde_at_x0 = f_at_x0;
@@ -340,7 +349,7 @@ function [model, history] = ACG(oracle, params)
          break;
       end
       
-    % Termination for the AICG method
+    % Termination for the AICG method.
     elseif (termination_type == "aicg")
       % Helper variables
       phi_at_Z_approx = ...
@@ -360,13 +369,13 @@ function [model, history] = ACG(oracle, params)
         break;
       end
       
-    % Termination for the D-AICG method
+    % Termination for the D-AICG method.
     elseif (termination_type == "d_aicg")  
       if (norm_fn(u) ^ 2  + 2 * eta <= sigma ^ 2 * norm_fn(y - x0))
         break;
       end
 
-    % Unknown termination
+    % Unknown termination.
     else
       error(...
         ['Unknown termination conditions for termination_type = ', ...
@@ -377,7 +386,7 @@ function [model, history] = ACG(oracle, params)
     %% UPDATE VARIABLES.
     % ---------------------------------------------------------------------
        
-    % Update iterates
+    % Update iterates.
     if (strcmp(params.eta_type, 'recursive'))
       grad_gamma_at_x = ...
         1 / nu * (x_tilde_prev - y) + mu * (x - y);
@@ -412,7 +421,7 @@ function [model, history] = ACG(oracle, params)
     model.L_est = L;
   end
   
-  % Other outputs
+  % Other outputs.
   model.status = status;
   history.iter = iter;
   history.runtime = toc(t_start);
@@ -427,10 +436,10 @@ function out_nu = nu_fn(mu, L)
   out_nu = 1 / (L - mu);
 end
 
-% Fills in parameters that were not set as input
+% Fills in parameters that were not set as input.
 function params = set_default_params(params)
 
-  % Overwrite if necessary
+  % Overwrite if necessary.
   if (~isfield(params, 'eta_type'))
     params.eta_type = 'recursive';
   end

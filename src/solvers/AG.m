@@ -1,5 +1,7 @@
 %{
 
+DESCRIPTION
+-----------
 A variant of the accelerated gradient (AG) Method that is adapted from 
 the paper (Algorithm 2):
 
@@ -9,23 +11,26 @@ programming", DOI: 10.1007/s10107-015-0871-8.
 Specifically, this variant replaces the Lipschitz constant Lf with the
 upper curvature M.
 
-VERSION 1.0
------------
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong
 
-Input
-------
+INPUT
+-----
 oracle:
   An Oracle object.
 params:
-  Input parameters of this function.
+  A struct containing input parameters for this function.
 
-Output
+OUTPUT
 ------
 model:
-  A struct array containing model related outputs.
+  A struct containing model related outputs (e.g. solutions).
 history:
-  A struct array containing history (e.g. iteration counts, runtime, etc.)
-  related outputs.
+  A struct containing history related outputs (e.g. runtimes).
 
 %}
 

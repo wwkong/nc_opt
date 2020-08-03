@@ -1,16 +1,46 @@
-% By Jiaming 
+%{
+
+DESCRIPTION
+-----------
+The adaptive nonconvex FISTA (ADAP-NC-FISTA) method from the paper:
+
+"A FISTA-type accelerated gradient algorithm for solving smooth nonconvex 
+composite optimization problems", arXiv:1905.07010 [math.OC].
+
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong, Jiaming Liang
+
+INPUT
+-----
+oracle:
+  An Oracle object.
+params:
+  A struct containing input parameters for this function.
+
+OUTPUT
+------
+model:
+  A struct containing model related outputs (e.g. solutions).
+history:
+  A struct containing history related outputs (e.g. runtimes).
+
+%}
 
 function [model, history] = ADAP_FISTA(oracle, params)
 %  check curvature + adaptive xi               
 
-  % Timer start
+  % Timer start.
   t_start = tic;
   
-  % Stay consistent with the framework
+  % Stay consistent with the framework.
   [f_s, ~, grad_f_s, prox_f_n] = oracle.decompose();
   f = @(x) f_s(x);
       
-  % Main params
+  % Main params.
   z0 = params.x0;
   theta = 1.25;
   
@@ -19,7 +49,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
-  % Initialize other params
+  % Initialize other params.
   prod_fn = params.prod_fn;
   norm_fn = params.norm_fn;
   ell_f = @(a,b) f(b) + prod_fn(grad_f_s(b), a - b);
@@ -70,9 +100,9 @@ function [model, history] = ADAP_FISTA(oracle, params)
     scale = 100; % could play around with this parameter
     
     % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    % NOTE: x0 CANNOT BE ZERO SINCE x0 = 2 * x0
+    % NOTE: x0 CANNOT BE ZERO SINCE x0 = 2 * x0.
     % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if (sum(abs(x0)) == 0)
+    if (norm_fn(x0) == 0)
       error('x0 cannot be the zero vector!')
     end
     
@@ -89,7 +119,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
     
   end % End CURV.
 
-  % Use Jiaming's subroutine for choosing (lambda, xi)
+  % Use Jiaming's subroutine for choosing (lambda, xi).
   [lam, xi] = CURV(z0);
 
   % -----------------------------------------------------------------------
@@ -107,7 +137,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
       break;
     end
     
-    % Main updates
+    % Main updates.
     a = (1+sqrt(1+4*A))/2;
     ANext = A + a;
     tx = A/ANext*y + a/ANext*x;
@@ -123,12 +153,12 @@ function [model, history] = ADAP_FISTA(oracle, params)
     xNext = (a+xi*lam)/(xi*lam+1)*yNext - (a-1)/(xi*lam+1)*y;
     v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);
 
-    % Check for early termination
+    % Check for early termination.
     if (norm_fn(v) <= opt_tol)
       break
     end
     
-    % Update
+    % Update.
     y = yNext;
     A = ANext;
     x = xNext;
@@ -147,7 +177,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
   history.M = max(M,abs(MNext));
   history.runtime = toc(t_start);
 
-  % Count backtracking iterations
+  % Count backtracking iterations.
   history.iter = count;
   
 end

@@ -1,10 +1,38 @@
 %{
 
-The unified problem parameter free accelerated gradient (UPFAG) method 
-with full Barzilai-Borwein (BB) type stepsizes.
-
-VERSION 1.0
+DESCRIPTION
 -----------
+The unified problem parameter free accelerated gradient (UPFAG) method 
+with full Barzilai-Borwein (BB) type stepsizes from the paper:
+
+"Generalized uniformly optimal methods for nonlinear programming", Journal 
+of Scientific Computing.
+
+NOTES
+-----
+* This is a version of the file provided by Ghadimi, Lan, and Zhang, which 
+  was heavily edited to conform with the CompModel framework.
+
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Saeed Ghadimi, Guanghui Lan, Hongchao Zhang, Weiwei Kong
+
+INPUT
+-----
+oracle:
+  An Oracle object.
+params:
+  A struct containing input parameters for this function.
+
+OUTPUT
+------
+model:
+  A struct containing model related outputs (e.g. solutions).
+history:
+  A struct containing history related outputs (e.g. runtimes).
 
 %}
 

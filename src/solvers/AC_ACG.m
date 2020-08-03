@@ -1,7 +1,39 @@
-% By Jiaming Liang
+%{
+
+DESCRIPTION
+-----------
+The average curvature accelerated composite gradient (AC-ACG) method from
+the paper:
+
+"An Average Curvature Accelerated Composite Gradient Method for Nonconvex 
+Smooth Composite Optimization Problems", arXiv:1909.04248 [math.OC].
+
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong, Jiaming Liang
+
+INPUT
+-----
+oracle:
+  An Oracle object.
+params:
+  A struct containing input parameters for this function.
+
+OUTPUT
+------
+model:
+  A struct containing model related outputs (e.g. solutions).
+history:
+  A struct containing history related outputs (e.g. runtimes).
+
+%}
+
 function [model, history] = AC_ACG(oracle, params)
    
-  % Timer start
+  % Timer start.
   t_start = tic;
 
   % Initialize params.
@@ -29,7 +61,7 @@ function [model, history] = AC_ACG(oracle, params)
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
-  % Main loop
+  % Main loop.
   while true
     
     % If time is up, pre-maturely exit.
@@ -42,28 +74,28 @@ function [model, history] = AC_ACG(oracle, params)
       break;
     end
     
-    % Auxiliary updates
+    % Auxiliary updates.
     a = (1+sqrt(1+4*M*A))/2/M;
     ANext = A + a;
     tx = A/ANext*y + a/ANext*x;
     
-    % Oracle at x_tilde
+    % Oracle at x_tilde.
     o_at_tx = oracle.eval(tx);
     grad_tx = o_at_tx.grad_f_s();
     f_tx = o_at_tx.f_s();   
     
-    % Oracle at x_next
+    % Oracle at x_next.
     o_at_x_inter = oracle.eval(x - a * grad_tx);
     xNext = o_at_x_inter.prox_f_n(a);
     
-    % Oracle at y_next
+    % Oracle at y_next.
     o_at_y_inter = oracle.eval(tx - 1 / M * grad_tx);
     yNext = o_at_y_inter.prox_f_n(1 / M);
     o_at_yNext = oracle.eval(yNext);
     grad_yNext = o_at_yNext.grad_f_s();
     f_s_yNext = o_at_yNext.f_s();
     
-    % Main updates
+    % Main updates.
     v = M*(tx-yNext)+grad_yNext-grad_tx;    
     vnorm = norm_fn(v);
     C1 = 2*(f_s_yNext - f_tx - prod_fn(grad_tx,yNext-tx)) / ...
@@ -75,12 +107,12 @@ function [model, history] = AC_ACG(oracle, params)
         good = good + 1;
     end
     
-    % Check for termination of the method
+    % Check for termination of the method.
     if (vnorm < opt_tol)
         break;
     end
     
-    % Update iterates
+    % Update iterates.
     CSUM = CSUM + C;
     C_avg = CSUM / (iter + 1);
     MNext = 1 / alpha * C_avg;
@@ -91,7 +123,7 @@ function [model, history] = AC_ACG(oracle, params)
     iter = iter + 1;    
   end
   
-  % Post-processing
+  % Post-processing.
   model.x = y;     
   model.v = v;
   history.good = good;
@@ -100,10 +132,10 @@ function [model, history] = AC_ACG(oracle, params)
   
 end 
 
-% Fills in parameters that were not set as input
+% Fills in parameters that were not set as input.
 function params = set_default_params(params)
 
-  % Overwrite if necessary
+  % Overwrite if necessary.
   if (~isfield(params, 'alpha')) 
     % Based on the ACT in QP experiments in the AC paper.
     params.alpha = 0.5;

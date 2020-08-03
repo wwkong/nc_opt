@@ -1,9 +1,37 @@
-  function [model, history] = NC_FISTA(oracle, params)
-                            
-  % ===========================================
-  % --------------- Parse Input ---------------
-  % ===========================================
-   
+%{
+
+DESCRIPTION
+-----------
+The nonconvex FISTA (NC-FISTA) method from the paper:
+
+"A FISTA-type accelerated gradient algorithm for solving smooth nonconvex 
+composite optimization problems", arXiv:1905.07010 [math.OC].
+
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong, Jiaming Liang
+
+INPUT
+-----
+oracle:
+  An Oracle object.
+params:
+  A struct containing input parameters for this function.
+
+OUTPUT
+------
+model:
+  A struct containing model related outputs (e.g. solutions).
+history:
+  A struct containing history related outputs (e.g. runtimes).
+
+%}  
+
+function [model, history] = NC_FISTA(oracle, params)
+    
   % Timer start
   t_start = tic;
   

@@ -1,26 +1,38 @@
 %{
 
-Variants of the accelerated inexact proximal point (AIPP) method.
-
-Coded by: Weiwei (William) Kong
-
-VERSION 1.0
+DESCRIPTION
 -----------
+Variants of the accelerated inexact proximal point (AIPP) method from the
+papers:
 
-Input
-------
+"Complexity of a quadratic penalty accelerated inexact proximal point 
+method for solving linearly constrained nonconvex composite programs", 
+SIAM Journal on Optimization.
+
+"An efficient adaptive accelerated inexact proximal point method for 
+solving linearly constrained nonconvex composite problems",  Computational 
+Optimization and Applications.
+
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong
+
+INPUT
+-----
 oracle:
   An Oracle object.
 params:
-  Input parameters of this function.
+  A struct containing input parameters for this function.
 
-Output
+OUTPUT
 ------
 model:
-  A struct array containing model related outputs.
+  A struct containing model related outputs (e.g. solutions).
 history:
-  A struct array containing history (e.g. iteration counts, runtime, etc.)
-  related outputs.
+  A struct containing history related outputs (e.g. runtimes).
 
 %}
 

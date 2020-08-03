@@ -2,6 +2,30 @@
 classdef CompModel < handle
 
   % -----------------------------------------------------------------------
+  %% CONSTRUCTORS
+  % -----------------------------------------------------------------------
+  methods
+    function obj = CompModel(varargin)
+      
+      if (nargin == 0) % Default constructor
+        % Do nothing here
+      elseif (nargin == 1) % Oracle-based constructor
+        obj.oracle = varargin{1};
+        % Make sure we do not overwrite with empty functions during the
+        % optimization of the model.
+        obj.i_update_oracle = false;
+      elseif (nargin == 4) % Function-based constructor
+        obj.f_s = varargin{1};
+        obj.f_n = varargin{2};
+        obj.grad_f_s = varargin{3};
+        obj.prox_f_n = varargin{4};        
+      else
+        error('Incorrect number of arguments');
+      end    
+    end
+  end
+  
+  % -----------------------------------------------------------------------
   %% GLOBAL PROPERTIES
   % -----------------------------------------------------------------------  
   
@@ -11,6 +35,7 @@ classdef CompModel < handle
     grad_f_s
     f_n = @(x) zeros(size(x))
     prox_f_n = @(x, lam) x
+    oracle
     solver
     solver_hparams
     iter
@@ -37,7 +62,6 @@ classdef CompModel < handle
   properties (SetAccess = public, Hidden = true)
     m double {mustBeReal, mustBeFinite} = []
     M double {mustBeReal, mustBeFinite} = []
-    oracle
   end
   
   % Invisible and protected solver properties 
@@ -186,7 +210,7 @@ classdef CompModel < handle
       word_len = 16;
       prefix = ['%-' num2str(word_len) 's = '];
       fprintf('\n');
-      fprintf('» Model terminated successfully with: \n');
+      fprintf('» Model terminated with: \n');
       fprintf([prefix, '%s\n'], 'STATUS', obj.parse_status(obj.status));
       fprintf([prefix, '%.2e\n'], 'FUNCTION VALUE', obj.f_at_x);
       fprintf([prefix, '%.2e\n'], 'NORM OF V', obj.norm_of_v);
@@ -204,7 +228,7 @@ classdef CompModel < handle
     
     % Sub-update functions.
     function update_oracle(obj)
-      obj.oracle = Oracle(obj.f_s, obj.grad_f_s, obj.f_n, obj.prox_f_n);
+      obj.oracle = Oracle(obj.f_s, obj.f_n, obj.grad_f_s, obj.prox_f_n);
     end
     function update_curvatures(obj)
       if isempty(obj.M)

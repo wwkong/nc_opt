@@ -1,30 +1,37 @@
 %{
 
-The exact composite gradient (ECG) method.
+The well-known exact composite gradient (ECG) method with constant 
+stepsize. For reference, see the paper:
 
-VERSION 1.0
------------
+"Gradient methods for minimizing composite functions", Mathematical 
+Programming.
 
-Input
-------
+FILE DATA
+---------
+Last Modified: 
+  August 2, 2020
+Coders: 
+  Weiwei Kong
+
+INPUT
+-----
 oracle:
   An Oracle object.
 params:
-  Input parameters of this function.
+  A struct containing input parameters for this function.
 
-Output
+OUTPUT
 ------
 model:
-  A struct array containing model related outputs.
+  A struct containing model related outputs (e.g. solutions).
 history:
-  A struct array containing history (e.g. iteration counts, runtime, etc.)
-  related outputs.
+  A struct containing history related outputs (e.g. runtimes).
 
 %}
 
 function [model, history] = ECG(oracle, params)
 
-  % Timer start
+  % Timer start.
   t_start = tic;
   
   % Initialize params.
@@ -54,16 +61,16 @@ function [model, history] = ECG(oracle, params)
       break;
     end
     
-    % Oracle at xPrev
+    % Oracle at xPrev.
     o_xPrev = oracle.eval(x_prev);
     grad_f_s_at_x_prev = o_xPrev.grad_f_s();
     y_bar = x_prev - 1 / M * grad_f_s_at_x_prev;
     
-    % Oracle at yBar
+    % Oracle at yBar.
     o_yBar = oracle.eval(y_bar);
     x_bar = o_yBar.prox_f_n(1 / M);
     
-    % Oracle at xBar
+    % Oracle at xBar.
     o_xBar = oracle.eval(x_bar);
     grad_f_s_at_x_bar = o_xBar.grad_f_s();
     
@@ -79,13 +86,10 @@ function [model, history] = ECG(oracle, params)
     
   end
   
-  % Output runtime
-  runtime = toc(t_start);
-  
-  % Parse for outputs
+  % Parse outputs.
   model.x = x_bar;
   model.v = v_bar;
   history.iter = iter;
-  history.runtime = runtime;
+  history.runtime = toc(t_start);
   
 end
