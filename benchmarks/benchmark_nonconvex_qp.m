@@ -1,5 +1,5 @@
 % Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex
+% constrained to the unit simplex using MULTIPLE SOLVERS.
 
 % The function of interest is
 %
@@ -19,7 +19,6 @@ dimN = 30;
 
 % Create the Model object and specify the solver.
 ncvx_qp = CompModel(oracle);
-ncvx_qp.solver = @AIPP;
 
 % Set the curvatures and the starting point x0.
 ncvx_qp.M = hparams.M;
@@ -29,5 +28,7 @@ ncvx_qp.x0 = hparams.x0;
 % Use a relative termination criterion.
 ncvx_qp.opt_type = 'relative';
 
-% Solve the problem.
-ncvx_qp.optimize;
+% Run a benchmark test and print the summary.
+solver_arr = {@AIPP, @ECG, @AG};
+[summary_tables, comp_models] = run_benchmark(ncvx_qp, solver_arr, []);
+disp(summary_tables.all);

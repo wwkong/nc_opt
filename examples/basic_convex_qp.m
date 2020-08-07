@@ -16,5 +16,8 @@ cvx_qp.grad_f_s = @(x) x - 1;
 cvx_qp.L = 10;
 cvx_qp.x0 = 10;
 
+% Use a relative termination criterion.
+cvx_qp.opt_type = 'relative';
+
 % Solve the problem.
 cvx_qp.optimize;

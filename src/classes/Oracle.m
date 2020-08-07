@@ -106,6 +106,30 @@ classdef Oracle < handle
       obj.eval_proxy_fn = @(x) scaled_eval(x);
     end
     
+    % Add the smooth part of an input oracle to this oracle
+    function add_smooth_oracle(obj, input_oracle)
+      function combined_struct = combined_eval(x)
+        o_struct = obj.o_eval_proxy_fn(x);
+        input_struct = input_oracle.eval(x);
+        combined_struct = o_struct;
+        combined_struct.f_s = @() o_struct.f_s() + input_struct.f_s();
+        combined_struct.grad_f_s = @() ...
+          o_struct.grad_f_s() + input_struct.grad_f_s();
+        % Account for hidden oracles.
+        if isfield(o_struct, 'f_s_at_prox_f_n')
+          combined_struct.f_s_at_prox_f_n = @(lam) ...
+            o_struct.f_s_at_prox_f_n(lam) + ...
+            input_struct.f_s_at_prox_f_n(lam);
+        end
+        if isfield(o_struct, 'grad_f_s_at_prox_f_n')
+          combined_struct.grad_f_s_at_prox_f_n = @(lam) ...
+            o_struct.grad_f_s_at_prox_f_n(lam) + ...
+            input_struct.grad_f_s_at_prox_f_n(lam);
+        end
+      end
+      obj.eval_proxy_fn = @(x) combined_eval(x);
+    end
+    
     % Add a prox term to the oracle at a point x_hat, i.e. add the function
     % (1/2) |x - x_hat| ^ 2. 
     function add_prox(obj, x_hat)

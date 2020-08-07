@@ -38,8 +38,10 @@ classdef CompModel < handle
     oracle
     solver
     solver_hparams
-    iter
-    runtime
+    iter  int64 {mustBeReal, mustBeFinite} = 0
+    runtime double {mustBeReal, mustBeFinite} = 0.0
+    opt_type {mustBeMember(opt_type, {'relative', 'absolute'})} = ...
+      'absolute'
   end
   
   % Invisible global function properties.
@@ -67,6 +69,7 @@ classdef CompModel < handle
   % Invisible and protected solver properties 
   properties (SetAccess = protected, Hidden = true)
     solver_input_params
+    internal_opt_tol
   end
   
   % -----------------------------------------------------------------------
@@ -88,15 +91,17 @@ classdef CompModel < handle
   % Invisible model descriptors.
   properties (SetAccess = protected, Hidden = true)
     model
-    status (1,1) int32 {mustBeInteger} = 0
+    status (1,1) int32 {mustBeInteger} = 100
   end
   
   % Invisible model flags.
-  properties (SetAccess = protected, Hidden = true)
+  properties (SetAccess = public, Hidden = true)
     i_verbose (1,1) {mustBeNumericOrLogical} = true
+    i_reset (1,1) {mustBeNumericOrLogical} = true
     i_update_oracle (1,1) {mustBeNumericOrLogical} = true
     i_update_curvatures (1,1) {mustBeNumericOrLogical} = true
     i_update_solver_inputs (1,1) {mustBeNumericOrLogical} = true
+    i_update_tolerances (1,1) {mustBeNumericOrLogical} = true
   end
   
   % Invisible toleranace and limit properties.
@@ -120,76 +125,105 @@ classdef CompModel < handle
   % -----------------------------------------------------------------------
   
   % Static methods.
-  methods (Access = private, Static = true)
+  methods (Access = protected, Static = true)
     
     % Converts status codes into strings
     function status_string = parse_status(status_num)
       status_map = containers.Map('KeyType', 'int32', 'ValueType', 'char');
-      status_map(-1) = 'STATIONARITY_CONDITION_FAILED';
-      status_map(0)  = 'EMPTY_MODEL';
-      status_map(1)  = 'MODEL_LOADED';
-      status_map(2)  = 'STATIONARITY_ACHIEVED';
-      status_map(3)  = 'TIME_LIMIT_EXCEEDED';
-      status_map(4)  = 'ITER_LIMIT_EXCEEDED';
-      status_string  = status_map(status_num);
+      status_map(-101) = 'STATIONARITY_CONDITION_FAILED';
+      status_map(100)  = 'EMPTY_MODEL';
+      status_map(101)  = 'MODEL_LOADED';
+      status_map(102)  = 'STATIONARITY_ACHIEVED';
+      status_map(103)  = 'TIME_LIMIT_EXCEEDED';
+      status_map(104)  = 'ITER_LIMIT_EXCEEDED';
+      if isKey(status_map, status_num)
+        status_string = status_map(status_num);
+      else
+        status_string = [];
+      end
     end
   end % End static methods.
   
   % Ordinary methods.
   methods (Access = public)
+        
+    % ---------------------------------------------------------------------
+    %% MAIN OPTIMIZATION FUNCTIONS.
+    % ---------------------------------------------------------------------
     
-    % Initialization functions.
+    % Key subroutines.
     function reset(obj)
-      obj.iter = [];
-      obj.runtime = [];
+      obj.iter = 0;
+      obj.runtime = 0.0;
       obj.x = [];
       obj.v = [];
       obj.f_at_x = [];
       obj.norm_of_v = [];
     end
-    
-    % Optimization functions.
-    function optimize(obj)
-      
-        % Pre-processing.
+    function check_field(obj, fname)
+      if isempty(obj.(fname))
+        error(['Missing the required property: ', fname]);
+      end
+    end
+    function check_inputs(obj)
+      obj.check_field('solver');
+      obj.check_field('L');
+      obj.check_field('x0');
+    end
+    function pre_process(obj)
+      % Start a new job
+      if (obj.i_reset)
         obj.reset;
-        obj.update;
-        
-        % Solve the model.
-        if (obj.i_verbose)
-          obj.log_input;
-        end
-        [obj.model, obj.history] = ...
+      end
+      obj.update;
+      obj.check_inputs;
+    end
+    function call_solver(obj)
+      [obj.model, obj.history] = ...
           obj.solver(obj.oracle, obj.solver_input_params);
-        
-        % Post-processing.
-        obj.x = obj.model.x;
-        obj.v = obj.model.v;
-        o_at_x = obj.oracle.eval(obj.x);
-        obj.f_at_x = o_at_x.f_s() + o_at_x.f_n();
-        obj.norm_of_v = obj.norm_fn(obj.v);
-        if (obj.norm_of_v < obj.opt_tol)
-          obj.status = 2; % STATIONARITY_ACHIEVED
-        else
-          obj.status = -1; % STATIONARITY_CONDITION_FAILED
+    end
+    function get_status(obj)
+      % Main conditions
+      if (obj.norm_of_v <= obj.internal_opt_tol)
+        obj.status = 102; % STATIONARITY_ACHIEVED
+      else
+        obj.status = -101; % STATIONARITY_CONDITION_FAILED
+      end
+      % Limiting statuses
+      if isfield(obj.history, 'runtime')
+        obj.runtime = obj.runtime + obj.history.runtime;
+        if (obj.runtime >= obj.time_limit)
+          obj.status = 103; % TIME_LIMIT_EXCEEDED
         end
-        
-        % Status update.
-        if isfield(obj.history, 'runtime')
-          obj.runtime = obj.history.runtime;
-          if (obj.runtime >= obj.time_limit)
-            obj.status = 3; % TIME_LIMIT_EXCEEDED
-          end
+      end
+      if isfield(obj.history, 'iter')
+        obj.iter = obj.iter + obj.history.iter;
+        if (obj.iter >= obj.iter_limit)
+          obj.status = 104; % ITER_LIMIT_EXCEEDED
         end
-        if isfield(obj.history, 'iter')
-          obj.iter = obj.history.iter;
-          if (obj.iter >= obj.iter_limit)
-            obj.status = 4; % ITER_LIMIT_EXCEEDED
-          end
-        end
-        
-        % Log model state if necessary.
+      end
+    end
+    function post_process(obj)
+      obj.x = obj.model.x;
+      obj.v = obj.model.v;
+      o_at_x = obj.oracle.eval(obj.x);
+      obj.f_at_x = o_at_x.f_s() + o_at_x.f_n();
+      obj.norm_of_v = obj.norm_fn(obj.v);
+    end
+    
+    % Main wrapper to optimize the model.
+    function optimize(obj)
+        obj.pre_process;
         if (obj.i_verbose)
+          fprintf('\n');
+          obj.log_input;
+          fprintf('\n');
+        end
+        obj.call_solver;
+        obj.post_process;
+        obj.get_status;
+        if (obj.i_verbose)
+          fprintf('\n');
           obj.log_output;
           fprintf('\n');
         end
@@ -199,7 +233,6 @@ classdef CompModel < handle
     function log_input(obj)
       word_len = 8;
       prefix = ['%-' num2str(word_len) 's = '];
-      fprintf('\n');
       fprintf('» Solving model with: \n');
       fprintf([prefix, '%s\n'], 'SOLVER', func2str(obj.solver));
       fprintf([prefix, '%.2e\n'], 'L', obj.L);
@@ -209,21 +242,12 @@ classdef CompModel < handle
     function log_output(obj)
       word_len = 16;
       prefix = ['%-' num2str(word_len) 's = '];
-      fprintf('\n');
       fprintf('» Model terminated with: \n');
       fprintf([prefix, '%s\n'], 'STATUS', obj.parse_status(obj.status));
       fprintf([prefix, '%.2e\n'], 'FUNCTION VALUE', obj.f_at_x);
       fprintf([prefix, '%.2e\n'], 'NORM OF V', obj.norm_of_v);
-      if isempty(obj.runtime)
-        fprintf([prefix, 'UNKNOWN\n'], 'RUNTIME');
-      else
-        fprintf([prefix, '%.2e seconds\n'], 'RUNTIME', obj.runtime);
-      end      
-      if isempty(obj.iter)
-        fprintf([prefix, 'UNKNOWN\n'], 'ITERATION COUNT');
-      else
-        fprintf([prefix, '%.0f\n'], 'ITERATION COUNT', obj.iter);
-      end      
+      fprintf([prefix, '%.2e\n'], 'RUNTIME', obj.runtime);     
+      fprintf([prefix, '%.0f\n'], 'ITERATION COUNT', obj.iter);    
     end
     
     % Sub-update functions.
@@ -231,14 +255,15 @@ classdef CompModel < handle
       obj.oracle = Oracle(obj.f_s, obj.f_n, obj.grad_f_s, obj.prox_f_n);
     end
     function update_curvatures(obj)
-      if isempty(obj.M)
-        obj.M = obj.L;
-      end
-      if isempty(obj.m)
-        obj.m = obj.M;
-      end
       if (~isempty(obj.M) && ~isempty(obj.m))
         obj.L = max([abs(obj.m), abs(obj.M)]);
+      else
+        if isempty(obj.M)
+          obj.M = obj.L;
+        end
+      	if isempty(obj.m)
+          obj.m = obj.L;
+        end
       end
     end
     function update_solver_inputs(obj)
@@ -253,6 +278,16 @@ classdef CompModel < handle
         obj.solver_input_params.(NAME) = obj.(NAME);
       end
     end
+    function update_tolerances(obj)
+      obj.internal_opt_tol = obj.opt_tol;
+      if strcmp(obj.opt_type, 'relative')
+        o_at_x0 = obj.oracle.eval(obj.x0);
+        grad_f_s_at_x0 = o_at_x0.grad_f_s();
+        obj.internal_opt_tol = ...
+          obj.internal_opt_tol * (1 + obj.norm_fn(grad_f_s_at_x0));
+      end
+      obj.solver_input_params.opt_tol = obj.internal_opt_tol;
+    end
     
     % Update function.
     function update(obj)
@@ -265,15 +300,20 @@ classdef CompModel < handle
       if obj.i_update_solver_inputs
         obj.update_solver_inputs;
       end
-      obj.status = 1; % MODEL LOADED
+      if obj.i_update_tolerances
+        obj.update_tolerances;
+      end
+      obj.status = 101; % MODEL LOADED
     end
     
     % Viewing functions.
     function view_flags(obj)
       flags.i_verbose = obj.i_verbose;
+      flags.i_reset = obj.i_reset;
       flags.i_update_oracle = obj.i_update_oracle;
       flags.i_update_curvatures = obj.i_update_curvatures;
       flags.i_update_solver_inputs = obj.i_update_solver_inputs;
+      flags.i_update_tolerances = obj.i_update_tolerances;
       disp(flags);
     end
     function view_model_limits(obj)

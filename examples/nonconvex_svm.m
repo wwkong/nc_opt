@@ -20,10 +20,12 @@ ncvx_svm = CompModel(oracle);
 ncvx_svm.solver = @UPFAG;
 
 % Set the curvatures and the starting point x0.
-ncvx_svm.L = max([abs(hparams.M), abs(hparams.m)]);
 ncvx_svm.M = hparams.M;
 ncvx_svm.m = hparams.m;
 ncvx_svm.x0 = hparams.x0;
+
+% Use a relative termination criterion.
+ncvx_svm.opt_type = 'relative';
 
 % Solve the problem.
 ncvx_svm.optimize;
