@@ -8,10 +8,10 @@
 
 % Use a problem instance generator to create the oracle and 
 % hyperparameters.
-n = 200;
-k = 100;
+n = 500;
+k = 250;
 r = 50;
-density = 0.1;
+density = 0.05;
 seed = 777;
 [oracle, hparams] = test_fn_svm_01(n, k, seed, density, r);
 

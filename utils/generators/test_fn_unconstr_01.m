@@ -26,8 +26,8 @@ INPUT
 (N, M, m, seed, dimM, dimN):
   Input parameters as described in the function description.
 
-INPUT
------
+OUTPUT
+------
 oracle:
   An Oracle object.
 params:

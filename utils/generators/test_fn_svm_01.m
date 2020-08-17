@@ -74,19 +74,19 @@ end
 % centered at O with radius r.
 function Z = RandPtBall(n,k,r)
 
-% n = 3; % dimiension
-% k = 100000; % samples
-% r = 4; % radius
+  % n = 3; % dimiension
+  % k = 100000; % samples
+  % r = 4; % radius
 
-X = randn(n,k);
-for i = 1:k
-    X(:,i) = X(:,i)/norm(X(:,i));
-end
-U = rand(k,1);
-F = r*U.^(1/n);
-Z = zeros(n,k);
-for i = 1:k
-    Z(:,i) = X(:,i)*F(i);
-end
+  X = randn(n,k);
+  for i = 1:k
+      X(:,i) = X(:,i)/norm(X(:,i));
+  end
+  U = rand(k,1);
+  F = r*U.^(1/n);
+  Z = zeros(n,k);
+  for i = 1:k
+      Z(:,i) = X(:,i)*F(i);
+  end
 
 end

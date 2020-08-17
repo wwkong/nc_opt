@@ -40,7 +40,7 @@ function [model, history] = AIPP(oracle, params)
   
   % Start the timer.
   t_start = tic;
-                   
+  
   % -----------------------------------------------------------------------
   %% PRE-PROCESSING
   % -----------------------------------------------------------------------
@@ -163,9 +163,11 @@ function [model, history] = AIPP(oracle, params)
     %% ACG CALL AND POST-PROCESSING
     % ---------------------------------------------------------------------
     
-    % Set ACG oracle.
-    oracle_acg = oracle;
-    oracle_acg.proxify(lambda, z0);   
+    % Set up the ACG oracle. 
+    % NOTE: We need to explicitly call copy() because the 'Oracle' class
+    % inherits from the 'handle' class
+    oracle_acg = copy(oracle);
+    oracle_acg.proxify(lambda, z0);
     
     % Set ACG parameters.
     params_acg.lambda = lambda;
@@ -191,7 +193,7 @@ function [model, history] = AIPP(oracle, params)
         lambda = lambda / 2;
         continue;
       else
-        error('Convexity assumption violated for R-AIPPc variant!')
+        error('Convexity assumption violated for R-AIPPc method!')
       end     
     end
     
@@ -242,7 +244,7 @@ function [model, history] = AIPP(oracle, params)
     end
     
     % ---------------------------------------------------------------------
-    %% PURE AIPP PHASE II CHECK
+    %% ORIGINAL AIPP'S PHASE II CHECK
     % ---------------------------------------------------------------------
     if strcmp(aipp_type, 'aipp')
       if (norm_fn(model_acg.u + z0 - model_acg.y) <= lambda * opt_tol / 5)

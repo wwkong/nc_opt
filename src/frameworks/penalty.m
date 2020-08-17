@@ -51,10 +51,11 @@ function constr_comp_model = penalty(constr_comp_model)
   penalty_prox = @(x, lam) x;
   % Value of the feasibility function: 
   % feas(x) = |constr_fn(x) - set_projector(constr_fn(x))|. 
-  function feas = feas_fn(x)
-    constr_fval = constr_comp_model.constr_fn(x);
-    feas = constr_comp_model.norm_fn(...
-      constr_fval - constr_comp_model.set_projector(constr_fval));
+  function [feas, feas_vec] = feas_fn(x)
+    constr_fn_vec = constr_comp_model.constr_fn(x);
+    feas_vec = ...
+      constr_fn_vec - constr_comp_model.set_projector(constr_fn_vec);
+    feas = constr_comp_model.norm_fn(feas_vec);
   end
   % Value of the function (1 / 2) * feas(x) ^ 2.
   function sqr_feas = sqr_feas_fn(x)
@@ -63,19 +64,14 @@ function constr_comp_model = penalty(constr_comp_model)
   % Gradient of the function (1 / 2) * feas(x) ^ 2.
   function grad_sqr_feas = grad_sqr_feas_fn(x)
     grad_constr_fn = constr_comp_model.grad_constr_fn;
-    constr_fval = constr_comp_model.constr_fn(x);
-    feas_vec = ...
-      constr_fval - constr_comp_model.set_projector(constr_fval);
-    if isa(grad_constr_fn, 'function_handle')
-      grad_sqr_feas = grad_constr_fn(feas_vec);
-    else
-      grad_sqr_feas = grad_constr_fn * feas_vec;
-    end
+    [~, feas_vec] = feas_fn(x);
+    grad_sqr_feas = grad_constr_fn(feas_vec) * feas_vec;
   end
 
   % Initialize solver parameters.
   iter = 0;
   c = constr_comp_model.M / constr_comp_model.K_constr ^ 2;
+  constr_comp_model.update_tolerances;
 
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -96,10 +92,12 @@ function constr_comp_model = penalty(constr_comp_model)
     penalty_s = @(x) c * sqr_feas_fn(x);
     grad_penalty = @(x) c * grad_sqr_feas_fn(x);
     penalty_oracle = ...
-      Oracle(penalty_s, grad_penalty, penalty_n, penalty_prox);
+      Oracle(penalty_s, penalty_n, grad_penalty, penalty_prox);
     
     % Create the main oracle and update the model.
-    combined_oracle = o_oracle;
+    % NOTE: We need to explicitly call copy() because the 'Oracle' class
+    % inherits from the 'handle' class
+    combined_oracle = copy(o_oracle);
     combined_oracle.add_smooth_oracle(penalty_oracle)
     constr_comp_model.oracle = combined_oracle;
     
@@ -111,6 +109,8 @@ function constr_comp_model = penalty(constr_comp_model)
     
     % Call the solver.
     constr_comp_model.call_solver;
+    constr_comp_model.post_process;
+    constr_comp_model.get_status;
     
     % Check for termination.
     if (feas_fn(constr_comp_model.x) <= feas_tol)
@@ -119,15 +119,14 @@ function constr_comp_model = penalty(constr_comp_model)
     
     % Apply warm-start
     constr_comp_model.x0 = constr_comp_model.x;
-    
+
     % Update iterates.
     c = 2 * c;
-    iter = iter + 1;
-    
+    o_constr_comp_model.iter = ...
+      o_constr_comp_model.iter + constr_comp_model.iter;    
   end
   
   % Restore some original settings.
-%   constr_comp_model.M = o_constr_comp_model.M;
   constr_comp_model.update_curvatures;
   constr_comp_model.i_update_oracle = o_constr_comp_model.i_update_oracle;
   constr_comp_model.i_reset = o_constr_comp_model.i_reset;  

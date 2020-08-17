@@ -100,7 +100,7 @@ classdef ConstrCompModel < CompModel
       get_status@CompModel(obj)
       if (~ismember(obj.status, [103, 104]))
         if (obj.norm_of_v <= obj.internal_opt_tol && ...
-            obj.feas_at_x <= obj.internal_opt_tol)
+            obj.feas_at_x <= obj.internal_feas_tol)
           obj.status = 201; % ALL_STOPPING_CONDITONS_ACHIEVED
         elseif (obj.norm_of_v > obj.internal_opt_tol)
           obj.status = -101; % STATIONARITY_CONDITION_FAILED
@@ -154,7 +154,7 @@ classdef ConstrCompModel < CompModel
       obj.internal_feas_tol = obj.feas_tol;
       if strcmp(obj.feas_type, 'relative')
         obj.internal_feas_tol = ...
-          obj.internal_feas_tol * (1 + obj.compute_feas(x0));
+          obj.internal_feas_tol * (1 + obj.compute_feas(obj.x0));
       end
     end
     

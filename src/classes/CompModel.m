@@ -1,5 +1,6 @@
-% A class defintion for composite optimization models
-classdef CompModel < handle
+% A class defintion for composite optimization models; inherits from a 
+% copyable handle superclass.
+classdef CompModel < matlab.mixin.Copyable
   
   % -----------------------------------------------------------------------
   %% CONSTRUCTORS
