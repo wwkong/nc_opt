@@ -22,7 +22,7 @@ density = 0.025;
 
 % Create the Model object and specify the solver.
 ncvx_qsdp = CompModel(oracle);
-ncvx_qsdp.solver = @AIPP;
+ncvx_qsdp.solver = @AG;
 
 % Set the curvatures and the starting point x0.
 ncvx_qsdp.M = hparams.M;

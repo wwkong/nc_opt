@@ -1,3 +1,4 @@
 .gitignore
+*.asv
 *.prj
 resources/*

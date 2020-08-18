@@ -19,7 +19,7 @@ dimN = 30;
 
 % Create the Model object and specify the solver.
 ncvx_qp = CompModel(oracle);
-ncvx_qp.solver = @AIPP;
+ncvx_qp.solver = @ECG;
 
 % Set the curvatures and the starting point x0.
 ncvx_qp.M = hparams.M;

@@ -37,6 +37,7 @@ function [model, history] = ACG(oracle, params)
 
   % Set some ACG global tolerances.
   INEQ_COND_ERR_TOL = 1e-6;
+  CURV_TOL = 1e-6;
 
   % -----------------------------------------------------------------------
   %% PRE-PROCESSING
@@ -117,6 +118,9 @@ function [model, history] = ACG(oracle, params)
   else
       error('Unknown ACG steptype!');
   end
+  
+  % Safeguard against the case where (L == mu), i.e. nu = Inf.
+  L = max(L, mu + CURV_TOL);
   
   % Set up the oracle at x0
   o_x0 = oracle.eval(x0);

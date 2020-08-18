@@ -6,11 +6,9 @@ Generator of a test suite of unconstrained nonconvex QP functions.
 
 NOTES
 -----
-** xi and tau are chosen so that upper and lower curvatures are M and -m 
-   respectively
+** xi and tau are chosen so that the curvature pair is (M, m)
 ** Entries of A, B, and b are drawn randomly from a U(0, 1) distribution
-** D is a diagonal matrix with integer elements chosen at random 
-  from [1, N]
+** D is a diagonal matrix with integer elements from [1, N]
 ** Function is -xi / 2 * ||D * B * x|| ^ 2 + tau / 2 * ||A * x - b|| ^ 2 
 ** Gradient is -xi * B' * (D' * D) * B * x + tau * (A' * A * x - A' * b)
 

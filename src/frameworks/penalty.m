@@ -32,6 +32,9 @@ constr_comp_model:
 
 function constr_comp_model = penalty(constr_comp_model)
 
+  % Global constants.
+  MIN_PENALTY_CONST = 1;
+
   % Timer start.
   t_start = tic;
   
@@ -63,14 +66,30 @@ function constr_comp_model = penalty(constr_comp_model)
   end
   % Gradient of the function (1 / 2) * feas(x) ^ 2.
   function grad_sqr_feas = grad_sqr_feas_fn(x)
-    grad_constr_fn = constr_comp_model.grad_constr_fn;
     [~, feas_vec] = feas_fn(x);
-    grad_sqr_feas = grad_constr_fn(feas_vec) * feas_vec;
+    grad_constr_fn = constr_comp_model.grad_constr_fn;
+    %  If the gradient function has a single argument, assume that the
+    %  gradient at a point is a constant tensor.
+    if nargin(grad_constr_fn) == 1
+      grad_sqr_feas = ...
+        tsr_mult(grad_constr_fn(x), feas_vec, 'dual');
+    % Else, assume that the gradient is a bifunction; the first argument is
+    % the point of evaluation, and the second one is what the gradient
+    % operator acts on.
+    elseif nargin(grad_constr_fn) == 2
+      grad_sqr_feas = grad_constr_fn(x, feas_vec);
+    else
+      error(...
+        ['Unknown function prototype for the gradient of the ', ...
+         'constraint function']);
+    end
   end
 
   % Initialize solver parameters.
   iter = 0;
-  c = constr_comp_model.M / constr_comp_model.K_constr ^ 2;
+  c = max([...
+    MIN_PENALTY_CONST, ...
+    constr_comp_model.M / constr_comp_model.K_constr ^ 2]);
   constr_comp_model.update_tolerances;
 
   % -----------------------------------------------------------------------
@@ -96,7 +115,7 @@ function constr_comp_model = penalty(constr_comp_model)
     
     % Create the main oracle and update the model.
     % NOTE: We need to explicitly call copy() because the 'Oracle' class
-    % inherits from the 'handle' class
+    % inherits from the 'handle' class.
     combined_oracle = copy(o_oracle);
     combined_oracle.add_smooth_oracle(penalty_oracle)
     constr_comp_model.oracle = combined_oracle;

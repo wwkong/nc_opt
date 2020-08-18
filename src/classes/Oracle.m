@@ -40,7 +40,7 @@ classdef Oracle < matlab.mixin.Copyable
   end
   
   % Hidden secondary oracles.
-  properties (Access = protected)
+  properties (SetAccess = protected)
     f_s_at_prox_f_n
     f_n_at_prox_f_n
     grad_f_s_at_prox_f_n
@@ -117,9 +117,9 @@ classdef Oracle < matlab.mixin.Copyable
       obj.grad_f_s = @() oracle_outputs.grad_f_s();
       obj.prox_f_n = @(lam) oracle_outputs.prox_f_n(lam);
       % Add hidden oracles if they exist.
-      if isfield(oracle_outputs, 'grad_f_s_at_prox_f_n')
-        obj.grad_f_s_at_prox_f_n = ...
-          @(lam) oracle_outputs.grad_f_s_at_prox_f_n(lam);
+      if isfield(oracle_outputs, 'f_s_at_prox_f_n')
+        obj.f_s_at_prox_f_n = ...
+          @(lam) oracle_outputs.f_s_at_prox_f_n(lam);
       end
       if isfield(oracle_outputs, 'f_n_at_prox_f_n')
         obj.f_n_at_prox_f_n = ...
