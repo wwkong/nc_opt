@@ -2,4 +2,4 @@
 *.asv
 *.prj
 resources/*
-docs/_*
+docs/_build/*

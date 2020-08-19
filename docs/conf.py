@@ -17,12 +17,12 @@ import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
 
-project = 'NC-Opt'
+project = 'NC-OPT'
 copyright = '2020, Weiwei Kong'
 author = 'Weiwei Kong'
 
 # The full version, including alpha/beta/rc tags
-release = '2020-08-18'
+release = '2020-08-18 (alpha)'
 
 
 # -- General configuration ---------------------------------------------------
@@ -30,7 +30,7 @@ release = '2020-08-18'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.viewcode', 'sphinxcontrib.matlab', 'sphinx.ext.autodoc', 'sphinx_rtd_theme']
+extensions = ['sphinx.ext.viewcode', 'sphinxcontrib.matlab', 'sphinx.ext.autodoc', 'sphinx_rtd_theme', 'sphinx.ext.mathjax']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
