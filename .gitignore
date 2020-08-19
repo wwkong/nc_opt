@@ -3,3 +3,4 @@
 *.prj
 resources/*
 docs/_build/*
+todo_list.md
