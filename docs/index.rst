@@ -9,9 +9,9 @@ NC-OPT User Guide
 .. toctree::
     :numbered:
     :maxdepth: 2
-    :caption: NC-OPT User Guide
     :name: index    
 
     pages/license
     pages/introduction
+    pages/installation
     pages/api

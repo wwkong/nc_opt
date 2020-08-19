@@ -13,19 +13,16 @@ Currently, the following problems classes are supported:
 
 Instances of the above classes include *semidefinite programming*, *convex programming*, *cone programming*, *linear and quadratic programmin*, and *nonconvex programming*.
 
-Features
---------
+The components of NC-OPT can be split into the following categories.
 
-The features of NC-OPT can be split into the following categories.
+| **Oracles**
+| A class that abstracts the idea of a first-order oracle at a point. It contains any one of the following oracles: function value, function gradient, and proximal oracle.
 
-**Oracles**:
-A class that abstracts the idea of a first-order oracle at a point. It contains any one of the following oracles: function value, function gradient, and proximal oracle.
+| **Solvers**
+| A collection of composite optimzation solvers that solve the problem associated with a particular first-order oracle. Some examples include: composite gradient method, accelerated composite gradient method, accelerated inexact proximal point method.
 
-**Solvers**:
-A collection of optimzation solvers that solve the problem associated with a particular first-order oracle. Some examples include: composite gradient method, accelerated composite gradient method, accelerated inexact proximal point method.
+| **Frameworks**
+| A collection of constrained composite optimization frameworks that use a solver to solve a constrained composite optimization model. Some examples include: quadratic penalty framework, augmented Lagrangian framework, and dampened augmented Lagrangian framework.
 
-**Frameworks**:
-A collection of optimization frameworks that use a solver to solve a constrained composite optimization model. Some examples include: quadratic penalty framework, augmented Lagrangian framework, and dampened augmented Lagrangian framework.
-
-**Composite Models**:
-A class that abstracts the idea of a composite optimization model. It contains properties that describe various aspects of the model, including: objective function, constraint(s), solver(s), framework(s), tolerances, and logging.
+| **Composite Models**
+| A class that abstracts the idea of a composite optimization model. It contains properties that describe various aspects of the model, including: objective function, constraint(s), solver(s), framework(s), tolerances, and logging.
