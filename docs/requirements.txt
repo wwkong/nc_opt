@@ -1,3 +1,4 @@
 sphinx
 sphinxcontrib-matlabdomain
 sphinx_rtd_theme
+sphinx-math-dollar

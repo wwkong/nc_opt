@@ -28,21 +28,17 @@ While not enforced, it is assumed that the user will configure the model so that
 
 After constructing the model, one or more of the following components will then need to be specified, depending on the type of model created.
 
-Initial Point and :math:`L`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide: (a) an initial point :math:`x_0` in the domain of ``f_n``; and (b) the Lipschitz constant :math:`L` of the gradient of :math:`f_s`. These can be specified by setting the ``x0`` and ``L`` properties of the models.  
+| **Initial Point and** :math:`L`
+| For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide: (a) an initial point :math:`x_0` in the domain of ``f_n``; and (b) the Lipschitz constant :math:`L` of the gradient of :math:`f_s`. These can be specified by setting the ``x0`` and ``L`` properties of the models.  
 
-Oracle
-^^^^^^
-For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide a subset of the functions above or a first-order oracle, represented by an ``Oracle`` object, to the model. The first-order oracle has a method ``eval()`` which, when evaluated at point, returns information about the objective function at that point.
+| **Oracle**
+| For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide a subset of the functions above or a first-order oracle, represented by an ``Oracle`` object, to the model. The first-order oracle has a method ``eval()`` which, when evaluated at point, returns information about the objective function at that point.
 
-Solver
-^^^^^^
-For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide a composite optimization solver to the model. This solver takes an ``Oracle`` object and a ``struct`` object of hyperparameters as input, and outputs a solution associated the problem underlying the oracle.
+| **Solver**
+| For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide a composite optimization solver to the model. This solver takes an ``Oracle`` object and a ``struct`` object of hyperparameters as input, and outputs a solution associated the problem underlying the oracle.
 
-Framework
-^^^^^^^^^
-For ``ConstrCompModel`` objects, the user needs to provide a constrained optimization framework to the model. This framework takes a ``ConstrCompModel`` object as input, and outputs a solution associated the problem underlying the model.
+| **Framework**
+| For ``ConstrCompModel`` objects, the user needs to provide a constrained optimization framework to the model. This framework takes a ``ConstrCompModel`` object as input, and outputs a solution associated the problem underlying the model.
 
 Solving a Model
 ---------------

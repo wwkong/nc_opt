@@ -15,3 +15,4 @@ NC-OPT User Guide
     pages/introduction
     pages/installation
     pages/api
+    pages/oracles
