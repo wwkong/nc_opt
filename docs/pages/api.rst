@@ -38,7 +38,7 @@ After constructing the model, one or more of the following components will then 
 | For ``CompModel`` or ``ConstrCompModel`` objects, the user needs to provide a composite optimization solver to the model. This solver takes an ``Oracle`` object and a ``struct`` object of hyperparameters as input, and outputs a solution associated the problem underlying the oracle.
 
 | **Framework**
-| For ``ConstrCompModel`` objects, the user needs to provide a constrained optimization framework to the model. This framework takes a ``ConstrCompModel`` object as input, and outputs a solution associated the problem underlying the model.
+| For ``ConstrCompModel`` objects, the user needs to provide a constrained optimization framework to the model. This framework takes a solver function, ``Oracle`` object, and a ``struct`` of hyperparameters as input, and outputs a solution associated the problem underlying the oracle and hyperparameters.
 
 Solving a Model
 ---------------

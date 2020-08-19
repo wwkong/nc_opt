@@ -39,14 +39,17 @@ classdef CompModel < matlab.mixin.Copyable
     oracle
     solver
     solver_hparams
-    iter  int64 {mustBeReal, mustBeFinite} = 0
-    runtime double {mustBeReal, mustBeFinite} = 0.0
     opt_type {mustBeMember(opt_type, {'relative', 'absolute'})} = ...
       'absolute'
   end
+
+  properties (SetAccess = protected)
+    iter  int64 {mustBeReal, mustBeFinite} = 0
+    runtime double {mustBeReal, mustBeFinite} = 0.0
+  end
   
   % Invisible global function properties.
-  properties (Access = public, Hidden = true)
+  properties (Access = public)
     prod_fn = @(a,b) sum(dot(a, b))
     norm_fn = @(a) norm(a, 'fro')
   end
@@ -62,7 +65,7 @@ classdef CompModel < matlab.mixin.Copyable
   end
   
   % Invisible solver properties.
-  properties (SetAccess = public, Hidden = true)
+  properties (SetAccess = public)
     m double {mustBeReal, mustBeFinite} = []
     M double {mustBeReal, mustBeFinite} = []
   end

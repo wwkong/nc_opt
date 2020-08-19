@@ -16,3 +16,7 @@ NC-OPT User Guide
     pages/installation
     pages/api
     pages/oracles
+    pages/solvers
+    pages/frameworks
+    pages/models
+    pages/examples

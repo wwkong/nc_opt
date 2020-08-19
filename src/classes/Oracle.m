@@ -6,8 +6,7 @@ classdef Oracle < matlab.mixin.Copyable
   % -----------------------------------------------------------------------
   methods
     function obj = Oracle(varargin)
-      % The constructor for the Oracle class. Has two ways to initialize if 
-      % the arguments are nonempty: 
+      % The constructor for the Oracle class. Has two ways to initialize: 
       % **(i)** ``Oracle(f_s, f_n, grad_f_s, prox_f_n)`` creates an Oracle
       % object with the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
       % ``prox_f_n`` filled by the relevant input; and 

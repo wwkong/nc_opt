@@ -20,17 +20,23 @@ Coders:
 
 INPUT
 -----
-constr_comp_model:
-  An ConstrCompModel object.
+solver:
+  A solver for unconstrained composite optimization.
+oracle:
+  An Oracle object.
+params:
+  A struct containing input parameters for this function.
 
 OUTPUT
 ------
-constr_comp_model:
-  The optimized ConstrCompModel object from the input.
+model:
+  A struct containing model related outputs (e.g. solutions).
+history:
+  A struct containing history related outputs (e.g. runtimes).
 
 %}
 
-function constr_comp_model = penalty(constr_comp_model)
+function [model, history] = penalty(solver, oracle, params)
 
   % Global constants.
   MIN_PENALTY_CONST = 1;
@@ -39,15 +45,10 @@ function constr_comp_model = penalty(constr_comp_model)
   t_start = tic;
   
   % Initialize constant params.
-  feas_tol = constr_comp_model.internal_feas_tol;
-  time_limit = constr_comp_model.time_limit;
-  iter_limit = constr_comp_model.iter_limit;
-  o_constr_comp_model = constr_comp_model;
-  o_oracle = constr_comp_model.oracle;
-  
-  % Set the flags carefully.
-  constr_comp_model.i_update_oracle = false;
-  constr_comp_model.i_reset = false;  
+  feas_tol = params.feas_tol;
+  time_limit = params.time_limit;
+  iter_limit = params.iter_limit;
+  o_oracle = oracle;
   
   % Initialize helper functions.
   penalty_n = @(x) 0;
@@ -55,10 +56,10 @@ function constr_comp_model = penalty(constr_comp_model)
   % Value of the feasibility function: 
   % feas(x) = |constr_fn(x) - set_projector(constr_fn(x))|. 
   function [feas, feas_vec] = feas_fn(x)
-    constr_fn_vec = constr_comp_model.constr_fn(x);
+    constr_fn_vec = params.constr_fn(x);
     feas_vec = ...
-      constr_fn_vec - constr_comp_model.set_projector(constr_fn_vec);
-    feas = constr_comp_model.norm_fn(feas_vec);
+      constr_fn_vec - params.set_projector(constr_fn_vec);
+    feas = params.norm_fn(feas_vec);
   end
   % Value of the function (1 / 2) * feas(x) ^ 2.
   function sqr_feas = sqr_feas_fn(x)
@@ -67,7 +68,7 @@ function constr_comp_model = penalty(constr_comp_model)
   % Gradient of the function (1 / 2) * feas(x) ^ 2.
   function grad_sqr_feas = grad_sqr_feas_fn(x)
     [~, feas_vec] = feas_fn(x);
-    grad_constr_fn = constr_comp_model.grad_constr_fn;
+    grad_constr_fn = params.grad_constr_fn;
     %  If the gradient function has a single argument, assume that the
     %  gradient at a point is a constant tensor.
     if nargin(grad_constr_fn) == 1
@@ -87,10 +88,8 @@ function constr_comp_model = penalty(constr_comp_model)
 
   % Initialize solver parameters.
   iter = 0;
-  c = max([...
-    MIN_PENALTY_CONST, ...
-    constr_comp_model.M / constr_comp_model.K_constr ^ 2]);
-  constr_comp_model.update_tolerances;
+  solver_params = params;
+  c = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
 
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -116,38 +115,31 @@ function constr_comp_model = penalty(constr_comp_model)
     % Create the main oracle and update the model.
     % NOTE: We need to explicitly call copy() because the 'Oracle' class
     % inherits from the 'handle' class.
-    combined_oracle = copy(o_oracle);
-    combined_oracle.add_smooth_oracle(penalty_oracle)
-    constr_comp_model.oracle = combined_oracle;
+    solver_oracle = copy(o_oracle);
+    solver_oracle.add_smooth_oracle(penalty_oracle)
     
-    % Update curvatures and solver params.
-    constr_comp_model.M = ...
-      o_constr_comp_model.M + c * o_constr_comp_model.K_constr ^ 2;
-    constr_comp_model.update_curvatures;
-    constr_comp_model.update_solver_inputs;
-    
-    % Call the solver.
-    constr_comp_model.call_solver;
-    constr_comp_model.post_process;
-    constr_comp_model.get_status;
+    % Update curvatures and call the solver.
+    solver_params.M = params.M + c * params.K_constr ^ 2;
+    [solver_model, solver_history] = ...
+      solver(solver_oracle, solver_params);
     
     % Check for termination.
-    if (feas_fn(constr_comp_model.x) <= feas_tol)
+    if (feas_fn(solver_model.x) <= feas_tol)
       break;
     end
     
-    % Apply warm-start
-    constr_comp_model.x0 = constr_comp_model.x;
+    % Apply warm-start onto the initial point fed into the next iteration.
+    solver_params.x0 = solver_model.x;
 
     % Update iterates.
     c = 2 * c;
-    o_constr_comp_model.iter = ...
-      o_constr_comp_model.iter + constr_comp_model.iter;    
+    iter = iter + solver_history.iter;    
   end
   
-  % Restore some original settings.
-  constr_comp_model.update_curvatures;
-  constr_comp_model.i_update_oracle = o_constr_comp_model.i_update_oracle;
-  constr_comp_model.i_reset = o_constr_comp_model.i_reset;  
+  % Prepare to output
+  model = solver_model;
+  history = solver_history;
+  history.iter = iter;
+  history.runtime = toc(t_start);
   
 end

@@ -124,7 +124,8 @@ classdef ConstrCompModel < CompModel
         obj.log_input;
         fprintf('\n');
       end
-      obj = obj.framework(obj);
+      [obj.model, obj.history] = ...
+        obj.framework(obj.solver, obj.oracle, obj.solver_input_params);
       obj.post_process;
       obj.get_status;
       if (obj.i_verbose)
@@ -155,6 +156,18 @@ classdef ConstrCompModel < CompModel
       if strcmp(obj.feas_type, 'relative')
         obj.internal_feas_tol = ...
           obj.internal_feas_tol * (1 + obj.compute_feas(obj.x0));
+      end
+      obj.solver_input_params.feas_tol = obj.internal_feas_tol;
+    end
+    function update_solver_inputs(obj)
+      update_solver_inputs@CompModel(obj);
+      MAIN_INPUT_NAMES = {...
+        'K_constr', 'constr_fn', 'grad_constr_fn', 'set_projector'
+      };
+      % Create the input params (order is important here!)
+      for i=1:length(MAIN_INPUT_NAMES)
+        NAME = MAIN_INPUT_NAMES{i};
+        obj.solver_input_params.(NAME) = obj.(NAME);
       end
     end
     
