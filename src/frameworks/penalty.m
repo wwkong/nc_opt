@@ -1,16 +1,5 @@
 %{
 
-A penalty-based framework for solving a nonconvex composite optimization
-model with linear set constraints, i.e., 
-
-min  [phi(x) := f_s(x) + f_n(x)]
-s.t. (A * x) in S,
-
-where a projector onto S is readily available. The penalty parameter 'c'
-for this variant starts at c = M / ||A|| ^ 2 and a warm-start routine
-is applied for the starting point between cycles.
-
-
 FILE DATA
 ---------
 Last Modified: 
@@ -18,25 +7,36 @@ Last Modified:
 Coders: 
   Weiwei Kong
 
-INPUT
------
-solver:
-  A solver for unconstrained composite optimization.
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
-OUTPUT
-------
-model:
-  A struct containing model related outputs (e.g. solutions).
-history:
-  A struct containing history related outputs (e.g. runtimes).
-
 %}
 
 function [model, history] = penalty(solver, oracle, params)
+% A quadratic penalty-based framework for solving a nonconvex composite 
+% optimization model with linear set constraints, i.e., $g(x)=Ax$ where $A$ is
+% a linear operator.
+% 
+% Note:
+% 
+%   Based on the paper:
+%
+%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient adaptive 
+%   accelerated inexact proximal point method for solving linearly constrained 
+%   nonconvex composite problems. *Computational Optimization and 
+%   Applications, 76*\(2), 305-346. 
+%
+% Arguments:
+% 
+%   solver (function handle): A solver for unconstrained composite
+%     optimization.
+% 
+%   oracle (Oracle): The oracle underlying the optimization problem.
+% 
+%   params (struct): Contains instructions on how to call the framework.
+% 
+% Returns:
+%   
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
 
   % Global constants.
   MIN_PENALTY_CONST = 1;

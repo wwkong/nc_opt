@@ -12,9 +12,11 @@ Coders:
 function [model, history] = AIPP(oracle, params)
 % Variants of the accelerated inexact proximal point (AIPP) method
 % 
-% .. seealso:: **src.solvers.ACG**
+% See Also:
+%   
+%   **src.solvers.ACG**
 % 
-% .. note::
+% Note:
 % 
 %   Based on the papers:
 %
@@ -38,42 +40,42 @@ function [model, history] = AIPP(oracle, params)
 %
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
-%   params.aipp_type (character array): Specifies which AIPP variant to use.
+%   params.aipp_type (character vector): Specifies which AIPP variant to use.
 %     More specifically, 'aipp' is the AIPP method from [1], while 'aipp_c', 
 %     'aipp_v1', and 'aipp_v2' are the R-AIPPc, R-AIPPv1, and R-AIPPv2 methods
-%     from [2]. Default is 'aipp_v2'.
+%     from [2]. Defaults to ``'aipp_v2'``.
 %
 %   params.sigma (double): Determines the accuracy of the inner ACG call (see 
-%     $\sigma$ from [1]). Default is 0.3.
+%     $\sigma$ from [1]). Defaults to ``0.3``.
 %
 %   params.theta (double): Determines the accuracy of the inner R-ACG call 
-%     (see $\theta$ from [2]). Default is 4.
+%     (see $\theta$ from [2]). Defaults to ``4``.
 %
-%   params.acg_steptype (character array): Either "variable" or "constant". If
-%     it is "variable", then the ACG call employs a line search subroutine to 
-%     look for the appropriate upper curvature, with a starting estimate of 
-%     $L_0 = \lambda (M / 100) + 1$. If "constant", the no subroutine is 
-%     employed and the upper curvature remains fixed at $L_0 = \lambda M + 1$.
-%     Default is "variable". 
+%   params.acg_steptype (character vector): Is either "variable" or 
+%     "constant". If it is "variable", then the ACG call employs a line search 
+%     subroutine to look for the appropriate upper curvature, with a starting 
+%     estimate of $L_0 = \lambda (M / 100) + 1$. If "constant", then no 
+%     subroutine is employed and the upper curvature remains fixed at 
+%     $L_0 = \lambda M + 1$. Defaults to ``'variable'``. 
 %
 %   params.acg_ls_multiplier (double): Determines how quickly the line search 
 %     subroutine of the ACG call (multiplicatively) increases its estimate. 
-%     Default is 1.25.
+%     Defaults to ``1.25``.
 %
 %   params.lambda (double): The initial stepsize (see $\lambda$ from [2]). 
-%     Default is $1/m$.
+%     Defaults to ``1 / m``.
 %
 %   params.mu_fn (function handle): Determines the strong convexity parameter 
 %     $\mu$ given to the ACG call as a function of lambda, the stepsize.
-%     Default is ``@(lambda) 1``.
+%     Defaults to ``@(lambda) 1``.
 %
 %   params.tau_mult (double): An auxiliary parameter constant used to 
-%     determine the first value of $\tau$. Default is 10.
+%     determine the first value of $\tau$. Defaults to ``10``.
 %
 %   params.tau (double): A parameter constant that determines the accuracy of 
-%     the inner ACG call (see $\tau$ from [2, 3]). Default is $k_{\tau} 
-%     (\lambda_0 M + 1)$ where $\lambda_0$ is the initial stepsize and 
-%     $k_{\tau}$ is the constant in ``params.tau_mult``.
+%     the inner ACG call (see $\tau$ from [2, 3]). Defaults to ``tau_mult * 
+%     (lambda M + 1)`` where ``lambda`` is the initial stepsize and 
+%     ``tau_mult`` is the constant in ``params.tau_mult``.
 %
 % Returns:
 %   

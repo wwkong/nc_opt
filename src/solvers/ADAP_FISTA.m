@@ -13,9 +13,11 @@ function [model, history] = ADAP_FISTA(oracle, params)
 % The adaptive nonconvex fast iterative soft theresholding (ADAP-NC-FISTA)
 % method. 
 % 
-% .. seealso:: **src.solvers.NC_FISTA**
+% See Also:
+% 
+%   **src.solvers.NC_FISTA**
 %
-% .. note::
+% Note:
 % 
 %   Based on the paper (see the ADAP-NC-FISTA method):
 %
@@ -28,7 +30,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
 %   params.theta (double): Controls how the stepsize is updated (see $\theta$ 
-%     from the original paper). Default is 1.25.
+%     from the original paper). Defaults to ``1.25``.
 %
 % Returns: 
 %

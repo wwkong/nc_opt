@@ -13,9 +13,11 @@ function [model, history] = ACG(oracle, params)
 % An accelerated composite gradient (ACG) algorithm for use inside of the
 % accelerated inexact proximal point (AIPP) method.
 % 
-% .. seealso:: **src.solvers.AIPP**
+% See Also:
+%  
+%   **src.solvers.AIPP**
 %
-% .. note::
+% Note:
 % 
 %   Its iterates are generated according the paper:
 %

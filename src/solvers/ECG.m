@@ -13,12 +13,12 @@ Coders:
 function [model, history] = ECG(oracle, params)
 % The well-known exact composite gradient (ECG) method with constant stepsize.
 % 
-% .. note::
+% Note:
 % 
 %   For reference, see the paper:
 %
 %   Nesterov, Y. (2013). Gradient methods for minimizing composite functions. 
-%	*Mathematical Programming, 140*\(1), 125-161.
+%   *Mathematical Programming, 140*\(1), 125-161.
 %
 % Arguments:
 %
@@ -27,9 +27,8 @@ function [model, history] = ECG(oracle, params)
 % 	params (struct): Contains instructions on how to call the algorithm.
 %
 % Returns:
-%
-% 	A pair of structs containing model and history related outputs of the 
-%	  solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
 %
 
   % Timer start.

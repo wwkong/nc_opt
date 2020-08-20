@@ -12,11 +12,14 @@ Coders:
 function [model, history] = AG(oracle, params)
 % The accelerated gradient (AG) method. 
 %
-% .. seealso:: **src.solvers.UPFAG**
+% See Also: 
+%
+%   **src.solvers.UPFAG**
 % 
-% .. note::
+% Note:
 % 
-%   A variant of Algorithm 2 (with $M$ replacing $L_f$) from the paper:
+%   A variant of Algorithm 2 (with the upper curvature $M$ replacing the 
+%   Lipschitz constant $L_f$) from the paper:
 %
 %   Ghadimi, S., & Lan, G. (2016). Accelerated gradient methods for nonconvex 
 %   nonlinear and stochastic programming. *Mathematical Programming, 

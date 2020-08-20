@@ -12,7 +12,7 @@ Coders:
 function [model, history] = AC_ACG(oracle, params)
 % The average curvature accelerated composite gradient (AC-ACG) method. 
 %
-% .. note:: 
+% Note:
 %
 %   Based on the paper: 
 %
@@ -25,10 +25,10 @@ function [model, history] = AC_ACG(oracle, params)
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
 %   params.alpha (double): Controls the rate at which the upper curvature is 
-%     updated (see $\alpha$ from the original paper). Default is 0.5.
+%     updated (see $\alpha$ from the original paper). Defaults to ``0.5``.
 %
 %   params.gamma (double): Controls the rate at which the upper curvature is 
-%     updated (see $\gamma$ from the original paper). Default is 0.01.
+%     updated (see $\gamma$ from the original paper). Defaults to ``0.01``.
 %
 % Returns: 
 %

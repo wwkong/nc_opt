@@ -1,13 +1,109 @@
-% A class defintion for composite optimization models; inherits from a 
-% copyable handle superclass.
 classdef CompModel < matlab.mixin.Copyable
-  
+  % An abstract model class for composite optimization.
+  %
+  % Note:
+  % 
+  %   The following properties are necessary before the ``optimize()`` method
+  %   can be called to solve the model: either {``f_s``, ``grad_f_s``} or 
+  %   ``oracle``, ``L``, ``x0``, and ``solver``. 
+  %
+  % Attributes:
+  %
+  %   f_s (function handle): A one argument function that, when evaluated at 
+  %     a point $x$, outputs $f_s(x)$. Defaults to ``None``.
+  %
+  %   grad_f_s (function handle): A one argument function that, when evaluated 
+  %     at a point $x$, outputs $\nabla f_s(x)$. Defaults to ``None``.
+  %
+  %   f_n (function handle): A one argument function that, when evaluated at 
+  %     a point $x$, outputs $f_n(x)$. Defaults to ``@(x) zeros(size(x))``.
+  %
+  %   prox_f_n (function handle): A two argument function that, when evaluated
+  %     at $\{x,\lambda\}$, outputs $${\rm prox}_{\lambda f_n}(x) := 
+  %     {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$
+  %     Defaults to ``@(x, lam) x``.
+  %
+  %   L (double): A **required** Lipschitz constant of $\nabla f_s$.
+  %     Defaults to ``None``.
+  %
+  %   M (double): An **optional** upper curvature constant of $\nabla f_s$,
+  %     i.e., a constant satisfying $$f_s(z) - f_s(u) - \langle \nabla f_s(u), 
+  %     z - u \rangle \leq \frac{M}{2}\|u-z\|^2 \quad \forall u,z \in 
+  %     {\rm dom}\, f_n.$$
+  %     Defaults to ``None``.
+  %
+  %   m (double): An **optional** lower curvature constant of $\nabla f_s$,
+  %     i.e., a constant satisfying $$f_s(z) - f_s(u) - \langle \nabla f_s(u), 
+  %     z - u \rangle \geq -\frac{m}{2}\|u-z\|^2 \quad \forall u,z \in 
+  %     {\rm dom}\, f_n.$$
+  %     Defaults to ``None``.
+  %
+  %   x0 (double vector): A **required** starting point of the solver.
+  %     Defaults to ``None``.
+  %
+  %   oracle (Oracle): An **optional** oracle that may be given to the model, 
+  %     which will be passed to the solver if the flag i_update_oracle is 
+  %     False. Defaults to ``None``.
+  %
+  %   solver (function handle): A **required** function handle to a solver 
+  %     that solves unconstrained composite optimization problems (see 
+  %     src.solvers). Defaults to ``None``.
+  %
+  %   solver_hparams (struct): Contains additional hyperparameters that will
+  %     be given to the solver when it is called. Defaults to ``None``.
+  %
+  %   iter_limit (int): An upper bound on the total number of gradient/
+  %     function/proximal evaluations done by the solver. Defaults to
+  %     ``Inf``.
+  %
+  %   time_limit (double): An upper bound on the total time used by the solver.
+  %     Defaults is ``Inf``.
+  %
+  %   opt_tol (double): The tolerance for optimality, i.e., 
+  %     $\rho=\text{opt_tol}$. Defaults to ``1e-6``.
+  %
+  %   opt_type (character vector): Is either 'relative' or 'absolute'. If
+  %     it is 'absolute', then the optimality condition is $\|v\|\leq 
+  %     \text{opt_tol}$. If it is 'relative', then the optimality condition
+  %     is $\|v\|/[1+\nabla f_s(x_0)] \leq\text{opt_tol}$. Defaults to 
+  %     ``'absolute'``.
+  %
+  %   prod_fn (function handle): A two argument function that, when evaluated
+  %     at $\{a, b\}$, outputs the inner product $\langle a,b \rangle$. 
+  %     Defaults to the Euclidean inner product, i.e., 
+  %     ``@(a,b) sum(dot(a, b))``.
+  %
+  %   norm_fn (function handle): A one function that, when evaluated at a 
+  %     point $a$, outputs $\|a\|$. Defaults to the Frobenius norm, i.e., 
+  %     ``norm(a, 'fro')``.
+  %
+  %   iter (int): The number of gradient/function/proximal evaluations done
+  %     by the solver. Defaults to ``0``. This property cannot be set by the
+  %     user.
+  %
+  %   runtime (double): The total runtime used by the solver. Defaults to 
+  %     ``0.0``. This property cannot be set by the user.
+  %
+  %   x (double vector): The stationary point returned by the solver. Defaults
+  %     to ``None``. This property cannot be set by the user.
+  %
+  %   v (double vector): The stationarity residual returned by the solver.
+  %     Defaults to ``None``. This property cannot be set by the user.
+
   % -----------------------------------------------------------------------
   %% CONSTRUCTORS
   % -----------------------------------------------------------------------
   methods
     function obj = CompModel(varargin)
-      
+      % The constructor for the CompModel class. It has three ways to 
+      % initialize: **(i)** invoking ``CompModel`` creates a CompModel
+      % object with the default properties; **(ii)** invoking 
+      % ``CompModel(in_oracle)`` creates a CompModel object with the oracle 
+      % property set to the input oracle; and **(iii)** invoking
+      % ``CompModel(f_s, f_n, grad_f_s, prox_f_n)`` creates an 
+      % Oracle object with the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
+      % ``prox_f_n`` filled by the corresponding input.
+      %
       if (nargin == 0) % Default constructor
         % Do nothing here
       elseif (nargin == 1) % Oracle-based constructor
@@ -108,8 +204,8 @@ classdef CompModel < matlab.mixin.Copyable
     i_update_tolerances (1,1) {mustBeNumericOrLogical} = true
   end
   
-  % Invisible toleranace and limit properties.
-  properties (SetAccess = public, Hidden = true)
+  % Toleranace and limit properties.
+  properties (SetAccess = public)
     iter_limit (1,1) double {mustBeReal} = Inf
     time_limit (1,1) double {mustBeReal} = Inf
     opt_tol (1,1) double {mustBeReal, mustBePositive} = 1e-6
@@ -129,7 +225,7 @@ classdef CompModel < matlab.mixin.Copyable
   % -----------------------------------------------------------------------
   
   % Static methods.
-  methods (Access = protected, Static = true)
+  methods (Access = protected, Static = true, Hidden = true)
     
     % Converts status codes into strings
     function status_string = parse_status(status_num)
@@ -149,7 +245,7 @@ classdef CompModel < matlab.mixin.Copyable
   end % End static methods.
   
   % Ordinary methods.
-  methods (Access = public)
+  methods (Access = public, Hidden = true)
         
     % ---------------------------------------------------------------------
     %% MAIN OPTIMIZATION FUNCTIONS.
@@ -213,24 +309,6 @@ classdef CompModel < matlab.mixin.Copyable
       o_at_x = obj.oracle.eval(obj.x);
       obj.f_at_x = o_at_x.f_s() + o_at_x.f_n();
       obj.norm_of_v = obj.norm_fn(obj.v);
-    end
-    
-    % Main wrapper to optimize the model.
-    function optimize(obj)
-        obj.pre_process;
-        if (obj.i_verbose)
-          fprintf('\n');
-          obj.log_input;
-          fprintf('\n');
-        end
-        obj.call_solver;
-        obj.post_process;
-        obj.get_status;
-        if (obj.i_verbose)
-          fprintf('\n');
-          obj.log_output;
-          fprintf('\n');
-        end
     end
     
     % Logging functions.
@@ -310,8 +388,33 @@ classdef CompModel < matlab.mixin.Copyable
       obj.status = 101; % MODEL LOADED
     end
     
+  end
+  
+  % Public methods.
+  methods (Access = public)
+    
+    function optimize(obj)
+      % A zero argument function that, when evaluated, calls the model's 
+      % solver to solve the underlying optimization problem.
+      obj.pre_process;
+      if (obj.i_verbose)
+        fprintf('\n');
+        obj.log_input;
+        fprintf('\n');
+      end
+      obj.call_solver;
+      obj.post_process;
+      obj.get_status;
+      if (obj.i_verbose)
+        fprintf('\n');
+        obj.log_output;
+        fprintf('\n');
+      end
+    end
+    
     % Viewing functions.
     function view_flags(obj)
+      % Displays flags that control the behavior of ``optimize()``.
       flags.i_verbose = obj.i_verbose;
       flags.i_reset = obj.i_reset;
       flags.i_update_oracle = obj.i_update_oracle;
@@ -320,18 +423,14 @@ classdef CompModel < matlab.mixin.Copyable
       flags.i_update_tolerances = obj.i_update_tolerances;
       disp(flags);
     end
-    function view_model_limits(obj)
-      limits.iter_limit = obj.iter_limit;
-      limits.time_limit = obj.time_limit;
-      limits.opt_tol = obj.opt_tol;
-      disp(limits);
-    end
     function view_topology(obj)
+      % Displays functions related to the underlying inner product space.
       topo.norm_fn = obj.norm_fn;
       topo.prod_fn = obj.prod_fn;
       disp(topo);
     end
     function view_solution(obj)
+      % Displays metrics related to the obtained solution by the solver.
       solns.x = obj.x;
       solns.v = obj.v;
       solns.f_at_x = obj.f_at_x;
@@ -339,12 +438,14 @@ classdef CompModel < matlab.mixin.Copyable
       disp(solns);
     end
     function view_curvatures(obj)
+      % Displays the underlying curvatures.
       curvatures.L = obj.L;
       curvatures.M = obj.M;
       curvatures.m = obj.m;
       disp(curvatures);
     end
     function view_history(obj)
+      % Displays the history structure output by the solver.
       disp(obj.history);
     end
     

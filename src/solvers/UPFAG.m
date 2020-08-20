@@ -17,9 +17,11 @@ Coders:
 function [model, history] = UPFAG(oracle, params)
 % The unified problem-parameter free accelerated gradient (UPFAG) method.
 % 
-% .. seealso:: **src.solvers.AG**
+% See Also:
+%
+%   **src.solvers.AG**
 % 
-% .. note::
+% Note:
 % 
 %   Based on the paper (see the UPFAG-fullBB method):
 %

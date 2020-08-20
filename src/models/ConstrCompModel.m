@@ -1,6 +1,51 @@
-% A class defintion for constrained composite optimization models
 classdef ConstrCompModel < CompModel
-      
+  % An abstract model class for constrained composite optimization.
+  %
+  % Note:
+  % 
+  %   The following (non-inherited) properties are necessary before the 
+  %   ``optimize()`` method can be called to solve the model: ``framework``,
+  %   ``constr_fn``, ``grad_constr_fn``, ``set_projector``, and ``K_constr``.
+  % 
+  % Attributes:
+  %
+  %   framework (function handle): A **required** function handle to a
+  %     framework that solves constrained composite optimization problems (see
+  %     src.frameworks). Defaults to ``None``.
+  %
+  %   constr_fn (function handle): A **required** one argument function that,
+  %     when evaluated at a point $x$, returns the constraint function at that 
+  %     point, i.e., $g(x)$. Defaults to ``@(x) 0``.
+  %
+  %   grad_constr_fn (function handle): A **required** function that 
+  %     represents the gradient of the constraint function. Has two possible
+  %     prototypes: (i) a one argument function that, when evaluated at a
+  %     point $x$, returns $\nabla g(x)$; and (ii) a two argument function
+  %     that, when evaluated at $\{x, \delta\}$, returns $\nabla g(x) \delta$.
+  %     Defaults to ``@(x) zeros(size(x))``.
+  %
+  %   set_projector (function handle): A **required** one argument function
+  %     that, when evaluated at a point $x$, returns the projection of $x$
+  %     onto the set $S$. Defaults to ``None``.
+  %
+  %   K_constr: A **required** Lipschitz constant of the constraint function.
+  %     Defaults to ``None``.
+  %
+  %   feas_tol (double): The tolerance for feasibility, i.e., 
+  %     $\eta=\text{feas_tol}$. Defaults to ``1e-6``.
+  %
+  %   feas_type (character vector): Is either 'relative' or 'absolute'. If
+  %     it is 'absolute', then the optimality condition is $\|w\|\leq 
+  %     \text{opt_tol}$. If it is 'relative', then the optimality condition
+  %     is $\|w\|/(1 + {\cal F}) \leq\text{opt_tol}$ where ${\cal F} = \| 
+  %     g(x_0) - {\rm Proj}_S(g(x_0))\|$. Defaults to ``'absolute'``.
+  %
+  %   y (double vector): The Lagrange multiplier returned by the solver. 
+  %     Defaults to ``None``. This property cannot be set by the user.
+  %
+  %   w (double vector): The feasibility residual returned by the solver.
+  %     Defaults to ``None``. This property cannot be set by the user.
+
   % -----------------------------------------------------------------------
   %% GLOBAL PROPERTIES
   % -----------------------------------------------------------------------  
@@ -45,7 +90,7 @@ classdef ConstrCompModel < CompModel
   end
   
   % Invisible toleranace and limit properties.
-  properties (SetAccess = public, Hidden = true)
+  properties (SetAccess = public)
     feas_tol (1,1) double {mustBeReal, mustBePositive} = 1e-6
   end
     
@@ -54,7 +99,7 @@ classdef ConstrCompModel < CompModel
   % -----------------------------------------------------------------------
   
   % Static methods.
-  methods (Access = protected, Static = true)
+  methods (Access = protected, Static = true, Hidden = true)
     % Converts status codes into strings
     function status_string = parse_status(status_num)
       status_string = parse_status@CompModel(status_num);
@@ -77,7 +122,7 @@ classdef ConstrCompModel < CompModel
   
   
   % Ordinary methods.
-  methods (Access = public)
+  methods (Access = public, Hidden = true)
            
     % ---------------------------------------------------------------------
     %% MAIN OPTIMIZATION FUNCTIONS.
@@ -124,25 +169,6 @@ classdef ConstrCompModel < CompModel
       obj.w = obj.model.w;
       obj.norm_of_w = obj.norm_fn(obj.w);
     end
-    
-    % Main wrapper to optimize the model.
-    function optimize(obj)
-      obj.pre_process;
-      if (obj.i_verbose)
-        fprintf('\n');
-        obj.log_input;
-        fprintf('\n');
-      end
-      [obj.model, obj.history] = ...
-        obj.framework(obj.solver, obj.oracle, obj.solver_input_params);
-      obj.post_process;
-      obj.get_status;
-      if (obj.i_verbose)
-        fprintf('\n');
-        obj.log_output;
-        fprintf('\n');
-      end
-    end
 
     % Logging functions.
     function log_input(obj)
@@ -179,7 +205,50 @@ classdef ConstrCompModel < CompModel
         obj.solver_input_params.(NAME) = obj.(NAME);
       end
     end
+
+  end
+
+  % Public methods.
+  methods (Access = public)
     
+    % Main wrapper to optimize the model.
+    function optimize(obj)
+      obj.pre_process;
+      if (obj.i_verbose)
+        fprintf('\n');
+        obj.log_input;
+        fprintf('\n');
+      end
+      [obj.model, obj.history] = ...
+        obj.framework(obj.solver, obj.oracle, obj.solver_input_params);
+      obj.post_process;
+      obj.get_status;
+      if (obj.i_verbose)
+        fprintf('\n');
+        obj.log_output;
+        fprintf('\n');
+      end
+    end
+
+    % Viewing functions.
+    function view_solution(obj)
+      solns.x = obj.x;
+      solns.y = obj.y;
+      solns.v = obj.v;
+      solns.w = obj.w;
+      solns.f_at_x = obj.f_at_x;
+      solns.norm_of_v = obj.norm_of_v;
+      solns.norm_of_w = obj.norm_of_w;
+      disp(solns);
+    end
+    function view_curvatures(obj)
+      curvatures.L = obj.L;
+      curvatures.M = obj.M;
+      curvatures.m = obj.m;
+      curvatures.K_constr = obj.K_constr;
+      disp(curvatures);
+    end
+
   end % End ordinary methods.
 
 end % End of classdef

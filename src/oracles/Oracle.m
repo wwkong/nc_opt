@@ -1,16 +1,43 @@
 classdef Oracle < matlab.mixin.Copyable
-  % An oracle abstact class for unconstrained composite optimization.
-  
+  % An abstact oracle class for unconstrained composite optimization.
+  % 
+  % Attributes:
+  %
+  %   f_s (function handle): A zero argument function that, when evaluated, 
+  %     outputs $f_s(x)$. Defaults to ``None``.
+  %
+  %   grad_f_s (function handle): A zero argument function that, when 
+  %     evaluated, outputs $\nabla f_s(x)$. Defaults to ``None``.
+  %
+  %   f_n (function handle): A zero argument function that, when evaluated, 
+  %     outputs $f_n(x)$. Defaults to ``None``.
+  %
+  %   prox_f_n (function handle): A one argument function that, when evaluated 
+  %     at $\lambda$, outputs $${\rm prox}_{\lambda f_n}(x) := 
+  %     {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$
+  %     Defaults to ``None``.
+  %
+  %   prod_fn (function handle): A two argument function that, when evaluated
+  %     at $\{a, b\}$, outputs the inner product $\langle a,b \rangle$. 
+  %     Defaults to the Euclidean inner product, i.e., 
+  %     ``@(a,b) sum(dot(a, b))``.
+  %
+  %   norm_fn (function handle): A one function that, when evaluated at a 
+  %     point $a$, outputs $\|a\|$. Defaults to the Frobenius norm, i.e., 
+  %     ``norm(a, 'fro')``.
+  %  
+
+
   % -----------------------------------------------------------------------
   %% CONSTRUCTORS
   % -----------------------------------------------------------------------
   methods
     function obj = Oracle(varargin)
-      % The constructor for the Oracle class. Has two ways to initialize: 
-      % **(i)** ``Oracle(f_s, f_n, grad_f_s, prox_f_n)`` creates an Oracle
-      % object with the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
-      % ``prox_f_n`` filled by the relevant input; and 
-      % **(ii)** ``Oracle(eval_fn)`` creates an Oracle object which, 
+      % The constructor for the Oracle class. It has two ways to initialize: 
+      % **(i)** invoking ``Oracle(f_s, f_n, grad_f_s, prox_f_n)`` creates an 
+      % Oracle object with the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
+      % ``prox_f_n`` filled by the corresponding input; and 
+      % **(ii)** invoking ``Oracle(eval_fn)`` creates an Oracle object which, 
       % when evaluated at a point $x$, updates the properties ``f_s``, 
       % ``f_n``, ``grad_f_s``, and ``prox_f_n`` as follows:
       %
@@ -40,15 +67,15 @@ classdef Oracle < matlab.mixin.Copyable
   % -----------------------------------------------------------------------
   
   properties (SetAccess = public)
-    f_s % A zero argument function that, when evaluated, outputs $f_s(x)$.
-    grad_f_s % A zero argument function that, when evaluated, outputs $\nabla f_s(x)$.
-    f_n % A zero argument function that, when evaluated, outputs $f_n(x)$.
-    prox_f_n % A single argument function that takes in an argument $\lambda$ and outputs $${\rm prox}_{\lambda f_n}(x) := {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$
+    f_s 
+    grad_f_s 
+    f_n
+    prox_f_n 
   end
   
   properties (Access = public)
-    prod_fn = @(a,b) sum(dot(a, b)) % A function that takes in arguments ``{a, b}`` and outputs the inner product $\langle a,b \rangle$. Defaults to the Euclidean inner product.
-    norm_fn = @(a) norm(a, 'fro') % A function that takes in one argument ``a`` and outputs the norm $\|a\|$. Defaults to the Frobenius norm.
+    prod_fn = @(a,b) sum(dot(a, b))
+    norm_fn = @(a) norm(a, 'fro') 
   end
   
   % Evaluator oracles.

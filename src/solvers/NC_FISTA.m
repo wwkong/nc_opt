@@ -12,9 +12,11 @@ Coders:
 function [model, history] = NC_FISTA(oracle, params)
 % The nonconvex fast iterative soft theresholding (ADAP-NC-FISTA) method. 
 % 
-% .. seealso:: **src.solvers.ADAP_FISTA**
+% See Also:
+%
+% **src.solvers.ADAP_FISTA**
 % 
-% .. note::
+% Note:
 % 
 %   Based on the paper (see the NC-FISTA method):
 %
@@ -27,10 +29,10 @@ function [model, history] = NC_FISTA(oracle, params)
 %   oracle (Oracle): The oracle underlying the optimization problem. 
 %
 %   params.lambda (double): The first stepsize used by the method (see 
-%     $\lambda$ from the original paper). Default is $0.99 / L$.
+%     $\lambda$ from the original paper). Defaults to ``0.99 / L``.
 %
 %   params.xi (double): Determines $A_0$ from the original paper (see $\xi$
-%     from the original paper). Default is $1.05 m$.
+%     from the original paper). Defaults to ``1.05 * m``.
 %
 % Returns: 
 %   
