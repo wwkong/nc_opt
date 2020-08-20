@@ -35,7 +35,7 @@ function [model, history] = AIPP(oracle, params)
 % :arg params.theta:
 %   A parameter constant that determines the accuracy of the inner R-ACG call (see $\theta$ from [2]). Default is 4.
 % :arg params.acg_steptype:
-%   A character array that is either "variable" or "constant". If is "variable", then the ACG call employs a line search subroutine to look for the appropriate upper curvature, with a starting estimate of $L_0 = \lambda (M / 100) + 1$. If "constant", the no subroutine is employed and the upper curvature remains fixed at $L_0 = \lam M + 1$. Default is "variable". 
+%   A character array that is either "variable" or "constant". If is "variable", then the ACG call employs a line search subroutine to look for the appropriate upper curvature, with a starting estimate of $L_0 = \lambda (M / 100) + 1$. If "constant", the no subroutine is employed and the upper curvature remains fixed at $L_0 = \lambda M + 1$. Default is "variable". 
 % :arg params.acg_ls_multiplier:
 %   A parameter constant that determines how quickly the line search subroutine of the ACG call increases its estimate. Default is 1.25.
 % :arg params.lambda:
