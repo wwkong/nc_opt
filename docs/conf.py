@@ -76,6 +76,4 @@ html_logo = None
 html_static_path = ['_static']
 
 # --- LaTeX options ----------------------------------------------------------
-latex_elements = {
-  'extraclassoptions': 'openany,oneside'
-}
+
