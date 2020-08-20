@@ -74,3 +74,8 @@ html_logo = None
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# --- LaTeX options ----------------------------------------------------------
+latex_elements = {
+  'extraclassoptions': 'openany,oneside'
+}
