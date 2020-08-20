@@ -10,10 +10,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
-sys.path.insert(0, os.path.abspath('.'))
+import sys, os
 import sphinx_rtd_theme
+sys.path.insert(0, os.path.abspath('.'))
 
 # -- Project information -----------------------------------------------------
 
@@ -28,6 +27,9 @@ version = '0.1a1'
 
 
 # -- General configuration ---------------------------------------------------
+
+# The name of the Pygments (syntax highlighting) style to use.
+pygments_style = 'sphinx'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -65,6 +67,8 @@ autodoc_member_order = 'bysource'
 #
 html_theme = 'sphinx_rtd_theme'
 html_title = "NC-OPT User Guide"
+html_short_title = "User Guide"
+html_logo = None
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

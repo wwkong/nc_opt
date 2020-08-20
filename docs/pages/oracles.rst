@@ -8,4 +8,3 @@ This section documents the constructors, properties, and methods of the ``Oracle
 .. autoclass:: Oracle
     :members:
     :show-inheritance:
-    :undoc-members:
