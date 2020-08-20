@@ -16,16 +16,25 @@ function [model, history] = AC_ACG(oracle, params)
 %
 %   Based on the paper: 
 %
-%   Liang, J., & Monteiro, R. D. (2019). An average curvature accelerated composite gradient method for nonconvex smooth composite optimization problems. *arXiv preprint arXiv:1909.04248*.
+%   Liang, J., & Monteiro, R. D. (2019). An average curvature accelerated 
+%   composite gradient method for nonconvex smooth composite optimization 
+%   problems. *arXiv preprint arXiv:1909.04248*.
 %
-% :arg oracle:
-%   An Oracle object.
-% :arg params.alpha:
-%   A parameter constant that controls the rate at which the upper curvature is updated (see $\alpha$ from the original paper). Default is 0.5.
-% :arg params.gamma:
-%   A parameter constant that controls the rate at which the upper curvature is updated (see $\gamma$ from the original paper). Default is 0.01.
+% Arguments:
 %
-% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
+%   oracle (Oracle): The oracle underlying the optimization problem.
+%
+%   params.alpha (double): Controls the rate at which the upper curvature is 
+%     updated (see $\alpha$ from the original paper). Default is 0.5.
+%
+%   params.gamma (double): Controls the rate at which the upper curvature is 
+%     updated (see $\gamma$ from the original paper). Default is 0.01.
+%
+% Returns: 
+%
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
    
   % Timer start.
   t_start = tic;

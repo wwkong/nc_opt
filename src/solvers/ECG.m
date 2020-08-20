@@ -17,14 +17,20 @@ function [model, history] = ECG(oracle, params)
 % 
 %   For reference, see the paper:
 %
-%   Nesterov, Y. (2013). Gradient methods for minimizing composite functions. *Mathematical Programming, 140*\(1), 125-161.
+%   Nesterov, Y. (2013). Gradient methods for minimizing composite functions. 
+%	*Mathematical Programming, 140*\(1), 125-161.
 %
-% :arg oracle:
-%   An Oracle object.
-% :arg params:
-%   A parameter struct containing instructions on how to call the algorithm.
+% Arguments:
 %
-% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
+% 	oracle (Oracle): The oracle underlying the optimization problem.
+%
+% 	params (struct): Contains instructions on how to call the algorithm.
+%
+% Returns:
+%
+% 	A pair of structs containing model and history related outputs of the 
+%	  solved problem associated with the oracle and input parameters.
+%
 
   % Timer start.
   t_start = tic;

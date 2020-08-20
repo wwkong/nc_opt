@@ -18,14 +18,21 @@ function [model, history] = AG(oracle, params)
 % 
 %   A variant of Algorithm 2 (with $M$ replacing $L_f$) from the paper:
 %
-%   Ghadimi, S., & Lan, G. (2016). Accelerated gradient methods for nonconvex nonlinear and stochastic programming. *Mathematical Programming, 156*\(1-2), 59-99.
+%   Ghadimi, S., & Lan, G. (2016). Accelerated gradient methods for nonconvex 
+%   nonlinear and stochastic programming. *Mathematical Programming, 
+%   156*\(1-2), 59-99.
 %
-% :arg oracle:
-%   An Oracle object.
-% :arg params:
-%   A parameter struct containing instructions on how to call the algorithm.
+% Arguments:
 %
-% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
+%   oracle (Oracle): The oracle underlying the optimization problem.
+%
+%   params (struct): Contains instructions on how to call the algorithm.
+%
+% Returns:
+%   
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
 
   % Timer start
   t_start = tic;

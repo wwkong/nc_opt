@@ -3,7 +3,7 @@ Models
 
 This section documents the constructors, properties, and methods of the ``CompModel`` and ``ConstrCompModel`` objects.
 
-.. automodule:: src.classes
+.. automodule:: src.models
 
 .. autoclass:: CompModel
     :members:

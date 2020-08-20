@@ -57,7 +57,7 @@ for a given tolerance :math:`\rho \in {\mathbb R}_{++}`. For constrained problem
 
   \begin{gather}
       v \in \nabla f_s(x) + \partial f_n(x) + \nabla g(x) y, \\
-      \quad x \in {\rm dom}\, f_n, \quad y \in S^{*} \quad \|v\| \leq \rho, \quad \|w\| \leq \eta, \\
+      \quad x \in {\rm dom}\, f_n, \quad \|v\| \leq \rho, \quad \|w\| \leq \eta, \\
       \left\langle g(x) + w, y\right\rangle = 0, \quad g(x) + w \in S,
   \end{gather}
 
@@ -90,4 +90,4 @@ Below is a simple example for solving the unconstrained convex optimization prob
     % Solve the problem.
     cvx_qp.optimize;
 
-The complete code for this example can be found in ``examples/unconstrained/basic_convex_qp.m``.
+The complete code for this example can be found in ``./nc_opt/examples/unconstrained/basic_convex_qp.m``.

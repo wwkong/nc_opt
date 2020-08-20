@@ -33,9 +33,15 @@ classdef ConstrCompModel < CompModel
   %% MODEL-RELATED PROPERTIES
   % -----------------------------------------------------------------------
   
- % Invisible model properties.
+  % Visible model properties.
+  properties (SetAccess = protected)
+    y double {mustBeReal, mustBeFinite}
+    w double {mustBeReal, mustBeFinite}
+  end
+  
+  % Invisible model properties.
   properties (SetAccess = protected, Hidden = true)
-    feas_at_x double {mustBeReal, mustBeFinite}
+    norm_of_w double {mustBeReal, mustBeFinite}
   end
   
   % Invisible toleranace and limit properties.
@@ -72,22 +78,23 @@ classdef ConstrCompModel < CompModel
   
   % Ordinary methods.
   methods (Access = public)
-    
-    % Compute the linear feasibility at a point
-    function feas = compute_feas(obj, x)
-      feas = obj.norm_fn(...
-        obj.constr_fn(x) - ...
-        obj.set_projector(obj.constr_fn(x)));
-    end
            
     % ---------------------------------------------------------------------
     %% MAIN OPTIMIZATION FUNCTIONS.
     % ---------------------------------------------------------------------
     
+    % Compute the feasibility at a point
+    function feas = compute_feas(obj, x)
+      feas = obj.norm_fn(...
+        obj.constr_fn(x) - ...
+        obj.set_projector(obj.constr_fn(x)));
+    end
+    
     % Key subroutines.
     function reset(obj)
       reset@CompModel(obj);
-      obj.feas_at_x = [];
+      obj.y = [];
+      obj.w = [];
     end
     function check_inputs(obj)
       check_inputs@CompModel(obj);
@@ -100,11 +107,11 @@ classdef ConstrCompModel < CompModel
       get_status@CompModel(obj)
       if (~ismember(obj.status, [103, 104]))
         if (obj.norm_of_v <= obj.internal_opt_tol && ...
-            obj.feas_at_x <= obj.internal_feas_tol)
+            obj.norm_of_w <= obj.internal_feas_tol)
           obj.status = 201; % ALL_STOPPING_CONDITONS_ACHIEVED
         elseif (obj.norm_of_v > obj.internal_opt_tol)
           obj.status = -101; % STATIONARITY_CONDITION_FAILED
-        elseif (obj.feas_at_x > obj.internal_feas_tol)
+        elseif (obj.norm_of_w > obj.internal_feas_tol)
           obj.status = -201; % FEASIBILITY_CONDITION_FAILED
         else
           obj.status = -202; % ALL_STOPPING_CONDITONS_FAILED
@@ -113,7 +120,9 @@ classdef ConstrCompModel < CompModel
     end
     function post_process(obj)
       post_process@CompModel(obj)
-      obj.feas_at_x = obj.compute_feas(obj.x);
+      obj.y = obj.model.y;
+      obj.w = obj.model.w;
+      obj.norm_of_w = obj.norm_fn(obj.w);
     end
     
     % Main wrapper to optimize the model.
@@ -146,7 +155,7 @@ classdef ConstrCompModel < CompModel
       log_output@CompModel(obj);
       word_len = 16;
       prefix = ['%-' num2str(word_len) 's = '];
-      fprintf([prefix, '%.2e\n'], 'FEASIBILITY', obj.feas_at_x);
+      fprintf([prefix, '%.2e\n'], 'NORM OF W', obj.norm_of_w);
     end
     
     % Sub-update functions.

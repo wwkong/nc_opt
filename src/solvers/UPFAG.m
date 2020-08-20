@@ -23,14 +23,21 @@ function [model, history] = UPFAG(oracle, params)
 % 
 %   Based on the paper (see the UPFAG-fullBB method):
 %
-%   Ghadimi, S., Lan, G., & Zhang, H. (2019). Generalized uniformly optimal methods for nonlinear programming. *Journal of Scientific Computing, 79*\(3), 1854-1881.
+%   Ghadimi, S., Lan, G., & Zhang, H. (2019). Generalized uniformly optimal 
+%   methods for nonlinear programming. *Journal of Scientific Computing, 
+%   79*\(3), 1854-1881.
 %
-% :arg oracle:
-%   An Oracle object.
-% :arg params:
-%   A parameter struct containing instructions on how to call the algorithm.
+% Arguments:
 %
-% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
+%   oracle (Oracle): The oracle underlying the optimization problem.
+%
+%   params (struct): Contains instructions on how to call the algorithm.
+%
+% Returns: 
+%
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
  
   % Timer start
   t_start = tic;

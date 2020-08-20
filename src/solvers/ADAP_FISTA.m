@@ -10,7 +10,8 @@ Coders:
 %}
 
 function [model, history] = ADAP_FISTA(oracle, params)
-% The adaptive nonconvex fast iterative soft theresholding (ADAP-NC-FISTA) method. 
+% The adaptive nonconvex fast iterative soft theresholding (ADAP-NC-FISTA)
+% method. 
 % 
 % .. seealso:: **src.solvers.NC_FISTA**
 %
@@ -18,14 +19,22 @@ function [model, history] = ADAP_FISTA(oracle, params)
 % 
 %   Based on the paper (see the ADAP-NC-FISTA method):
 %
-%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated gradient algorithm for solving smooth nonconvex composite optimization problems. *arXiv preprint arXiv:1905.07010*.
+%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated 
+%   gradient algorithm for solving smooth nonconvex composite optimization 
+%   problems. *arXiv preprint arXiv:1905.07010*.
 %
-% :arg oracle:
-%   An Oracle object.
-% :arg params.theta:
-%   A parameter constant that controls how the stepsize is updated (see $\theta$ from the original paper). Default is 1.25.
+% Arguments:
 %
-% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
+%   oracle (Oracle): The oracle underlying the optimization problem.
+%
+%   params.theta (double): Controls how the stepsize is updated (see $\theta$ 
+%     from the original paper). Default is 1.25.
+%
+% Returns: 
+%
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
 
   % Timer start.
   t_start = tic;

@@ -18,36 +18,68 @@ function [model, history] = AIPP(oracle, params)
 % 
 %   Based on the papers:
 %
-%   **[1]** Kong, W., Melo, J. G., & Monteiro, R. D. (2019). Complexity of a quadratic penalty accelerated inexact proximal point method for solving linearly constrained nonconvex composite programs. *SIAM Journal on Optimization, 29*\(4), 2566-2593.
+%   **[1]** Kong, W., Melo, J. G., & Monteiro, R. D. (2019). Complexity of a
+%   quadratic penalty accelerated inexact proximal point method for solving 
+%   linearly constrained nonconvex composite programs. *SIAM Journal on 
+%   Optimization, 29*\(4), 2566-2593.
 %
-%   **[2]** Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient adaptive accelerated inexact proximal point method for solving linearly constrained nonconvex composite problems. *Computational Optimization and Applications, 76*\(2), 305-346. 
+%   **[2]** Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient 
+%   adaptive accelerated inexact proximal point method for solving linearly 
+%   constrained nonconvex composite problems. *Computational Optimization and 
+%   Applications, 76*\(2), 305-346. 
 %
-%   **[3]** Kong, W., & Monteiro, R. D. (2019). An accelerated inexact proximal point method for solving nonconvex-concave min-max problems. *arXiv preprint arXiv:1905.13433*.
+%   **[3]** Kong, W., & Monteiro, R. D. (2019). An accelerated inexact 
+%   proximal point method for solving nonconvex-concave min-max problems. 
+%   *arXiv preprint arXiv:1905.13433*.
 %
 %   In particular, $\tau$ is updated using the rule in [3].
 %
-% :arg oracle:
-%   An Oracle object.
-% :arg params.aipp_type:
-%   A character array specifying which AIPP variant to use. More specifically, 'aipp' is the AIPP method from [1], while 'aipp_c', 'aipp_v1', and 'aipp_v2' are the R-AIPPc, R-AIPPv1, and R-AIPPv2 methods from [2]. Default is 'aipp_v2'.
-% :arg params.sigma:
-%   A parameter constant that determines the accuracy of the inner ACG call (see $\sigma$ from [1]). Default is 0.3.
-% :arg params.theta:
-%   A parameter constant that determines the accuracy of the inner R-ACG call (see $\theta$ from [2]). Default is 4.
-% :arg params.acg_steptype:
-%   A character array that is either "variable" or "constant". If is "variable", then the ACG call employs a line search subroutine to look for the appropriate upper curvature, with a starting estimate of $L_0 = \lambda (M / 100) + 1$. If "constant", the no subroutine is employed and the upper curvature remains fixed at $L_0 = \lambda M + 1$. Default is "variable". 
-% :arg params.acg_ls_multiplier:
-%   A parameter constant that determines how quickly the line search subroutine of the ACG call increases its estimate. Default is 1.25.
-% :arg params.lambda:
-%   The initial stepsize (see $\lambda$ from [2]). Default is $1/m$.
-% :arg params.mu_fn:
-%   A function, with input argument $\lambda$, that determines the strong convexity parameter $\mu$ given to the ACG call. Default is @(lambda) 1.
-% :arg params.tau_mult:
-%   An auxiliary parameter constant used to determine the first value of $\tau$. Default is 10.
-% :arg params.tau:
-%   A parameter constant that determines the accuracy of the inner ACG call (see $\tau$ from [2]). Default is $k_{\tau} (\lambda_0 M + 1)$ where $\lambda_0$ is the initial stepsize and $k_{\tau}$ is the constant in ``params.tau_mult``.
+% Arguments:
 %
-% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
+%   oracle (Oracle): The oracle underlying the optimization problem.
+%
+%   params.aipp_type (character array): Specifies which AIPP variant to use.
+%     More specifically, 'aipp' is the AIPP method from [1], while 'aipp_c', 
+%     'aipp_v1', and 'aipp_v2' are the R-AIPPc, R-AIPPv1, and R-AIPPv2 methods
+%     from [2]. Default is 'aipp_v2'.
+%
+%   params.sigma (double): Determines the accuracy of the inner ACG call (see 
+%     $\sigma$ from [1]). Default is 0.3.
+%
+%   params.theta (double): Determines the accuracy of the inner R-ACG call 
+%     (see $\theta$ from [2]). Default is 4.
+%
+%   params.acg_steptype (character array): Either "variable" or "constant". If
+%     it is "variable", then the ACG call employs a line search subroutine to 
+%     look for the appropriate upper curvature, with a starting estimate of 
+%     $L_0 = \lambda (M / 100) + 1$. If "constant", the no subroutine is 
+%     employed and the upper curvature remains fixed at $L_0 = \lambda M + 1$.
+%     Default is "variable". 
+%
+%   params.acg_ls_multiplier (double): Determines how quickly the line search 
+%     subroutine of the ACG call (multiplicatively) increases its estimate. 
+%     Default is 1.25.
+%
+%   params.lambda (double): The initial stepsize (see $\lambda$ from [2]). 
+%     Default is $1/m$.
+%
+%   params.mu_fn (function handle): Determines the strong convexity parameter 
+%     $\mu$ given to the ACG call as a function of lambda, the stepsize.
+%     Default is ``@(lambda) 1``.
+%
+%   params.tau_mult (double): An auxiliary parameter constant used to 
+%     determine the first value of $\tau$. Default is 10.
+%
+%   params.tau (double): A parameter constant that determines the accuracy of 
+%     the inner ACG call (see $\tau$ from [2, 3]). Default is $k_{\tau} 
+%     (\lambda_0 M + 1)$ where $\lambda_0$ is the initial stepsize and 
+%     $k_{\tau}$ is the constant in ``params.tau_mult``.
+%
+% Returns:
+%   
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
   
   % Start the timer.
   t_start = tic;

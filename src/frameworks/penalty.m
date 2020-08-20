@@ -137,7 +137,10 @@ function [model, history] = penalty(solver, oracle, params)
   end
   
   % Prepare to output
+  [~, feas_vec] = feas_fn(solver_model.x);
   model = solver_model;
+  model.y = c * feas_vec;
+  model.w = feas_vec;
   history = solver_history;
   history.iter = iter;
   history.runtime = toc(t_start);
