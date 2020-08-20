@@ -1,7 +1,7 @@
 Oracles
 =======
 
-This section presents the constructors, properties, and methods of the ``Oracle`` object.
+This section documents the constructors, properties, and methods of the ``Oracle`` object.
 
 .. automodule:: src.classes
 

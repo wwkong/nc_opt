@@ -1,14 +1,5 @@
 %{
 
-DESCRIPTION
------------
-The accelerated composite gradient (ACG) method for use inside of the 
-accelerated inexact proximal point (AIPP) method (see AIPP.m). Based on 
-the iteration scheme in the paper:
-
-"An adaptive accelerated first-order method for convex optimization", 
-Computational Optimization and Applications.
-
 FILE DATA
 ---------
 Last Modified: 
@@ -16,24 +7,26 @@ Last Modified:
 Coders: 
   Weiwei Kong, Jiaming Liang
 
-INPUT
------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
-OUTPUT
-------
-model:
-  A struct containing model related outputs (e.g. solutions).
-history:
-  A struct containing history related outputs (e.g. runtimes).
-
 %}
 
 function [model, history] = ACG(oracle, params) 
-       
+% A specific  accelerated composite gradient (ACG) algorithm for use inside 
+% of the accelerated inexact proximal point (AIPP) method.
+% 
+% .. seealso:: **src.solvers.AIPP**
+%
+% .. note::
+% 
+%   Its iterates are generated according the paper:
+%
+%   Monteiro, R. D., Ortiz, C., & Svaiter, B. F. (2016). An adaptive accelerated first-order method for convex optimization. *Computational Optimization and Applications*, 64(1), 31-73.
+%
+% :arg oracle:
+%   An Oracle object.
+% :arg params:
+%   A parameter struct containing instructions on how to call the algorithm. This should be customized from by caller of this algoirthm.
+%
+% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
 
   % Set some ACG global tolerances.
   INEQ_COND_ERR_TOL = 1e-6;

@@ -1,40 +1,31 @@
 %{
 
-DESCRIPTION
------------
-A variant of the accelerated gradient (AG) Method that is adapted from 
-the paper (Algorithm 2):
-
-"Accelerated gradient methods for nonconvex nonlinear and stochastic 
-programming", DOI: 10.1007/s10107-015-0871-8.
-
-Specifically, this variant replaces the Lipschitz constant Lf with the
-upper curvature M.
-
 FILE DATA
 ---------
 Last Modified: 
   August 2, 2020
-Coders: 
+Coders:
   Weiwei Kong
-
-INPUT
------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
-OUTPUT
-------
-model:
-  A struct containing model related outputs (e.g. solutions).
-history:
-  A struct containing history related outputs (e.g. runtimes).
 
 %}
 
 function [model, history] = AG(oracle, params)
+% The accelerated gradient (AG) method. 
+%
+% .. seealso:: **src.solvers.UPFAG**
+% 
+% .. note::
+% 
+%   A variant of Algorithm 2 (with $M$ replacing $L_f$) from the paper:
+%
+%   Ghadimi, S., & Lan, G. (2016). Accelerated gradient methods for nonconvex nonlinear and stochastic programming. *Mathematical Programming, 156*\(1-2), 59-99.
+%
+% :arg oracle:
+%   An Oracle object.
+% :arg params:
+%   A parameter struct containing instructions on how to call the algorithm.
+%
+% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
 
   % Timer start
   t_start = tic;

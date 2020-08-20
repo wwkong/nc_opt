@@ -1,37 +1,31 @@
 %{
 
-DESCRIPTION
------------
-The adaptive nonconvex FISTA (ADAP-NC-FISTA) method from the paper:
-
-"A FISTA-type accelerated gradient algorithm for solving smooth nonconvex 
-composite optimization problems", arXiv:1905.07010 [math.OC].
-
 FILE DATA
 ---------
 Last Modified: 
-  August 2, 2020
+  August 19, 2020
 Coders: 
   Weiwei Kong, Jiaming Liang
-
-INPUT
------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
-OUTPUT
-------
-model:
-  A struct containing model related outputs (e.g. solutions).
-history:
-  A struct containing history related outputs (e.g. runtimes).
 
 %}
 
 function [model, history] = ADAP_FISTA(oracle, params)
-%  check curvature + adaptive xi               
+% The adaptive nonconvex fast iterative soft theresholding (ADAP-NC-FISTA) method. 
+% 
+% .. seealso:: **src.solvers.NC_FISTA**
+%
+% .. note::
+% 
+%   Based on the paper (see the ADAP-NC-FISTA method):
+%
+%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated gradient algorithm for solving smooth nonconvex composite optimization problems. *arXiv preprint arXiv:1905.07010*.
+%
+% :arg oracle:
+%   An Oracle object.
+% :arg params.theta:
+%   A parameter constant that controls how the stepsize is updated (see $\theta$ from the original paper). Default is 1.25.
+%
+% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
 
   % Timer start.
   t_start = tic;
@@ -42,7 +36,10 @@ function [model, history] = ADAP_FISTA(oracle, params)
       
   % Main params.
   z0 = params.x0;
-  theta = 1.25;
+  
+  % Fill in OPTIONAL input params.
+  params = set_default_params(params);
+  theta = params.theta;
   
   % Solver params.
   opt_tol = params.opt_tol;
@@ -173,11 +170,21 @@ function [model, history] = ADAP_FISTA(oracle, params)
   model.x = x;
   model.y = y;
   model.v = v;
-  history.m = max(m,abs(mNext));
-  history.M = max(M,abs(MNext));
+  history.m = max(m, abs(mNext));
+  history.M = max(M, abs(MNext));
   history.runtime = toc(t_start);
 
   % Count backtracking iterations.
   history.iter = count;
   
+end
+
+% Fills in parameters that were not set as input.
+function params = set_default_params(params)
+
+  % Overwrite if necessary.
+  if (~isfield(params, 'theta')) 
+    params.theta = 1.25;
+  end
+
 end

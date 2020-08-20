@@ -1,47 +1,46 @@
 %{
 
-DESCRIPTION
------------
-The nonconvex FISTA (NC-FISTA) method from the paper:
-
-"A FISTA-type accelerated gradient algorithm for solving smooth nonconvex 
-composite optimization problems", arXiv:1905.07010 [math.OC].
-
 FILE DATA
 ---------
 Last Modified: 
-  August 2, 2020
+  August 19, 2020
 Coders: 
   Weiwei Kong, Jiaming Liang
-
-INPUT
------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
-OUTPUT
-------
-model:
-  A struct containing model related outputs (e.g. solutions).
-history:
-  A struct containing history related outputs (e.g. runtimes).
 
 %}  
 
 function [model, history] = NC_FISTA(oracle, params)
+% The nonconvex fast iterative soft theresholding (ADAP-NC-FISTA) method. 
+% 
+% .. seealso:: **src.solvers.ADAP_FISTA**
+% 
+% .. note::
+% 
+%   Based on the paper (see the NC-FISTA method):
+%
+%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated gradient algorithm for solving smooth nonconvex composite optimization problems. *arXiv preprint arXiv:1905.07010*.
+%
+% :arg oracle:
+%   An Oracle object.
+% :arg params.lambda:
+%   The first stepsize used by the method (see $\lambda$ from the original paper). Default is $0.99 / L$.
+% :arg params.xi:
+%   A parameter constant used to determine $A_0$ from the original paper (see $\xi$ from the original paper). Default is $1.05 m$.
+%
+% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
     
   % Timer start
   t_start = tic;
   
   % Main params
   m = params.m;
-  L = max([params.M, params.m]);
   z0 = params.x0;
-  lam = 0.99 / L;
-  xi = 1.05 * m;
   norm_fn = params.norm_fn;
+  
+  % Fill in OPTIONAL input params.
+  params = set_default_params(params);
+  lambda = params.lambda;
+  xi = params.xi;
   
   % Solver params.
   opt_tol = params.opt_tol;
@@ -70,16 +69,16 @@ function [model, history] = NC_FISTA(oracle, params)
     % Main computations
     a = (1+sqrt(1+4*A))/2;
     ANext = A + a;
-    tau = 2*xi*lam/a;
+    tau = 2*xi*lambda/a;
     tx = A/ANext*y + a/ANext*x;
     o_tx = oracle.eval(tx);
     grad_f_tx = o_tx.grad_f_s();
-    o_tx_next = oracle.eval(tx - lam / (1 + tau) * grad_f_tx);
-    yNext = o_tx_next.prox_f_n(lam/(1+tau));
+    o_tx_next = oracle.eval(tx - lambda / (1 + tau) * grad_f_tx);
+    yNext = o_tx_next.prox_f_n(lambda/(1+tau));
     xNext = (1+tau)*ANext/(a*(tau*a+1))*yNext - A/(a*(tau*a+1))*y;   
     o_yNext = oracle.eval(yNext);
     grad_f_yNext = o_yNext.grad_f_s();
-    v = (1 + tau) / lam * (tx - yNext) + grad_f_yNext - grad_f_tx;
+    v = (1 + tau) / lambda * (tx - yNext) + grad_f_yNext - grad_f_tx;
     
     % Check for termination
     if (norm_fn(v) <= opt_tol)
@@ -102,3 +101,16 @@ function [model, history] = NC_FISTA(oracle, params)
   history.iter = iter;
   
 end % function end
+
+% Fills in parameters that were not set as input.
+function params = set_default_params(params)
+
+  % Overwrite if necessary.
+  if (~isfield(params, 'lambda')) 
+    params.lambda = 0.99 / params.L;
+  end
+  if (~isfield(params, 'xi')) 
+    params.xi = 1.05 * params.m;
+  end
+
+end

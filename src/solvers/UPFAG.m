@@ -1,13 +1,5 @@
 %{
 
-DESCRIPTION
------------
-The unified problem parameter free accelerated gradient (UPFAG) method 
-with full Barzilai-Borwein (BB) type stepsizes from the paper:
-
-"Generalized uniformly optimal methods for nonlinear programming", Journal 
-of Scientific Computing.
-
 NOTES
 -----
 * This is a version of the file provided by Ghadimi, Lan, and Zhang, which 
@@ -20,23 +12,25 @@ Last Modified:
 Coders: 
   Saeed Ghadimi, Guanghui Lan, Hongchao Zhang, Weiwei Kong
 
-INPUT
------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
-OUTPUT
-------
-model:
-  A struct containing model related outputs (e.g. solutions).
-history:
-  A struct containing history related outputs (e.g. runtimes).
-
 %}
 
 function [model, history] = UPFAG(oracle, params)
+% The unified problem-parameter free accelerated gradient (UPFAG) method.
+% 
+% .. seealso:: **src.solvers.AG**
+% 
+% .. note::
+% 
+%   Based on the paper (see the UPFAG-fullBB method):
+%
+%   Ghadimi, S., Lan, G., & Zhang, H. (2019). Generalized uniformly optimal methods for nonlinear programming. *Journal of Scientific Computing, 79*\(3), 1854-1881.
+%
+% :arg oracle:
+%   An Oracle object.
+% :arg params:
+%   A parameter struct containing instructions on how to call the algorithm.
+%
+% :returns: A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input parameters.
  
   % Timer start
   t_start = tic;
