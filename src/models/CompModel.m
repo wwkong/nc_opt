@@ -65,7 +65,7 @@ classdef CompModel < matlab.mixin.Copyable
   %   opt_type (character vector): Is either 'relative' or 'absolute'. If
   %     it is 'absolute', then the optimality condition is $\|v\|\leq 
   %     \text{opt_tol}$. If it is 'relative', then the optimality condition
-  %     is $\|v\|/[1+\nabla f_s(x_0)] \leq\text{opt_tol}$. Defaults to 
+  %     is $\|v\|/[1+\|\nabla f_s(x_0)\|] \leq\text{opt_tol}$. Defaults to 
   %     ``'absolute'``.
   %
   %   prod_fn (function handle): A two argument function that, when evaluated

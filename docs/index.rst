@@ -20,3 +20,4 @@ NC-OPT User Guide
     pages/frameworks
     pages/models
     pages/examples
+    pages/contact
