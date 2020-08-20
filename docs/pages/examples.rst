@@ -54,7 +54,7 @@ $$\\Delta^{n}:=\\left\\{ x\\in\\mathbb{R}^{n}:\\sum_{i=1}^{n}x_{i}=1,0\\leq x\\l
 This example solves the nonconvex quadratic semidefinite programming problem
 $$
 \\begin{align}
-\\underset{X}{\\text{minimize}}\\quad  & -\\frac{\\xi}{2}\\|DB(X)\\|^{2}+\\frac{\\tau}{2}\\|A(X)-b\\|^{2}+\\delta_{P^{n}}(X) \\\\\\
+\\underset{X}{\\text{minimize}}\\quad  & -\\frac{\\xi}{2}\\|DB(X)\\|_{F}^{2}+\\frac{\\tau}{2}\\|A(X)-b\\|^{2}_{F}+\\delta_{P^{n}}(X) \\\\\\
 \\text{subject to}\\quad  & X\\in\\mathbb{S}^{n}_{+},
 \\end{align}
 $$
@@ -89,7 +89,7 @@ $$\\Delta^{n}:=\\left\\{ x\\in\\mathbb{R}^{n}:\\sum_{i=1}^{n}x_{i}=1,0\\leq x\\l
 This example solves the linearly-constrained nonconvex quadratic semidefinite programming problem
 $$
 \\begin{align}
-\\underset{X}{\\text{minimize}}\\quad  & -\\frac{\\xi}{2}\\|DB(X)\\|^{2}+\\frac{\\tau}{2}\\|A(X)-b\\|^{2}+\\delta_{P^{n}}(X) \\\\\\
+\\underset{X}{\\text{minimize}}\\quad  & -\\frac{\\xi}{2}\\|DB(X)\\|_{F}^{2}+\\frac{\\tau}{2}\\|A(X)-b\\|^{2}_{F}+\\delta_{P^{n}}(X) \\\\\\
 \\text{subject to}\\quad  & C(X)=d,\\quad X\\in\\mathbb{S}^{n}_{+},
 \\end{align}
 $$
