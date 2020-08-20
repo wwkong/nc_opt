@@ -27,6 +27,9 @@ to refer to the indicator function of a closed convex set $C$.
     proximal point method for solving nonconvex-concave min-max problems. 
     *arXiv preprint arXiv:1905.13433*.
 
+Unconstrained Examples
+----------------------
+
 :scpt:`src.examples.unconstrained.basic_convex_qp`
 
 This example solves the convex univariate optimization problem
@@ -71,6 +74,9 @@ $$
 \\text{subject to}\\quad  & x\\in\\mathbb{R}^{n}.
 \\end{align}
 $$
+
+Constrained Examples
+--------------------
 
 :scpt:`src.examples.constrained.lin_constr_nonconvex_qp`
 
