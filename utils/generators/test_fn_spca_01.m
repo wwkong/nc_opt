@@ -1,13 +1,5 @@
 %{
 
-DESCRIPTION
------------
-Generates the needed functions for the sparse PCA problem under MCP 
-sparsity regularization.
-
-Implements the first series of tests (synthetic dataset I) in:
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4326026/
-
 FILE DATA
 ---------
 Last Modified: 
@@ -15,22 +7,39 @@ Last Modified:
 Coders: 
   Weiwei Kong
 
-INPUT
------
-(b, nu, p, n, s, k, seed):
-  Parameters of the test function. The defaults should be
-  (3, 3, 128, 80, 5, 1, 777).
-
-OUTPUT
-------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
 %}
 
 function [oracle, params] = test_fn_spca_01(b, nu, p, n, s, k, seed)
+% Generates the needed functions for the sparse PCA problem under MCP 
+% sparsity regularization.
+%
+% Note:
+%   
+%   Implements the first series of tests (synthetic dataset I) in:
+%   https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4326026/
+%
+% Arguments:
+%  
+%   b (int): One of the objective function's hyperparameters.
+%
+%   nu (int): One of the objective function's hyperparameters.
+%
+%   p (int): One of the objective function's hyperparameters.
+%
+%   n (int): One of the objective function's hyperparameters.
+%
+%   s (int): One of the objective function's hyperparameters.
+%
+%   k (int): One of the objective function's hyperparameters.
+% 
+%   seed (int): The number used to seed MATLAB's random number generator. 
+% 
+% Returns:
+%
+%   A pair consisting of an Oracle and a struct. The oracle is first-order
+%   oracle underyling the optimization problem and the struct contains the
+%   relevant hyperparameters of the problem. 
+% 
 
   % Initialize
   rng(seed);

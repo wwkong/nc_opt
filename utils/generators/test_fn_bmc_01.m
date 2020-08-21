@@ -1,11 +1,5 @@
 %{
 
-DESCRIPTION
------------
-Generates the needed functions for the regularized matrix completion 
-problem under box constraints. Requires a data matrix with the variable 
-name 'data' that is read from a .mat file with name given by data_name.
-
 FILE DATA
 ---------
 Last Modified: 
@@ -13,27 +7,37 @@ Last Modified:
 Coders: 
   Weiwei Kong
 
-INPUT
------
-(data_name, beta, theta, mu, seed):
-  Parameters of the test function. 
-
-OUTPUT
-------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
 %}
 
-function [oracle, params] = ...
-  test_fn_bmc_01(data_name, beta, theta, mu, seed)
+function [oracle, params] = test_fn_bmc_01(data_name, beta, theta, mu, seed)
+% Generates the needed functions for the regularized matrix completion 
+% problem under box constraints. Requires a data matrix with the variable 
+% name 'data' that is read from a .mat file with name given by data_name.
+% 
+% Arguments:
+% 
+%   data_name (character vector): Name of the .mat dataset used for the 
+%     problem. 
+% 
+%   beta (double): One of the objective function's hyperparameters.
+% 
+%   theta (double): One of the objective function's hyperparameters.
+% 
+%   mu (double): One of the objective function's hyperparameters. 
+% 
+%   seed (int): The number used to seed MATLAB's random number generator. 
+% 
+% Returns:
+%
+%   A pair consisting of an Oracle and a struct. The oracle is first-order
+%   oracle underyling the optimization problem and the struct contains the
+%   relevant hyperparameters of the problem. 
+% 
 
-  % problem generating function
+  % Set the generator.
   rng(seed);
 
-  % Initialize
+  % Initialize.
   load(data_name, 'data');
   [rId, cId] = find(data);
   [dim_m, dim_n] = size(data);

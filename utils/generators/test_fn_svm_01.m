@@ -1,16 +1,5 @@
 %{
 
-DESCRIPTION
------------
-Generator of a test suite of nonconvex support vector machine (SVM) 
-problems.
-
-NOTES
------
-** Function is
-    (1 / k) * sum_{i=1,..,k} (1 - tanh(v_i * <u_i, z>)) + 
-    (1 / 2*k) ||z|| ^ 2.
-
 FILE DATA
 ---------
 Last Modified: 
@@ -18,26 +7,42 @@ Last Modified:
 Coders: 
   Weiwei Kong, Jiaming Liang
 
-INPUT
------
-(n, k, seed, density, r):
-  Input parameters as described in the function description.
-
-INPUT
------
-oracle:
-  An Oracle object.
-params:
-  A struct containing input parameters for this function.
-
 %}
 
 function [oracle, params] = test_fn_svm_01(n, k, seed, density, r)
-  % problem generating function
+% Generator of a test suite of nonconvex support vector machine (SVM) 
+% problems.
+%
+% Note:
+%   
+%   The objective function is
+%   (1 / k) * sum_{i = 1,..,k} (1 - tanh(v_i * <u_i, z>)) + 
+%   (1 / 2 * k) ||z|| ^ 2.
+%
+% Arguments:
+%  
+%   n (int): One of the objective function's hyperparameters.
+%
+%   k (int): One of the objective function's hyperparameters.
+%
+%   r (double): One of the objective function's hyperparameters.
+%
+%   density (double): The density level of the generated matrices.
+% 
+%   seed (int): The number used to seed MATLAB's random number generator. 
+% 
+% Returns:
+%
+%   A pair consisting of an Oracle and a struct. The oracle is first-order
+%   oracle underyling the optimization problem and the struct contains the
+%   relevant hyperparameters of the problem. 
+% 
+
+  % problem generating function.
   rng(seed);
   lam = 1 / k;
 
-  % generate the data (matrices)
+  % generate the data (matrices).
   U = sprand(n, k, density);
   x_bar = RandPtBall(n, 1, r);
   v = sign(U' * x_bar);
