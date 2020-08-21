@@ -40,9 +40,6 @@ classdef ConstrCompModel < CompModel
   %     is $\|w\|/(1 + {\cal F}) \leq\text{opt_tol}$ where ${\cal F} = \| 
   %     g(x_0) - {\rm Proj}_S(g(x_0))\|$. Defaults to ``'absolute'``.
   %
-  %   y (double vector): The Lagrange multiplier returned by the solver. 
-  %     Defaults to ``None``. This property cannot be set by the user.
-  %
   %   w (double vector): The feasibility residual returned by the solver.
   %     Defaults to ``None``. This property cannot be set by the user.
 
@@ -80,7 +77,6 @@ classdef ConstrCompModel < CompModel
   
   % Visible model properties.
   properties (SetAccess = protected)
-    y double {mustBeReal, mustBeFinite}
     w double {mustBeReal, mustBeFinite}
   end
   
@@ -138,7 +134,6 @@ classdef ConstrCompModel < CompModel
     % Key subroutines.
     function reset(obj)
       reset@CompModel(obj);
-      obj.y = [];
       obj.w = [];
     end
     function check_inputs(obj)
@@ -165,7 +160,6 @@ classdef ConstrCompModel < CompModel
     end
     function post_process(obj)
       post_process@CompModel(obj)
-      obj.y = obj.model.y;
       obj.w = obj.model.w;
       obj.norm_of_w = obj.norm_fn(obj.w);
     end
@@ -233,7 +227,6 @@ classdef ConstrCompModel < CompModel
     % Viewing functions.
     function view_solution(obj)
       solns.x = obj.x;
-      solns.y = obj.y;
       solns.v = obj.v;
       solns.w = obj.w;
       solns.f_at_x = obj.f_at_x;
