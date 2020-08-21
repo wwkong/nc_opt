@@ -91,7 +91,7 @@ This example solves the linearly-constrained nonconvex quadratic programming pro
 
 .. math::
 
-    \underset{x}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DBx\|^{2}+\frac{\tau}{2}\|Ax-b\|^{2}+\delta_{\Delta^{n}}(x) \\
+    \underset{x}{\text{minimize}}\quad  & -\frac{ \xi}{2}\|DBx\|^{2}+\frac{\tau}{2}\|Ax-b\|^{2}+\delta_{\Delta^{n}}(x) \\
     \text{subject to}\quad  & C x = d,\quad x\in\mathbb{R}^{n},
 
 where $\Delta^n$ is the unit simplex given by
