@@ -46,20 +46,20 @@ When a model has been fully constructed, it can solved by invoking the ``optimiz
 
 .. math::
 
-  \begin{gather}
+  \begin{gathered}
     v \in \nabla f_s(x) + \partial f_n(x), \\
     x \in {\rm dom}\, f_n, \quad \|v\| \leq \rho, 
-  \end{gather}
+  \end{gathered}
 
 for a given tolerance :math:`\rho \in {\mathbb R}_{++}`. For constrained problems, this point is a quadruple :math:`(x, y, v, w)` satisfying
 
 .. math::
 
-  \begin{gather}
+  \begin{gathered}
       v \in \nabla f_s(x) + \partial f_n(x) + \nabla g(x) y, \\
       \quad x \in {\rm dom}\, f_n, \quad \|v\| \leq \rho, \quad \|w\| \leq \eta, \\
       \left\langle g(x) + w, y\right\rangle = 0, \quad g(x) + w \in S,
-  \end{gather}
+  \end{gathered}
 
 for a given tolerance pair :math:`(\rho, \eta) \in {\mathbb R}_{++}^2`. By default, the tolerances are set to :math:`\rho=10^{-6}` and :math:`\eta=10^{-6}`. Messages about the model's configuration and final status will be output to the MATLAB command line.
 
