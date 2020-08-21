@@ -40,11 +40,8 @@ This example solves the convex univariate optimization problem
 
 .. math::
 
-    \begin{align}
-        \underset{x}{\text{minimize}}\quad  & \frac{1}{2}x^{2}-x+\frac{1}{2} \\
-        \text{subject to}\quad & x\in\mathbb{R}.
-    \end{align}
-
+    \underset{x}{\text{minimize}}\quad  & \frac{1}{2}x^{2}-x+\frac{1}{2} \\
+    \text{subject to}\quad & x\in\mathbb{R}.
 
 :scpt:`src.examples.unconstrained.nonconvex_qp`
 
@@ -52,10 +49,8 @@ This example solves the nonconvex quadratic programming problem
 
 .. math::
 
-    \begin{align}
-        \underset{x}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DBx\|^{2}+\frac{\tau}{2}\|Ax-b\|^{2}+\delta_{\Delta^{n}}(x) \\
-        \text{subject to}\quad  & x\in\mathbb{R}^{n},
-    \end{align}
+    \underset{x}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DBx\|^{2}+\frac{\tau}{2}\|Ax-b\|^{2}+\delta_{\Delta^{n}}(x) \\
+    \text{subject to}\quad  & x\in\mathbb{R}^{n},
 
 where $\Delta^n$ is the unit simplex given by
 
@@ -69,10 +64,8 @@ This example solves the nonconvex quadratic semidefinite programming problem
 
 .. math::
 
-    \begin{align}
-        \underset{X}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DB(X)\|_{F}^{2}+\frac{\tau}{2}\|A(X)-b\|^{2}_{F}+\delta_{P^{n}}(X) \\
-        \text{subject to}\quad  & X\in\mathbb{S}^{n}_{+},
-    \end{align}
+    \underset{X}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DB(X)\|_{F}^{2}+\frac{\tau}{2}\|A(X)-b\|^{2}_{F}+\delta_{P^{n}}(X) \\
+    \text{subject to}\quad  & X\in\mathbb{S}^{n}_{+},
 
 where $\mathbb{S}^{n}_{+}$ is the collection of positive semidefinite matrices and $P^n$ is the unit spectrahedron given by
 
@@ -86,10 +79,8 @@ This example solves the nonconvex support vector machine problem
 
 .. math::
 
-    \begin{align}
-        \underset{x}{\text{minimize}}\quad  & \frac{1}{n}\sum_{i=1}^{n}\left[1-\tanh\left(v_{i}\langle u_{i},x\rangle\right)\right]+\frac{1}{2n}\|x\|^{2} \\
-        \text{subject to}\quad  & x\in\mathbb{R}^{n}.
-    \end{align}
+    \underset{x}{\text{minimize}}\quad  & \frac{1}{n}\sum_{i=1}^{n}\left[1-\tanh\left(v_{i}\langle u_{i},x\rangle\right)\right]+\frac{1}{2n}\|x\|^{2} \\
+    \text{subject to}\quad  & x\in\mathbb{R}^{n}.
 
 Constrained Examples
 --------------------
@@ -100,10 +91,8 @@ This example solves the linearly-constrained nonconvex quadratic programming pro
 
 .. math::
 
-    \begin{align}
-        \underset{x}{\text{minimize}}\quad  & -\frac{\\xi}{2}\|DBx\|^{2}+\frac{\tau}{2}\|Ax-b\|^{2}+\delta_{\Delta^{n}}(x) \\
-        \text{subject to}\quad  & C x = d,\quad x\in\mathbb{R}^{n},
-    \end{align}
+    \underset{x}{\text{minimize}}\quad  & -\frac{\\xi}{2}\|DBx\|^{2}+\frac{\tau}{2}\|Ax-b\|^{2}+\delta_{\Delta^{n}}(x) \\
+    \text{subject to}\quad  & C x = d,\quad x\in\mathbb{R}^{n},
 
 where $\Delta^n$ is the unit simplex given by
 
@@ -117,11 +106,8 @@ This example solves the linearly-constrained nonconvex quadratic semidefinite pr
 
 .. math::
 
-
-    \begin{align}
-        \underset{X}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DB(X)\|_{F}^{2}+\frac{\tau}{2}\|A(X)-b\|^{2}_{F}+\delta_{P^{n}}(X) \\
-        \text{subject to}\quad  & C(X)=d, \quad X\in\mathbb{S}^{n}_{+},
-    \end{align}
+    \underset{X}{\text{minimize}}\quad  & -\frac{\xi}{2}\|DB(X)\|_{F}^{2}+\frac{\tau}{2}\|A(X)-b\|^{2}_{F}+\delta_{P^{n}}(X) \\
+    \text{subject to}\quad  & C(X)=d, \quad X\in\mathbb{S}^{n}_{+},
 
 where $\mathbb{S}^{n}_{+}$ is the collection of positive semidefinite matrices and $P^n$ is the unit spectrahedron given by
 
@@ -135,10 +121,9 @@ This example solves the nonconvex sparse principal component analysis problem
 
 .. math::
 
-    \begin{align}
-        \underset{\Pi,\Phi}{\text{minimize}}\quad  & \langle\Sigma,\Pi\rangle+\sum_{i,j=1}^{n}q_{\nu}(\Phi_{ij})+\nu\sum_{i,j=1}^{n}|\Phi_{ij}|+\delta_{{\cal F}^{k}}(\Pi) \\
-        \text{subject to}\quad  & \Pi-\Phi=0, \quad(\Pi, \Phi)\in \mathbb{R}^{n\times n}\times\mathbb{R}^{n\times n},
-    \end{align}
+    
+    \underset{\Pi,\Phi}{\text{minimize}}\quad  & \langle\Sigma,\Pi\rangle+\sum_{i,j=1}^{n}q_{\nu}(\Phi_{ij})+\nu\sum_{i,j=1}^{n}|\Phi_{ij}|+\delta_{{\cal F}^{k}}(\Pi) \\
+    \text{subject to}\quad  & \Pi-\Phi=0, \quad(\Pi, \Phi)\in \mathbb{R}^{n\times n}\times\mathbb{R}^{n\times n},
 
 where ${\cal F}^k$ is the $k$-Fantope given by
 
@@ -152,10 +137,8 @@ This example solves the nonconvex bounded matrix completion problem
 
 .. math::
 
-    \begin{align}
-        \underset{X}{\text{minimize}}\quad  & \frac{1}{2}\|{\rm Proj}_{\Omega}(X-A)\|^{2}_{F}+{\cal R}_{\mu}(X) \\
-        \text{subject to}\quad  & X \in B_{[l,u]},
-    \end{align}
+    \underset{X}{\text{minimize}}\quad  & \frac{1}{2}\|{\rm Proj}_{\Omega}(X-A)\|^{2}_{F}+{\cal R}_{\mu}(X) \\
+    \text{subject to}\quad  & X \in B_{[l,u]},
 
 where ${\cal R}_\mu$ is a nonconvex regularization function and $B_{[l,u]}$ is the box given by
 
