@@ -10,6 +10,7 @@ Currently, the following problems classes are supported:
     - Unconstrained Composite Optimization
     - Linearly Set Constrained Composite Optimization
     - Nonconvex-Concave Min-Max Optimization
+    - Spectral Composite Optimization
     - Convex Cone Constrained Composite Optimization (WIP)
 
 Instances of the above classes include *semidefinite programming*, *convex programming*, *cone programming*, *linear and quadratic programmin*, and *nonconvex programming*.
