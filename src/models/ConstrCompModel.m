@@ -68,7 +68,7 @@ classdef ConstrCompModel < CompModel
   
   % Invisible and protected solver properties 
   properties (SetAccess = protected, Hidden = true)
-    internal_feas_tol
+    internal_feas_tol double {mustBeReal, mustBeFinite}
   end
   
   % -----------------------------------------------------------------------
@@ -77,12 +77,12 @@ classdef ConstrCompModel < CompModel
   
   % Visible model properties.
   properties (SetAccess = protected)
-    w double {mustBeReal, mustBeFinite}
+    w double {mustBeReal}
   end
   
   % Invisible model properties.
   properties (SetAccess = protected, Hidden = true)
-    norm_of_w double {mustBeReal, mustBeFinite}
+    norm_of_w double {mustBeReal}
   end
   
   % Invisible toleranace and limit properties.

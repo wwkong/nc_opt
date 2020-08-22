@@ -117,8 +117,8 @@ function [model, history] = AIPP(oracle, params)
   end
   
   % Initialize the model struct in case the ACG fails
-  model.x = z0;
-  model.v = Inf;
+  x = z0;
+  v = -Inf;
   
   % Initialize some auxillary functions and constants.
   iter = 0; % Set to zero to offset ACG iterations
@@ -185,7 +185,7 @@ function [model, history] = AIPP(oracle, params)
     M_est = (model_acg.L_est - 1) / lambda;
     
     % Check for failure of the ACG method.
-    if (model_acg.status == -1)
+    if (model_acg.status < 0)
       if (any(strcmp(aipp_type, {'aipp_v1', 'aipp_v2'})))
         i_increase_lambda = false;
         lambda = lambda / 2;
@@ -193,6 +193,8 @@ function [model, history] = AIPP(oracle, params)
       else
         error('Convexity assumption violated for R-AIPPc method!')
       end     
+    elseif (model_acg.status == 0)
+      continue;
     end
     
     % ---------------------------------------------------------------------
@@ -277,13 +279,12 @@ function [model, history] = AIPP(oracle, params)
   history.iter = iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
-  history.lambda = lambda;
 
 end % function end
  
-% ================================================
+% ======================================================
 % --------------- Other Helper Functions ---------------  
-% ================================================
+% ======================================================
 
 % Fills in parameters that were not set as input
 function params = set_default_params(params)

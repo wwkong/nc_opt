@@ -178,14 +178,14 @@ classdef CompModel < matlab.mixin.Copyable
   
   % Visible model properties.
   properties (SetAccess = protected)
-    x double {mustBeReal, mustBeFinite}
-    v double {mustBeReal, mustBeFinite}
+    x double {mustBeReal}
+    v double {mustBeReal}
   end
   
   % Invisible model properties.
   properties (SetAccess = protected, Hidden = true)
     f_at_x double {mustBeReal, mustBeFinite}
-    norm_of_v double {mustBeReal, mustBeFinite}
+    norm_of_v double {mustBeReal}
   end
   
   % Invisible model descriptors.

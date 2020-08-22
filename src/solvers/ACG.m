@@ -59,7 +59,7 @@ function [model, history] = ACG(oracle, params)
   params = set_default_params(params);
   
   % Set other input params.
-  status = 1;
+  status = 0;
   iter = 1;
   t_start = params.t_start;
   L_grad_f_s_est = params.L_grad_f_s_est;
@@ -336,12 +336,14 @@ function [model, history] = ACG(oracle, params)
     % Termination for the AIPP method (Phase 1).
     if (termination_type == "aipp")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2)
+        status = 1;
         break;
       end
       
     % Termination for the AIPP method (Phase 2).
     elseif (termination_type == "aipp_phase2")
       if (eta <= lambda * epsilon_bar)
+        status = 1;
         break;
       end
            
@@ -354,7 +356,8 @@ function [model, history] = ACG(oracle, params)
         theta * (phi_tilde_at_x0 - phi_tilde_at_y));
       cond2 = (2 * L_grad_f_s_est * eta <= tau * norm_fn(x0 - y + u) ^ 2);
       if (cond1 && cond2)
-         break;
+        status = 1;
+        break;
       end
       
     % Termination for the AICG method.
@@ -374,12 +377,14 @@ function [model, history] = ACG(oracle, params)
         (norm_fn(y - x0) + tau <= 4 * lambda * delta_phi);
       if (cond1 && cond2 && cond3)
         model.phi_at_Z_approx = phi_at_Z_approx;
+        status = 1;
         break;
       end
       
     % Termination for the D-AICG method.
     elseif (termination_type == "d_aicg")  
       if (norm_fn(u) ^ 2  + 2 * eta <= sigma ^ 2 * norm_fn(y - x0))
+        status = 1;
         break;
       end
 
