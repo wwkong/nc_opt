@@ -1,7 +1,7 @@
 Models
 ======
 
-This section documents the constructors, properties, and methods of the ``CompModel`` and ``ConstrCompModel`` objects. Hidden and inherited properties are not shown here for simplicity.
+This section documents the constructors, properties, and methods of the ``CompModel`` and ``ConstrCompModel`` classes. Hidden and inherited properties are not shown here for simplicity.
 
 .. automodule:: src.models
 

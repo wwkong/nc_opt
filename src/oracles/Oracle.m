@@ -99,7 +99,7 @@ classdef Oracle < matlab.mixin.Copyable
   %% ORACLES
   % -----------------------------------------------------------------------
   
-  properties (SetAccess = public)
+  properties (Access = public)
     f_s
     grad_f_s
     f_n
