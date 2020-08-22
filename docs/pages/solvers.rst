@@ -6,9 +6,19 @@ For simplicity, we only list the parameter inputs that affect the behavior of th
 
 .. automodule:: src.solvers
 
-.. autofunction:: AC_ACG(oracle, params)
+Auxiliary Solvers
+-----------------
+
+These solvers are used as (possible) subroutines for the other solvers of this section.
 
 .. autofunction:: ACG(oracle, params)
+
+NCO Solvers
+-----------
+
+These solvers are used for nonconvex composite optimization problems.
+
+.. autofunction:: AC_ACG(oracle, params)
 
 .. autofunction:: ADAP_FISTA(oracle, params)
 
@@ -21,3 +31,12 @@ For simplicity, we only list the parameter inputs that affect the behavior of th
 .. autofunction:: NC_FISTA(oracle, params)
 
 .. autofunction:: UPFAG(oracle, params)
+
+Spectral NCO Solvers
+--------------------
+
+These solvers are used for spectral nonconvex composite optimization problems.
+
+.. autofunction:: IA_ICG(spectral_oracle, params)
+
+.. autofunction:: DA_ICG(spectral_oracle, params)
