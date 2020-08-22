@@ -58,6 +58,14 @@ function [model, history] = NC_FISTA(oracle, params)
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
+  % History params.
+  if params.i_logging
+    oracle.eval(z0);
+    function_values = oracle.f_s() + oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
+  
   % Initialize
   iter = 0;
   A = 2 * xi * (xi + m) / (xi - m) ^ 2;
@@ -96,6 +104,14 @@ function [model, history] = NC_FISTA(oracle, params)
       break
     end
     
+    % Update history
+    if params.i_logging
+      oracle.eval(xNext);
+      function_values(end + 1) = oracle.f_s() + oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
+    
     % Update iterates
     A = ANext;
     x = xNext;
@@ -110,6 +126,11 @@ function [model, history] = NC_FISTA(oracle, params)
   model.v = v;
   history.runtime = toc(t_start);
   history.iter = iter;
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
   
 end % function end
 
@@ -122,6 +143,9 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'xi')) 
     params.xi = 1.05 * params.m;
+  end
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
   end
 
 end

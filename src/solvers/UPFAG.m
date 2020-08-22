@@ -57,6 +57,17 @@ function [model, history] = UPFAG(oracle, params)
   sigma = 1.e-10;
   norm_fn = params.norm_fn;
   prod_fn = params.prod_fn;
+  
+  % Fill in OPTIONAL input params.
+  params = set_default_params(params);
+  
+  % History params.
+  if params.i_logging
+    oracle.eval(z0);
+    function_values = oracle.f_s() + oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
 
   % Initialize
   k = 0;
@@ -168,6 +179,14 @@ function [model, history] = UPFAG(oracle, params)
       break;
     end
     
+    % Update history
+    if params.i_logging
+      oracle.eval(x_ag);
+      function_values(end + 1) = oracle.f_s() + oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
+    
     % Update iterates.
     k = k + 1;
     iter = iter + itr_cvx + itr_nocvx;
@@ -184,5 +203,20 @@ function [model, history] = UPFAG(oracle, params)
   history.cvx_iter = cvx_iter;
   history.nocvx_iter = nocvx_iter;
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
   
+end
+
+% Fills in parameters that were not set as input.
+function params = set_default_params(params)
+
+  % Overwrite if necessary.
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
+  end
+
 end

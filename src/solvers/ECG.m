@@ -41,6 +41,17 @@ function [model, history] = ECG(oracle, params)
   norm_fn = params.norm_fn;
   iter = 1;
   
+  % Fill in OPTIONAL input params.
+  params = set_default_params(params);
+  
+  % History params.
+  if params.i_logging
+    oracle.eval(x0);
+    function_values = oracle.f_s() + oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
+  
   % Solver params.
   opt_tol = params.opt_tol;
   time_limit = params.time_limit;
@@ -80,6 +91,14 @@ function [model, history] = ECG(oracle, params)
       break;
     end
     
+    % Update history.
+    if params.i_logging
+      oracle.eval(x_bar);
+      function_values(end + 1) = oracle.f_s() + oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
+    
     % Update iterates.
     x_prev = x_bar;
     iter = iter + 1;
@@ -91,5 +110,20 @@ function [model, history] = ECG(oracle, params)
   model.v = v_bar;
   history.iter = iter;
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
   
+end
+
+% Fills in parameters that were not set as input.
+function params = set_default_params(params)
+
+  % Overwrite if necessary.
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
+  end
+
 end

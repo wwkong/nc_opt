@@ -49,6 +49,12 @@ classdef CompModel < matlab.mixin.Copyable
   %     that solves unconstrained composite optimization problems (see 
   %     src.solvers). Defaults to ``None``.
   %
+  %   model (struct): The model struct output by the solver. Defaults to 
+  %     ``None``.
+  %
+  %   history (struct): The history struct output by the solver. Defaults
+  %     to ``None``.
+  %
   %   solver_hparams (struct): Contains additional hyperparameters that will
   %     be given to the solver when it is called. Defaults to ``None``.
   %
@@ -186,12 +192,13 @@ classdef CompModel < matlab.mixin.Copyable
   properties (SetAccess = protected, Hidden = true)
     f_at_x double {mustBeReal, mustBeFinite}
     norm_of_v double {mustBeReal}
+    status (1,1) int32 {mustBeInteger} = 100
   end
   
-  % Invisible model descriptors.
-  properties (SetAccess = protected, Hidden = true)
+  % Solver outputs.
+  properties (SetAccess = protected)
     model
-    status (1,1) int32 {mustBeInteger} = 100
+    history
   end
   
   % Invisible model flags.
@@ -209,15 +216,6 @@ classdef CompModel < matlab.mixin.Copyable
     iter_limit (1,1) double {mustBeReal} = Inf
     time_limit (1,1) double {mustBeReal} = Inf
     opt_tol (1,1) double {mustBeReal, mustBePositive} = 1e-6
-  end
-  
-  % -----------------------------------------------------------------------
-  %% HISTORY-RELATED PROPERTIES
-  % -----------------------------------------------------------------------
-  
-  % Invisible history properties.
-  properties (SetAccess = protected, Hidden = true)
-    history
   end
     
   % -----------------------------------------------------------------------

@@ -86,8 +86,19 @@ function [model, history] = penalty(solver, oracle, params)
     end
   end
 
+  % Fill in OPTIONAL input params.
+  params = set_default_params(params);
+
+  % Initialize history parameters.
+  if params.i_logging
+    history.function_values = [];
+    history.iteration_values = [];
+    history.time_values = [];
+  end
+
   % Initialize solver parameters.
   iter = 0;
+  stage = 1;
   solver_params = params;
   c = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
 
@@ -123,6 +134,28 @@ function [model, history] = penalty(solver, oracle, params)
     [solver_model, solver_history] = ...
       solver(solver_oracle, solver_params);
     
+    % Update history.
+    if params.i_logging
+      if isfield(solver_history, 'function_values')
+        history.function_values = ...
+          [history.function_values, solver_history.function_values];
+      end
+      if isfield(solver_history, 'iteration_values')
+        if isempty(history.iteration_values)
+          history.iteration_values = solver_history.iteration_values;
+        else
+          history.iteration_values = ...
+            [history.iteration_values, ...
+             history.iteration_values(end) + ...
+                1 + solver_history.iteration_values];
+        end
+      end
+      if isfield(solver_history, 'time_values')
+        history.time_values = ...
+          [history.time_values, solver_history.time_values];
+      end
+    end
+    
     % Check for termination.
     if (feas_fn(solver_model.x) <= feas_tol)
       break;
@@ -133,15 +166,27 @@ function [model, history] = penalty(solver, oracle, params)
 
     % Update iterates.
     c = 2 * c;
-    iter = iter + solver_history.iter;    
+    iter = iter + solver_history.iter;
+    stage = stage + 1;
+    
   end
   
   % Prepare to output
   [~, feas_vec] = feas_fn(solver_model.x);
   model = solver_model;
   model.w = feas_vec;
-  history = solver_history;
   history.iter = iter;
+  history.stage = stage;
   history.runtime = toc(t_start);
   
+end
+
+% Fills in parameters that were not set as input.
+function params = set_default_params(params)
+
+  % Overwrite if necessary.
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
+  end
+
 end

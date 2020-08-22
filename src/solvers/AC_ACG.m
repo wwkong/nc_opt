@@ -59,6 +59,14 @@ function [model, history] = AC_ACG(oracle, params)
   y = z0;   
   iter = 1;
   
+  % History params.
+  if params.i_logging
+    oracle.eval(z0);
+    function_values = oracle.f_s() + oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
+  
   % Solver params.
   opt_tol = params.opt_tol;
   time_limit = params.time_limit;
@@ -115,6 +123,14 @@ function [model, history] = AC_ACG(oracle, params)
         break;
     end
     
+    % Update history
+    if params.i_logging
+      oracle.eval(yNext);
+      function_values(end + 1) = oracle.f_s() + oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
+    
     % Update iterates.
     CSUM = CSUM + C;
     C_avg = CSUM / (iter + 1);
@@ -132,6 +148,11 @@ function [model, history] = AC_ACG(oracle, params)
   history.good = good;
   history.iter = iter;
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
   
 end 
 
@@ -146,6 +167,9 @@ function params = set_default_params(params)
   if (~isfield(params, 'gammma')) 
     % Based on the ACT in the AC paper.
     params.gamma = 0.01;
+  end
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
   end
 
 end

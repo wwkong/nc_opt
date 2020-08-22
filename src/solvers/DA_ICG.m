@@ -94,6 +94,14 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   Omega_projection = params.Omega_projection;
   is_monotone = params.is_monotone;
   
+  % History params.
+  if params.i_logging
+    spectral_oracle.eval(Z_y0);
+    function_values = spectral_oracle.f_s() + spectral_oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
+  
   % Solver params.
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
@@ -121,7 +129,6 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   % Convexify the oracle.
   o_spectral_oracle = copy(spectral_oracle);
   spectral_oracle.redistribute_curvature(xi);
-
          
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -277,6 +284,15 @@ function [model, history] = DA_ICG(spectral_oracle, params)
         lambda = o_lambda * sqrt(2);
       end
     end
+    
+    % Update history.
+    if params.i_logging
+      o_spectral_oracle.eval(x);
+      function_values(end + 1) = ...
+        o_spectral_oracle.f_s() + o_spectral_oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
                                      
     % Update D-AICG params for the next iteration
     if (is_monotone)
@@ -311,6 +327,11 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   history.iter = iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
   
 end % function end
 
@@ -366,5 +387,10 @@ function params = set_default_params(params)
   if ~isfield(params, 'is_monotone')
     params.is_monotone = true;
   end 
+  
+  % i_logging = false
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
+  end
 
 end

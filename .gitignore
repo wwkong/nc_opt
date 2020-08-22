@@ -4,3 +4,4 @@
 resources/*
 docs/_build/*
 todo_list.md
+tests/sandboxes/*

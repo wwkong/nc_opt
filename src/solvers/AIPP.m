@@ -104,6 +104,14 @@ function [model, history] = AIPP(oracle, params)
   mu_fn = params.mu_fn;
   m = params.m;
   
+  % History params.
+  if params.i_logging
+    oracle.eval(z0);
+    function_values = oracle.f_s() + oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end  
+  
   % Solver params
   iter_limit = params.iter_limit;
   time_limit = params.time_limit;
@@ -262,6 +270,14 @@ function [model, history] = AIPP(oracle, params)
       end
     end
     
+    % Update history
+    if params.i_logging
+      oracle.eval(model_acg.y);
+      function_values(end + 1) = oracle.f_s() + oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
+    
     % Update iterates
     z0 = model_acg.y;
     outer_iter = outer_iter + 1;
@@ -279,6 +295,11 @@ function [model, history] = AIPP(oracle, params)
   history.iter = iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
 
 end % function end
  
@@ -366,6 +387,11 @@ function params = set_default_params(params)
   % acg_steptype = "variable" (can be set to be "constant")
   if (~isfield(params, 'acg_steptype'))
     params.acg_steptype = "variable";
+  end
+  
+  % i_logging = false
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
   end
 
 end

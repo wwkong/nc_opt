@@ -52,6 +52,14 @@ function [model, history] = ADAP_FISTA(oracle, params)
   params = set_default_params(params);
   theta = params.theta;
   
+  % History params.
+  if params.i_logging
+    oracle.eval(z0);
+    function_values = oracle.f_s() + oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
+  
   % Solver params.
   opt_tol = params.opt_tol;
   time_limit = params.time_limit;
@@ -166,6 +174,14 @@ function [model, history] = ADAP_FISTA(oracle, params)
       break
     end
     
+    % Update history
+    if params.i_logging
+      oracle.eval(yNext);
+      function_values(end + 1) = oracle.f_s() + oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
+    
     % Update.
     y = yNext;
     A = ANext;
@@ -184,6 +200,11 @@ function [model, history] = ADAP_FISTA(oracle, params)
   history.m = max(m, abs(mNext));
   history.M = max(M, abs(MNext));
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
 
   % Count backtracking iterations.
   history.iter = count;
@@ -196,6 +217,9 @@ function params = set_default_params(params)
   % Overwrite if necessary.
   if (~isfield(params, 'theta')) 
     params.theta = 1.25;
+  end
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
   end
 
 end

@@ -89,6 +89,14 @@ function [model, history] = IA_ICG(spectral_oracle, params)
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
+  % History params.
+  if params.i_logging
+    spectral_oracle.eval(Z0);
+    function_values = spectral_oracle.f_s() + spectral_oracle.f_n();
+    iteration_values = 0;
+    time_values = 0;
+  end
+  
   % Initialize the model struct in case there is an ACG failure.
   x = Z0;
   v = -Inf;
@@ -259,6 +267,15 @@ function [model, history] = IA_ICG(spectral_oracle, params)
         lambda = o_lambda * sqrt(2);
       end
     end
+    
+    % Update history.
+    if params.i_logging
+      o_spectral_oracle.eval(x);
+      function_values(end + 1) = ...
+        o_spectral_oracle.f_s() + o_spectral_oracle.f_n();
+      iteration_values(end + 1) = iter;
+      time_values(end + 1) = toc(t_start);
+    end
                               
     % Update AICG params.
     Z0 = Z;
@@ -277,6 +294,11 @@ function [model, history] = IA_ICG(spectral_oracle, params)
   history.iter = iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
+  if params.i_logging
+    history.function_values = function_values;
+    history.iteration_values = iteration_values;
+    history.time_values = time_values;
+  end
   
 end % function end
 
@@ -321,6 +343,11 @@ function params = set_default_params(params)
   % acg_steptype = 'variable'
   if ~isfield(params, 'acg_steptype')
     params.acg_steptype = 'variable';
+  end
+  
+  % i_logging = false
+  if (~isfield(params, 'i_logging')) 
+    params.i_logging = false;
   end
 
 end
