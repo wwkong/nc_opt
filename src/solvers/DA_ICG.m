@@ -41,7 +41,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
 %     to ``'adaptive'``.
 %
 %   params.sigma (double): Controls the accuracy of the inner subroutine.
-%     Defaults to ``(9 / 10 - max([params.lambda * (params.M1 - 
+%     Defaults to ``(1 / 2 - max([params.lambda * (params.M1 - 
 %     params.xi), 0]))``.
 %
 %   params.acg_steptype (character vector): Is either "variable" or 
@@ -104,6 +104,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   
   % Initialize some auxillary functions and constants.
   spo_at_Z_y0 = copy(spectral_oracle.eval(Z_y0));
+  phi_at_Z_y0 = spo_at_Z_y0.f_s() + spo_at_Z_y0.f_n();
   iter = 0; % Set to zero to offset ACG iterations
   outer_iter = 1;
   mu_fn = @(lam) 1 / 2;
@@ -147,7 +148,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     % ---------------------------------------------------------------------    
     
     % Compute the factorization of the pertrubed point:
-    % X0 = Z_xTilde - lam * grad_f1_s(Z_xTilde)
+    %   X0 = Z_xTilde - lam * grad_f1_s(Z_xTilde)
     spo_at_Z_xTilde = copy(spectral_oracle.eval(Z_xTilde));
     Z_xTilde_grad_step = Z_xTilde - lambda * spo_at_Z_xTilde.grad_f1_s();
     [P, dg_sng, Q] = decomp_fn(Z_xTilde_grad_step);
@@ -179,7 +180,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
       xi = xi * 2;
       spectral_oracle = copy(o_spectral_oracle);
       spectral_oracle.redistribute_curvature(xi);
-      spo_at_Z_y0 = copy(spectral_oracle(Z_y0, []));
+      spo_at_Z_y0 = copy(spectral_oracle.eval(Z_y0));
       continue;
     elseif (model_acg.status == 0)
       continue;
@@ -187,7 +188,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
        
     % Parse its output
     z_vec = model_acg.y;
-    v_vec = model_acg.u;
+    v_vec = model_acg.u;    
     Z_y = P * spdiags(z_vec, 0, zR, zR) * Q';
     V_y = P * spdiags(v_vec, 0, zR, zR) * Q';
  
@@ -197,10 +198,10 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     
     % Check for failure of the descent inequality
     % i.e., check Delta(Z_y0; Z_y, v) <= epsilon.
-    spo_at_Z_y = copy(spectral_oracle(Z_y, z_vec));
+    spo_at_Z_y = copy(spectral_oracle.spectral_eval(Z_y, z_vec));   
     [Delta_at_Z_y0, prox_at_Z_y0, prox_at_Z_xTilde] = Delta_mu_fn(...
       params, 1, spo_at_Z_y0, spo_at_Z_y, spo_at_Z_xTilde, ...
-      Z_y0, Z_y, Z_xTilde, V_y);
+      Z_y0, Z_y, Z_xTilde, V_y);    
     prox_base = ...
       max([abs(prox_at_Z_y0), abs(prox_at_Z_xTilde), DELTA_TOL]);
     rel_err = (Delta_at_Z_y0 - model_acg.eta) / prox_base;
@@ -211,43 +212,26 @@ function [model, history] = DA_ICG(spectral_oracle, params)
                 num2str(prox_base)]);
       xi = xi * 2;
       spectral_oracle = copy(o_spectral_oracle);
-      spectral_oracle.redistribute_curvature(xi);
-      spo_at_Z_y0 = copy(spectral_oracle(Z_y0, []));
+      spectral_oracle.redistribute_curvature(xi); 
+      spo_at_Z_y0 = copy(spectral_oracle.eval(Z_y0));
       continue;
     end     
     
     % Call the refinement
     params.P = P;
     params.Q = Q;
-    params.spo_Z0 = spo_at_Z_xTilde;
+    params.spo_Z0 = copy(spo_at_Z_xTilde);
     model_refine = refine_ICG(...
         spectral_oracle, params, M2 + xi, lambda, Z_xTilde, ...
         z_xTilde_grad_step, z_vec, v_vec);
     
-    % Record some of the refinement values.
-    orig_spo_z_hat = o_spectral_oracle(...
-      model_refine.z_hat, model_refine.spo_at_z_hat.sigma);
-    phi_at_z_hat = ...
-      orig_spo_z_hat.f1_s() + orig_spo_z_hat.f2_s() + orig_spo_z_hat.f_n();
-    cur_time = toc(t_start);
-    history.iteration_values = ...
-      [history.iteration_values, history.iter];
-    history.function_values = ...
-      [history.function_values, phi_at_z_hat];
-    history.outer_function_values = ...
-      [history.outer_function_values, phi_at_z_hat];
-    history.time_values = ...
-      [history.time_values, cur_time];
-    history.outer_time_values = ...
-      [history.outer_time_values, cur_time];
-    
     % Check failure of the refinement
     % i.e., check Delta(Z_y_hat; Z_y, v) <= epsilon.
     Z_yHat = model_refine.z_hat;
-    spo_at_Z_yHat = model_refine.spo_at_z_hat;
+    spo_at_Z_yHat = copy(model_refine.spo_at_z_hat);
     [Delta_at_Z_yHat, prox_at_Z_yHat, prox_at_Z_xTilde] = ...
       Delta_mu_fn(...
-        1, spo_at_Z_yHat, spo_at_Z_y, spo_at_Z_xTilde, ...
+        params, 1, spo_at_Z_yHat, spo_at_Z_y, spo_at_Z_xTilde, ...
         Z_yHat, Z_y, Z_xTilde, V_y);
     prox_base = ...
       max([abs(prox_at_Z_yHat), abs(prox_at_Z_xTilde), DELTA_TOL]);
@@ -258,10 +242,9 @@ function [model, history] = DA_ICG(spectral_oracle, params)
                 num2str(model_acg.eta), ', and base = ', ...
                 num2str(prox_base)]);
       xi = xi * 2;
-      spectral_oracle = ...
-        @(x, sigma) redistribute_curvature(...
-          x, sigma, o_spectral_oracle, xi);
-      spo_at_Z_y0 = spectral_oracle(Z_y0, []);
+      spectral_oracle = copy(o_spectral_oracle);
+      spectral_oracle.redistribute_curvature(xi); 
+      spo_at_Z_y0 = copy(spectral_oracle.eval(Z_y0));
       continue;
     end
     
@@ -298,18 +281,19 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     % Update D-AICG params for the next iteration
     if (is_monotone)
       % Monotonicty update (choose the 'best' y from {y, y^a})
-      spo_at_Z_y_f1_only =  copy(spectral_oracle(Z_y, z_vec));
+      spo_at_Z_y_f1_only = copy(spectral_oracle.spectral_eval(Z_y, z_vec));
       phi_at_Z_y = ...
         spo_at_Z_y_f1_only.f1_s() + spo_at_Z_y.f2_s() + spo_at_Z_y.f_n();
       if (phi_at_Z_y < phi_at_Z_y0)
         Z_y0 = Z_y;
-        spo_at_Z_y0 = spo_at_Z_y;
+        spo_at_Z_y0 = copy(spo_at_Z_y);
       end
     else
       % Standard AG update (choose y^a)
       Z_y0 = Z_y;
-      spo_at_Z_y0 = spo_at_Z_y;
+      spo_at_Z_y0 = copy(spo_at_Z_y);
     end
+    phi_at_Z_y0 = phi_at_Z_y;
     Z_x0 = Z_x;
     A0 = A;
     outer_iter = outer_iter + 1;
@@ -361,7 +345,7 @@ function params = set_default_params(params)
   % sigma = sqrt(9 / 10 - max([lambda * (M1 - xi), 0])).
   if ~isfield(params, 'sigma')
     incumb_sqr_sigma = ...
-      (9 / 10 - max([params.lambda * (params.M1 - params.xi), 0]));
+      (1 / 2 - max([params.lambda * (params.M1 - params.xi), 0]));
     if (incumb_sqr_sigma < 0)
       error('lambda is too large to set sigma!');
     end

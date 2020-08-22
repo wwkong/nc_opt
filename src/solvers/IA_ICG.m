@@ -10,7 +10,7 @@ Coders:
 %}  
 
 function [model, history] = IA_ICG(spectral_oracle, params)
-The accelerated inexact composite gradient (AICG) method.
+% The accelerated inexact composite gradient (AICG) method.
 % The inner-accelerated inexact composite gradient (IA-ICG) method.
 %
 % See Also:

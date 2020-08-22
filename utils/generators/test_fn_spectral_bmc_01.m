@@ -10,10 +10,9 @@ Coders:
 %}
 
 function [spectral_oracle, params] = ...
-  test_fn_spectral_mc_01(data_name, alpha, beta, theta, mu, seed)
-% Generates the needed functions for the regularized matrix completion 
-% problem under box constraints. Requires a data matrix with the variable 
-% name 'data' that is read from a .mat file with name given by data_name.
+  test_fn_spectral_bmc_01(matrix_arr, alpha, beta, theta, mu, seed)
+% Generates the needed functions for the regularized block matrix completion 
+% problem. Requires an array of matrices to make up the blocks.
 % 
 % Note:
 % 
@@ -26,8 +25,8 @@ function [spectral_oracle, params] = ...
 %
 % Arguments:
 % 
-%   data_name (character vector): Name of the .mat dataset used for the 
-%     problem. 
+%   matrix_arr (double vector array): An array of matrices to populate the
+%     blocks of the matrices to be completed.
 % 
 %   beta (double): One of the objective function's hyperparameters.
 % 
@@ -44,11 +43,15 @@ function [spectral_oracle, params] = ...
 %   the struct contains the relevant hyperparameters of the problem. 
 % 
 
-  % Problem generating function
+  % problem generating function
   rng(seed);
-
+  
+  % Parse input
+  data = sparse(blkdiag(matrix_arr{:}));
+  blk_sizes = cellfun(@size, matrix_arr, 'UniformOutput', false);
+  blk_min_dims = cellfun(@min, blk_sizes);
+  
   % Initialize
-  load(data_name, 'data');
   [rId, cId] = find(data);
   [dim_m, dim_n] = size(data);
   k = nnz(data);
@@ -92,6 +95,9 @@ function [spectral_oracle, params] = ...
   % Spectral oracle construction
   function oracle_struct = oracle_eval_fn(X, X_vec)
 
+    % Induced norm
+    norm_fn = @(a)   norm(a, 'fro');  
+
     % Parse inputs
     [dim_m, dim_n] = size(X);
     dim_r = min([dim_m, dim_n]);
@@ -112,7 +118,7 @@ function [spectral_oracle, params] = ...
     kappa0 = beta / theta;
     mu_bar = mu * kappa0;
 
-    % Subroutines
+    % Basic lambda functions
     kappa = @(t) beta * log(1 + abs(t) / theta);
     kappa_tilde = @(s) beta * (1 - exp(- norm(s) ^ 2 / (2 * theta)));
     kappa_prime = @(t) beta ./ (theta + abs(t)) .* sign(t);
@@ -122,16 +128,38 @@ function [spectral_oracle, params] = ...
     s_prox_const = @(lam) R / max([R, norm(s_prox_l1(lam), 'fro')]);
     s_prox = @(lam) s_prox_l1(lam) * s_prox_const(lam);
 
+    % Blockwise penalty
+    function penalty_val = block_kappa_tilde(s)
+      penalty_val = 0;
+      idx = 1;
+      for i=1:length(blk_min_dims)
+        blk_s = s(idx:(idx + blk_min_dims(i) - 1));
+        penalty_val = penalty_val + kappa_tilde(blk_s);
+        idx = idx + blk_min_dims(i);
+      end
+    end
+    function penalty_prime = block_kappa_tilde_prime(s)
+      penalty_prime = zeros(length(s), 1);
+      idx = 1;
+      for i=1:length(blk_min_dims)
+        blk_s = s(idx:(idx + blk_min_dims(i) - 1));
+        penalty_prime(idx:(idx + blk_min_dims(i) - 1)) = ...
+          kappa_tilde_prime(blk_s);
+        idx = idx + blk_min_dims(i);
+      end
+    end
+
     % Create the (spectral) oracle functions
+    oracle_struct.sigma = s;
     oracle_struct.spectral_grad_f2_s = @() ...
-      alpha * kappa_tilde_prime(s) + ...
+      alpha * block_kappa_tilde_prime(s) + ...
       mu * (kappa_prime(s) - kappa0 * sign(s));
     oracle_struct.spectral_prox_f_n = @(lam) s_prox(lam * mu_bar);
 
     % Create the (non-spectral) oracle functions
     oracle_struct.f1_s = @() 1/2 * norm_fn(P .* (X - data)) ^ 2;
     oracle_struct.f2_s = @() ...
-      alpha * kappa_tilde(s) + ...
+      alpha * block_kappa_tilde(s) + ...
       mu * sum(kappa(s) - kappa0 * abs(s));
     oracle_struct.f_n = @() mu_bar * sum(abs(s));
     oracle_struct.grad_f1_s = @() P .* (X - data);
@@ -148,16 +176,15 @@ function [spectral_oracle, params] = ...
     % Create the Tier I special oracle constructs
     oracle_struct.f_s_at_prox_f_n = ...
       @(lam) 1/2 * norm_fn(P .* (X - data)) ^ 2 + ...
-        alpha * kappa_tilde(s) + ...
+        alpha * block_kappa_tilde(s) + ...
         mu * sum(kappa(s_prox(lam)) - kappa0 * s_prox(lam)); 
     oracle_struct.f_n_at_prox_f_n = @(lam) mu_bar * sum(s_prox(lam));
     oracle_struct.grad_f_s_at_prox_f_n = ...
       @(lam) P .* (X - data) + U * bsxfun(...
         @times,  ...
-        alpha * kappa_tilde_prime(s) + ...
+        alpha * block_kappa_tilde_prime(s) + ...
         mu * (kappa_prime(s_prox(lam)) - kappa0 * sign(s_prox(lam))), ...
         V(:, 1:min_rank)');
-
   end
   spectral_oracle = SpectralOracle(@oracle_eval_fn);
 

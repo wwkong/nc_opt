@@ -382,8 +382,8 @@ function [model, history] = ACG(oracle, params)
       end
       
     % Termination for the D-AICG method.
-    elseif (termination_type == "d_aicg")  
-      if (norm_fn(u) ^ 2  + 2 * eta <= sigma ^ 2 * norm_fn(y - x0))
+    elseif (termination_type == "d_aicg")
+      if (norm_fn(u) ^ 2  + 2 * eta <= sigma ^ 2 * norm_fn(y - x0) + tau)
         status = 1;
         break;
       end

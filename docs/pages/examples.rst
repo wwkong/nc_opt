@@ -167,10 +167,36 @@ where $\phi_\alpha$ and $\ell_j$ are given by
     \phi_\alpha(t) := \alpha \log \left(1 + \frac{t}{\alpha} \right), \quad
     \ell_j := \log \left(1 + e^{-b_j \langle a_j, x \rangle}\right).
 
-Linearly Set Constrained Problems
+Spectral Problems
+-----------------
+This subsection considers spectral optimization problems where $f_s = f_{1,s} + f_{2,s}^{\cal V} \circ \sigma$ and $f_n = f_{n}^{\cal V} \circ \sigma$ for absolutely symmetric functions $f_{2,s}^{\cal V}$ and $f_{n}^{\cal V}$.
+
+:scpt:`src.examples.spectral.nonconvex_spectral_mc`
+
+This example solves the spectral matrix completion problem
+
+.. math::
+
+    \underset{X}{\text{minimize}}\quad  & \frac{1}{2}\|{\rm Proj}_{\Omega}(X-A)\|^{2}_{F}+{\cal R}_{\mu}\circ\sigma(X) + \delta_{B_R}(X) \\
+    \text{subject to}\quad  & X \in \mathbb{R}^{p\times q},
+
+where ${\cal R}_{\mu}$ is an absolutely symmetric regularization function, $\sigma(\cdot)$ is the function that maps a matrix to its vector of singular values, and $B_R$ is the Euclidean ball of radius $R$, i.e., $B_R := \{X \in \mathbb{R}^{p\times q} : \|X\|_F \leq R\}$.
+
+:scpt:`src.examples.spectral.nonconvex_spectral_bmc`
+
+This example solves the spectral blockwise matrix completion problem
+
+.. math::
+
+    \underset{X}{\text{minimize}}\quad  & \frac{1}{2}\|{\rm Proj}_{\Omega}(X-A)\|^{2}_{F}+{\cal R}_{\mu}\circ\sigma(X_i) + \delta_{B_R}(X) \\
+    \text{subject to}\quad  & X \in \mathbb{R}^{p\times q},
+
+where $\{X_i\}_{i=1}^k$ are block components of the matrix $X$, ${\cal R}_{\mu}$ is an absolutely symmetric regularization function, $\sigma(\cdot)$ is the function that maps a matrix to its vector of singular values, and $B_R$ is the Euclidean ball of radius $R$, i.e., $B_R := \{X \in \mathbb{R}^{p\times q} : \|X\|_F \leq R\}$.
+
+Linearly-Set Constrained Problems
 ---------------------------------
 
-This subsection considers linearly set constrained composite optimization problems where $g(x)=Ax$ for a linear operator $A$ and $S$ is a closed convex set.
+This subsection considers linearly-set constrained composite optimization problems where $g(x)=Ax$ for a linear operator $A$ and $S$ is a closed convex set.
 
 :scpt:`src.examples.constrained.lin_constr_nonconvex_qp`
 
