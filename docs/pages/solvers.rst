@@ -4,6 +4,10 @@ Solvers
 This section documents the solvers that available for solving unconstrained composite optimization problems. 
 For simplicity, we only list the parameter inputs that affect the behavior of the method for a fixed optimization problem. All other inputs should be passed from the model object that is calling the solver.
 
+.. note::
+
+    All solvers have a parameter ``i_logging`` that, when set to ``true``, will log the function value, (inner) iteration number, and time at each (outer) iteration. These values are then added to the ``history`` struct that is output by each solver.
+
 .. automodule:: src.solvers
 
 Auxiliary Solvers

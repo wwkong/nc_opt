@@ -55,10 +55,10 @@ function [model, history] = DA_ICG(spectral_oracle, params)
 %     when evaluated at $x$, computes ${\rm Proj}_\Omega(x)$. For details
 %     see the definition of $\Omega$ in **[1]**. Defaults to ``@(X) X``.
 %
-%   params.is_monotone (bool): If ``True``, then the sequence of outer 
+%   params.is_monotone (bool): If ``true``, then the sequence of outer 
 %     iterates forms a monotonically nonincreasing sequence with respect to 
-%     the objective function. If ``False``, then no such property is
-%     guaranteed. Defaults to ``True``.
+%     the objective function. If ``false``, then no such property is
+%     guaranteed. Defaults to ``true``.
 %
 % Returns: 
 %   
