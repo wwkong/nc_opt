@@ -24,12 +24,26 @@ classdef ConstrCompModel < CompModel
   %     that, when evaluated at $\{x, \delta\}$, returns $\nabla g(x) \delta$.
   %     Defaults to ``@(x) zeros(size(x))``.
   %
-  %   set_projector (function handle): A **required** one argument function
+  %   set_projector (function handle): A one argument function
   %     that, when evaluated at a point $x$, returns the projection of $x$
-  %     onto the set $S$. Defaults to ``None``.
+  %     onto the set $S$. Defaults to ``@(x) zeros(size(x))``.
+  %
+  %   primal_cone_project (function handle): A one argument function that,
+  %     that, when evaluated at a point $x$, returns the projection of $x$
+  %     onto the cone K. Defaults to ``@(x) zeros(size(x))``.
+  %
+  %   dual_cone_projector (function handle): A one argument function that,
+  %     that, when evaluated at a point $x$, returns the projection of $x$
+  %     onto the dual cone K^{*}. Defaults to ``@(x) x``.
+  %
+  %   B_constr: A bound on the norm of the constraint function over the
+  %     domain of $f_n$. Defaults to 0.0.
   %
   %   K_constr: A **required** Lipschitz constant of the constraint function.
   %     Defaults to ``None``.
+  %
+  %   L_constr: A Lipschitz constant of the gradient of the constraint
+  %     function. Defaults to 0.0.
   %
   %   feas_tol (double): The tolerance for feasibility, i.e., 
   %     $\eta=\text{feas_tol}$. Defaults to ``1e-6``.
@@ -52,7 +66,8 @@ classdef ConstrCompModel < CompModel
     framework
     constr_fn = @(x) 0;
     grad_constr_fn = @(x) zeros(size(x));
-    set_projector = @(x) 0;
+    set_projector = @(x) zeros(size(x));
+    dual_cone_projector = @(x) x;
     feas_type {mustBeMember(feas_type, {'relative', 'absolute'})} = ...
       'absolute'
   end
@@ -63,7 +78,9 @@ classdef ConstrCompModel < CompModel
   
   % Visible solver properties.
   properties (SetAccess = public)
+    B_constr double {mustBeReal, mustBeFinite} = 0.0;
     K_constr double {mustBeReal, mustBeFinite}
+    L_constr double {mustBeReal, mustBeFinite} = 0.0;
   end
   
   % Invisible and protected solver properties 
@@ -128,7 +145,7 @@ classdef ConstrCompModel < CompModel
     function feas = compute_feas(obj, x)
       feas = obj.norm_fn(...
         obj.constr_fn(x) - ...
-        obj.set_projector(obj.constr_fn(x)));
+          obj.set_projector(obj.constr_fn(x)));
     end
     
     % Key subroutines.
@@ -167,8 +184,9 @@ classdef ConstrCompModel < CompModel
     % Logging functions.
     function log_input(obj)
       log_input@CompModel(obj);
-      word_len = 8;
+      word_len = 10;
       prefix = ['%-' num2str(word_len) 's = '];
+      fprintf([prefix, '%s\n'], 'FRAMEWORK', func2str(obj.framework));
       fprintf([prefix, '%.2e\n'], 'FEAS_TOL', obj.feas_tol);
     end
     function log_output(obj)
@@ -191,7 +209,8 @@ classdef ConstrCompModel < CompModel
     function update_solver_inputs(obj)
       update_solver_inputs@CompModel(obj);
       MAIN_INPUT_NAMES = {...
-        'K_constr', 'constr_fn', 'grad_constr_fn', 'set_projector'
+        'B_constr', 'K_constr', 'L_constr', 'constr_fn', 'grad_constr_fn', ...
+        'set_projector', 'dual_cone_projector', ...
       };
       % Create the input params (order is important here!)
       for i=1:length(MAIN_INPUT_NAMES)

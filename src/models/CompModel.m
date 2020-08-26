@@ -311,7 +311,7 @@ classdef CompModel < matlab.mixin.Copyable
     
     % Logging functions.
     function log_input(obj)
-      word_len = 8;
+      word_len = 10;
       prefix = ['%-' num2str(word_len) 's = '];
       fprintf('» Solving model with: \n');
       fprintf([prefix, '%s\n'], 'SOLVER', func2str(obj.solver));

@@ -30,5 +30,6 @@ ncvx_qp.opt_type = 'relative';
 
 % Run a benchmark test and print the summary.
 solver_arr = {@AIPP, @ECG, @AG};
-[summary_tables, comp_models] = run_benchmark(ncvx_qp, solver_arr, []);
+[summary_tables, comp_models] = ...
+  run_CM_benchmark(ncvx_qp, solver_arr, [], []);
 disp(summary_tables.all);

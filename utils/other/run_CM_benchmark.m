@@ -2,7 +2,8 @@
 
 DESCRIPTION
 -----------
-A wrapper that runs several solvers on a user-provided CompModel object.
+A wrapper that runs several solvers on a user-provided 
+ContrCompModel object.
 
 FILE DATA
 ---------
@@ -14,11 +15,16 @@ Coders:
 INPUT
 -----
 comp_model:
-  A CompModel object for running the solvers on.
+  A ConstrCompModel object for running the solvers on.
+
 solver_arr:
   An array of solvers to benchmark.
-solver_arr (optional):
+
+solver_hparams_arr (optional):
   An array of solver hyperparameters (can be left empty).
+
+name_arr (optional):
+  An array of solver names (can be left empty).
 
 OUTPUT
 ------
@@ -30,7 +36,7 @@ comp_models:
 %}
 
 function [summary_tables, comp_models] = ...
-  run_benchmark(comp_model, solver_arr, solver_hparams_arr)
+  run_CM_benchmark(comp_model, solver_arr, solver_hparams_arr, name_arr)
 
   % Initialize
   if (~isempty(solver_hparams_arr) && ...
@@ -50,7 +56,11 @@ function [summary_tables, comp_models] = ...
   for i=1:n_solvers
     % Prepare.
     solver = solver_arr{i};
-    solver_name = func2str(solver);
+    if ~isempty(name_arr)
+      solver_name = name_arr{i};
+    else
+      solver_name = func2str(solver);
+    end
     comp_model.solver = solver;
     if (~isempty(solver_hparams_arr))
       comp_model.solver_hparams = solver_hparams_arr{i};

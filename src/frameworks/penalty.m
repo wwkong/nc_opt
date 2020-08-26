@@ -129,10 +129,10 @@ function [model, history] = penalty(solver, oracle, params)
     solver_oracle = copy(o_oracle);
     solver_oracle.add_smooth_oracle(penalty_oracle)
     
-    % Update curvatures and call the solver.
+    % Update curvatures, call the solver, and update iteration count.
     solver_params.M = params.M + c * params.K_constr ^ 2;
-    [solver_model, solver_history] = ...
-      solver(solver_oracle, solver_params);
+    [solver_model, solver_history] = solver(solver_oracle, solver_params);
+    iter = iter + solver_history.iter;
     
     % Update history.
     if params.i_logging
@@ -166,7 +166,6 @@ function [model, history] = penalty(solver, oracle, params)
 
     % Update iterates.
     c = 2 * c;
-    iter = iter + solver_history.iter;
     stage = stage + 1;
     
   end
