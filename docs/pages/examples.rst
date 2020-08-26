@@ -31,9 +31,7 @@ for any closed convex set $C$ and any point $x$.
     proximal point method for solving nonconvex-concave min-max problems. 
     *arXiv preprint arXiv:1905.13433*.
 
-    **[4]** Kong, W., & Monteiro, R. D. (2020). Accelerated Inexact Composite
-     Gradient Methods for Nonconvex Spectral Optimization Problems. *arXiv 
-     preprint arXiv:2007.11772*.
+    **[4]** Kong, W., & Monteiro, R. D. (2020). Accelerated Inexact Composite Gradient Methods for Nonconvex Spectral Optimization Problems. *arXiv preprint arXiv:2007.11772*.
 
 Unconstrained Problems
 ----------------------
