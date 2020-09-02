@@ -29,8 +29,8 @@ ncvx_lc_qp.m = hparams.m;
 ncvx_lc_qp.K_constr = hparams.K_constr;
 
 % Set the tolerances
-ncvx_lc_qp.opt_tol = 1e-2;
-ncvx_lc_qp.feas_tol = 1e-2;
+ncvx_lc_qp.opt_tol = 1e-1;
+ncvx_lc_qp.feas_tol = 1e-1;
 
 % Add linear constraints
 ncvx_lc_qp.constr_fn = @(x) hparams.constr_fn(x);
@@ -46,15 +46,21 @@ aipp_hparam = base_hparam;
 aipp_hparam.aipp_type = 'aipp';
 
 % % Run a benchmark test and print the summary.
-% hparam_arr = {aipp_hparam, aipp_hparam, base_hparam};
+% hparam_arr = {base_hparam, aipp_hparam, base_hparam};
 % name_arr = {'QP_AIPP', 'R_QP_AIPP', 'IAPIAL'};
 % framework_arr = {@penalty, @penalty, @iapial};
+% solver_arr = {@AIPP, @AIPP, @AIPP};
+
+% hparam_arr = {aipp_hparam, base_hparam, base_hparam};
+% name_arr = {'R_QP_AIPP', 'AIDAL', 'IAPIAL'};
+% framework_arr = {@penalty, @aidal, @iapial};
 % solver_arr = {@AIPP, @AIPP, @AIPP};
 
 hparam_arr = {base_hparam};
 name_arr = {'AIDAL'};
 framework_arr = {@aidal};
 solver_arr = {@AIPP};
+
 
 [summary_tables, comp_models] = ...
   run_CCM_benchmark(...

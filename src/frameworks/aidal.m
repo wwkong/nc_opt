@@ -9,7 +9,7 @@ Coders:
 
 %}
 
-function [model, history] = aidal(solver, oracle, params)
+function [model, history] = aidal(~, oracle, params)
 % An accelerated inexact dampened augmeneted Lagrangian (AIDAL) framework 
 % for solving a nonconvex composite optimization problem with linear
 % constraints
@@ -59,40 +59,42 @@ function [model, history] = aidal(solver, oracle, params)
   
   % Initialize special constraint functions
   norm_fn = params.norm_fn;
-  pc_fn = params.set_projector;
-  dc_fn = params.dual_cone_projector;
+  prod_fn = params.prod_fn;
+  proj_fn = params.set_projector;
   
   % Initialize the augmented Lagrangian penalty (ALP) functions.
   alp_n = @(x) 0;
   alp_prox = @(x, lam) x;
   % Value of the AL function: 
-  %  Q(x; p) = 1 / (2 * c) * [dist(p + c * constr_fn(x), -K) - |p| ^ 2],
+  %  Q(x; p) = (1 - theta) * <p, Ax - b> + (c / 2) * |Ax - b| ^ 2,
   %  where K is the primal cone.
-  function alp_val = alp_fn(x, p, c)
-    p_step = (1 - theta) * p + c * params.constr_fn(x);
-    dist_val = norm_fn((-p_step) - pc_fn(-p_step));
-    alp_val = 1 / (2 * c) * (dist_val ^ 2 - norm_fn((1 - theta) * p) ^ 2);
+  function alp_val = alp_fn(x, p, c, theta)
+    alp_val = ...
+      (1 - theta) * prod_fn(p, params.constr_fn(x)) + ...
+      (c / 2) * norm_fn(params.constr_fn(x)) ^ 2;
   end
   % Computes the point
-  %   Proj_{K^*}([1 - theta] * p + chi * c * const_fn(x)).
-  function proj_point = dual_alp_proj(x, p, c, theta, chi)
-    p_step = (1 - theta) * p + chi * c * params.constr_fn(x);
-    proj_point = dc_fn(p_step);
+  %   (1 - theta) * p + chi * c * (Ax - b).
+  function p_step = dual_update(x, p, c, theta, chi)
+    p_step = (1 - theta) * p + chi * c * (params.constr_fn(x));
+  end
+  function feas = feas_fn(x)
+    feas = norm_fn(params.constr_fn(x) - proj_fn(params.constr_fn(x)));
   end
   % Gradient of the function Q(x; p) with respect to x.
-  function grad_alp_val = grad_alp_fn(x, p, c, theta, chi)
-    proj_point = dual_alp_proj(x, p, c, theta, chi);
+  function grad_alp_val = grad_alp_fn(x, p, c, theta)
+    p_step = (1 - theta) * p + c * (params.constr_fn(x));
     grad_constr_fn = params.grad_constr_fn;
     %  If the gradient function has a single argument, assume that the
     %  gradient at a point is a constant tensor.
     if nargin(grad_constr_fn) == 1
       grad_alp_val = ...
-        tsr_mult(grad_constr_fn(x), proj_point, 'dual');
+        tsr_mult(grad_constr_fn(x), p_step, 'dual');
     % Else, assume that the gradient is a bifunction; the first argument is
     % the point of evaluation, and the second one is what the gradient
     % operator acts on.
     elseif nargin(grad_constr_fn) == 2
-      grad_alp_val = grad_constr_fn(x, proj_point);
+      grad_alp_val = grad_constr_fn(x, p_step);
     else
       error(...
         ['Unknown function prototype for the gradient of the ', ...
@@ -143,8 +145,8 @@ function [model, history] = aidal(solver, oracle, params)
     end
     
     % Create the penalty and ALM oracle objects.
-    alp0_s = @(z) alp_fn(z, p0, c0);
-    grad_alp0_s = @(z) grad_alp_fn(z, p0, c0, theta, chi);
+    alp0_s = @(z) alp_fn(z, p0, c0, theta);
+    grad_alp0_s = @(z) grad_alp_fn(z, p0, c0, theta);
     alp0_oracle = Oracle(alp0_s, alp_n, grad_alp0_s, alp_prox);
     oracle_AL0 = copy(oracle);
     oracle_AL0.add_smooth_oracle(alp0_oracle);
@@ -163,7 +165,6 @@ function [model, history] = aidal(solver, oracle, params)
     params_acg.t_start = t_start;
     
     % Call the ACG algorithm and update parameters.
-    disp(table(outer_iter, iter));
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     z = model_acg.y;
     v = model_acg.u;
@@ -174,8 +175,8 @@ function [model, history] = aidal(solver, oracle, params)
       refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
     
     % Check for termination.
-    p_hat = dual_alp_proj(model_refine.z_hat, p0, c0, theta, chi);
-    q_hat = (1 / c0) * (p0 - p_hat);
+    p_hat = dual_update(model_refine.z_hat, p0, c0, theta, chi);
+    q_hat = feas_fn(model_refine.z_hat);
     w_hat = model_refine.v_hat;
     norm_w_hat = norm_fn(w_hat);
     norm_q_hat = norm_fn(q_hat);
@@ -185,13 +186,11 @@ function [model, history] = aidal(solver, oracle, params)
     
     % Apply the dual update and create a new ALP oracle.
     x = model_acg.y;
-    p = dual_alp_proj(x, p0, c0, theta, chi);
+    p = dual_update(x, p0, c0, theta, chi);
     
-    % Check if we need to double c0 (and do some useful precomputations).
-    dbl_cond1 = (...
-      nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2);
-    dbl_cond2 = (norm_q_hat > feas_tol);      
-    if (dbl_cond1 && dbl_cond2)
+    % Check if we need to double c0 (and do some useful precomputations).    
+    if ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && ...
+        (norm_q_hat > feas_tol))
       c0 = 2 * c0;
       stage = stage + 1;
     end
@@ -228,7 +227,7 @@ function params = set_default_params(params)
     params.nu = 0.3 * (params.lambda * params.M + 1);
   end
   if (~isfield(params, 'theta'))
-    params.theta = 0.1;
+    params.theta = 0.99;
   end
   if (~isfield(params, 'chi'))
     theta = params.theta;

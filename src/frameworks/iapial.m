@@ -9,7 +9,7 @@ Coders:
 
 %}
 
-function [model, history] = iapial(solver, oracle, params)
+function [model, history] = iapial(~, oracle, params)
 % An inexact accelerated proximal augmeneted Lagrangian (IAPIAL) framework 
 % for solving a nonconvex composite optimization problem with 
 % convex cone constraints
@@ -45,7 +45,7 @@ function [model, history] = iapial(solver, oracle, params)
   
   % Initialize constant params.
   m = params.m;
-  L = params.L;
+  M = params.M;
   % We will assume this is B_g = B_g^{(0)}
   B_constr = params.B_constr;
   % We will assume this is L_g
@@ -119,7 +119,7 @@ function [model, history] = iapial(solver, oracle, params)
   stage = 1;
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
-  c0 = max([MIN_PENALTY_CONST, L / K_constr ^ 2]);
+  c0 = max([MIN_PENALTY_CONST, M / K_constr ^ 2]);
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
   params_acg.termination_type = 'aipp';
@@ -154,7 +154,7 @@ function [model, history] = iapial(solver, oracle, params)
     oracle_acg.proxify(lambda, z0);
     
     % Create the ACG params.
-    L_psi = lambda * (L + L_constr * norm_fn(p0) + ...
+    L_psi = lambda * (M + L_constr * norm_fn(p0) + ...
       c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
     params_acg.x0 = z0;
     params_acg.z0 = z0;
