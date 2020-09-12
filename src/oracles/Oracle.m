@@ -15,7 +15,7 @@ classdef Oracle < matlab.mixin.Copyable
   %   prox_f_n (function handle): A one argument function that, when evaluated 
   %     at $\lambda$, outputs $${\rm prox}_{\lambda f_n}(x) := 
   %     {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$
-  %     Defaults to ``@() zeros(size(x))``.
+  %     Defaults to ``@(lam) x``.
   %
   %   f_s_at_prox_f_n (function handle): A one argument function that, when 
   %     evaluated at $\lambda$, returns the value of $f_s$ at the point
@@ -79,7 +79,7 @@ classdef Oracle < matlab.mixin.Copyable
           'f_s', @() 0, ...
           'f_n', @() 0, ...
           'grad_f_s', @() zeros(size(x)), ...
-          'prox_f_n', @(lam) zeros(size(x)));        
+          'prox_f_n', @(lam) x);        
       elseif (nargin == 1) % eval constructor
         obj.eval_proxy_fn = varargin{1};        
       elseif (nargin == 4) % basic oracle constructor
