@@ -9,7 +9,7 @@ Coders:
 
 %}
 
-function [model, history] = aidal(~, oracle, params)
+function [model, history] = AIDAL(~, oracle, params)
 % An accelerated inexact dampened augmeneted Lagrangian (AIDAL) framework 
 % for solving a nonconvex composite optimization problem with linear
 % constraints
