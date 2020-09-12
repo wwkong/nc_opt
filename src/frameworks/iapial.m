@@ -104,7 +104,9 @@ function [model, history] = iapial(~, oracle, params)
   
   % Initialize other params.
   lambda = params.lambda;
-  sigma = params.sigma;
+  nu = params.nu;
+  sigma_min = params.sigma_min;
+  sigma_type = params.sigma_type;
 
   % Initialize history parameters.
   if params.i_logging
@@ -122,7 +124,7 @@ function [model, history] = iapial(~, oracle, params)
   c0 = max([MIN_PENALTY_CONST, M / K_constr ^ 2]);
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
-  params_acg.termination_type = 'aipp';
+  params_acg.termination_type = 'aipp_sqr';
   
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
@@ -156,9 +158,16 @@ function [model, history] = iapial(~, oracle, params)
     % Create the ACG params.
     L_psi = lambda * (M + L_constr * norm_fn(p0) + ...
       c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    if (strcmp(sigma_type, 'constant'))
+      sigma = sigma_min;
+    elseif (strcmp(sigma_type, 'variable'))
+      sigma = min([nu / sqrt(L_psi), sigma_min]);
+    else 
+      error('Unknown sigma type!');
+    end    
     params_acg.x0 = z0;
     params_acg.z0 = z0;
-    params_acg.sigma = sigma / sqrt(L_psi);
+    params_acg.sigma = sigma;
     params_acg.L = L_psi;
     params_acg.t_start = t_start;
     
@@ -202,7 +211,7 @@ function [model, history] = iapial(~, oracle, params)
       % Check the update condition and update the relevant constants.
       % !!! The constant Delta_mult will need to be changed in the
       % nonlinear case !!!
-      Delta_mult = lambda * (1 - sigma ^ 2) / (4 * (1 + 2 * sigma)) ^ 2;
+      Delta_mult = lambda * (1 - sigma ^ 2) / (4 * (1 + 2 * nu) ^ 2);
       if (Delta <= opt_tol ^ 2 / Delta_mult)
         c0 = 2 * c0;
         stage = stage + 1;
@@ -240,8 +249,14 @@ function params = set_default_params(params)
   if (~isfield(params, 'lambda'))
     params.lambda = 1 / (2 * params.m);
   end
-  if (~isfield(params, 'sigma'))
-    params.sigma = 0.3 * (params.lambda * params.M + 1);
+  if (~isfield(params, 'sigma_min'))
+    params.sigma_min = 1 / sqrt(2);
+  end
+  if (~isfield(params, 'nu'))
+    params.nu = sqrt(params.sigma_min * (params.lambda * params.M + 1));
+  end
+  if (~isfield(params, 'sigma_type'))
+    params.sigma_type = 'constant';
   end
   if (~isfield(params, 'acg_steptype'))
     params.acg_steptype = "variable";

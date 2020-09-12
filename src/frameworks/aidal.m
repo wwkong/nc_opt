@@ -39,6 +39,7 @@ function [model, history] = aidal(~, oracle, params)
 
   % Global constants.
   MIN_PENALTY_CONST = 1;
+  BISECTION_TOL = 1e-3;
 
   % Timer start.
   t_start = tic;
@@ -58,32 +59,33 @@ function [model, history] = aidal(~, oracle, params)
   iter_limit = params.iter_limit;
   
   % Initialize special constraint functions
-  norm_fn = params.norm_fn;
   prod_fn = params.prod_fn;
-  proj_fn = params.set_projector;
+  norm_fn = params.norm_fn;
+  pc_fn = params.set_projector;
+  dc_fn = params.dual_cone_projector;
   
   % Initialize the augmented Lagrangian penalty (ALP) functions.
   alp_n = @(x) 0;
   alp_prox = @(x, lam) x;
   % Value of the AL function: 
-  %  Q(x; p) = (1 - theta) * <p, Ax - b> + (c / 2) * |Ax - b| ^ 2,
-  %  where K is the primal cone.
+  %   Q(x; p) = 1 / (2 * c) * [
+  %     dist((1-theta) * p + c * constr_fn(x), -K) ^ 2 - 
+  %     (1 - theta) ^ 2 |p| ^ 2 ],
+  % where K is the primal cone.
   function alp_val = alp_fn(x, p, c, theta)
+    p_step = (1 - theta) * p + c * params.constr_fn(x);
+    dist_val = norm_fn((-p_step) - pc_fn(-p_step));
     alp_val = ...
-      (1 - theta) * prod_fn(p, params.constr_fn(x)) + ...
-      (c / 2) * norm_fn(params.constr_fn(x)) ^ 2;
+      1 / (2 * c) * (dist_val ^ 2 - (1 - theta) ^ 2 * norm_fn(p) ^ 2);
   end
   % Computes the point
-  %   (1 - theta) * p + chi * c * (Ax - b).
-  function p_step = dual_update(x, p, c, theta, chi)
-    p_step = (1 - theta) * p + chi * c * (params.constr_fn(x));
-  end
-  function feas = feas_fn(x)
-    feas = norm_fn(params.constr_fn(x) - proj_fn(params.constr_fn(x)));
+  %   Proj_{K^*}((1 - theta) * p + c * const_fn(x)).
+  function proj_point = dual_update(x, p, c, theta, chi)
+    proj_point = dc_fn((1 - theta) * p + chi * c * (params.constr_fn(x)));
   end
   % Gradient of the function Q(x; p) with respect to x.
   function grad_alp_val = grad_alp_fn(x, p, c, theta)
-    p_step = (1 - theta) * p + c * (params.constr_fn(x));
+    p_step = dc_fn((1 - theta) * p + c * (params.constr_fn(x)));
     grad_constr_fn = params.grad_constr_fn;
     %  If the gradient function has a single argument, assume that the
     %  gradient at a point is a constant tensor.
@@ -102,12 +104,146 @@ function [model, history] = aidal(~, oracle, params)
     end
   end
 
+  % -----------------------------------------------------------------------
+  % ADAPTIVE SUBROUTINES 
+  % -----------------------------------------------------------------------
+  % Finds the best choice of chi based on a bisection search
+  function chi = find_chi(oracle, v, z0, z, p00, p0, c0, c, theta, sigma)
+    % Basic evaluations
+    o_at_z0 = copy(oracle);
+    o_at_z0.eval(z0);
+    phi_at_z0 = o_at_z0.f_s() + o_at_z0.f_n();
+    o_at_z = copy(oracle);
+    o_at_z.eval(z);
+    phi_at_z = o_at_z.f_s() + o_at_z.f_n();
+    % Value of (1 - sigma ^ 2) / (2 * lambda) * |r| ^2.
+    lhs_val = ...
+      (1 - sigma ^ 2) / (2 * lambda) * norm_fn(v + z0 - z) ^ 2;
+    % Value of Psi_{j-1} - Psi_j + pi_{j}
+    function val = rhs_val(chi)
+      p = dual_update(z, p0, c, theta, chi);
+      f0 = (1 / (chi * c0)) * (p0 - (1 - theta) * p00);
+      a_theta = theta * (1 - theta);
+      b_theta = (2 - theta) * (1 - theta);
+      alpha_fn = @(chi) ...
+        ((1 - 2 * chi * b_theta) - (1 - theta) ^ 2) / ...
+        (2 * chi);
+      cur_Psi = ...
+        phi_at_z + alp_fn(z, p, c, theta) - ...
+        a_theta / (2 * chi * c) * norm_fn(p) ^ 2 + ...
+        alpha_fn(chi) / (4 * chi * c) * norm_fn(p - p0) ^ 2;
+      prev_Psi = ...
+        phi_at_z0 + alp_fn(z0, p0, c0, theta) - ...
+        a_theta / (2 * chi * c0) * norm_fn(p0) ^ 2 + ...
+        alpha_fn(chi) / (4 * chi * c0) * norm_fn(p0 - p00) ^ 2;
+      cur_pi = ...
+        (c - c0) / 2 * (...
+          norm_fn(f0) ^ 2 + ...
+          1 / (chi * c0) * ...
+            prod_fn((p - p0) - (1 - theta) * (p0 - p00), f0)) + ...
+        a_theta / (2 * chi) * (1 / c0 - 1 / c) * norm_fn(p0) ^ 2;
+      val = prev_Psi - cur_Psi + cur_pi;
+      
+%       % -------------------
+%       aux1 = ...
+%         (phi_at_z + alp_fn(z, p, c, theta)) - ...
+%         (phi_at_z + alp_fn(z0, p0, c, theta));
+%       aux2 = ...
+%         b_theta / (2 * chi * c) * norm_fn(p - p0) ^ 2 + ...
+%         a_theta / (2 * chi * c) * (norm_fn(p) ^ 2 - norm_fn(p0) ^ 2) - ...
+%         (1 - sigma ^ 2) / (2 * lambda) * norm_fn(v + z0 -z) ^2 - ...
+%         c / 4 * norm_fn(params.constr_fn(z) - params.constr_fn(z0)) ^ 2;
+%       disp(table(aux1, aux2, c, c0)); 
+      
+      % -------------------
+%       aux1 = ...
+%         c / 4 * norm_fn(params.constr_fn(z) - params.constr_fn(z0)) ^ 2;
+%       aux2 = ...
+%         1 / (4 * chi ^ 2 * c) * ...
+%         norm_fn((p - p0) - (1 - theta) * (p0 - p00) + chi * (c0 - c) * f0) ^ 2;
+%       aux2 = ...
+%         c / 4 * norm_fn(f - f0) ^ 2;
+%       disp(table(aux1, aux2, c, c0, norm_fn(z0), norm_fn(p0_tilde), norm_fn(p0)));
+      
+%       % -------------------
+%       aux1 = ...
+%         chi * norm_fn(c * params.constr_fn(z) - c0 * params.constr_fn(z0));
+%       aux2 = ...
+%         norm_fn((p - p0) - (1 - theta) * (p0 - p00));
+%       disp(table(aux1, aux2, c, c0)); 
+      
+%       % -------------------
+%       aux1 = ...
+%         chi * norm_fn(c * params.constr_fn(z0));
+%       aux2 = ...
+%         norm_fn(p0  - (1 - theta) * p00);
+%       disp(table(aux1, aux2, c, c0)); 
+
+%       % ---------------------
+%       aux1 = ...
+%         1 / (4 * chi ^ 2 * c) * norm_fn((p - p0) - (1 - theta) * (p0 - p00)) ^ 2;
+%       aux2 = ...
+%         1 / (4 * chi * c) * (2 * b_theta * norm_fn(p - p0) ^ 2 + ...
+%         alpha_fn(chi) * (norm_fn(p - p0) ^ 2 - norm_fn(p0 - p00) ^ 2));
+%       disp(table(aux1, aux2));
+%       if aux1 < aux2
+%         disp('Aux failed!')
+%       end
+
+%       % --------------------
+%       aux_lhs = ...
+%         (phi_at_z + alp_fn(z, p, c, theta)) - ...
+%         (phi_at_z0 + alp_fn(z0, p0, c0, theta));
+%       aux_rhs = ...
+%         b_theta / (2 * chi * c) * norm_fn(p - p0) ^ 2 + ...
+%         a_theta / (2 * chi * c) * (norm_fn(p) ^ 2 - norm_fn(p0) ^ 2) - ...
+%         (1 - sigma ^ 2) / (2 * lambda) * norm_fn(v + z0 -z) ^ 2 - ...
+%         c / 4 * norm_fn(params.constr_fn(z) - params.constr_fn(z0)) ^ 2;
+%       disp(table(aux_lhs, aux_rhs))
+%       disp(table(cur_pi, prev_Psi, cur_Psi, ...
+%         alpha_fn(chi) / (4 * chi * c0) * norm_fn(p0 - p00) ^ 2, ...
+%         alpha_fn(chi) / (4 * chi * c) * norm_fn(p - p0) ^ 2));
+      
+%       % --------------------
+%       aux1 = ...
+%         (phi_at_z0 + alp_fn(z0, p0, c0, theta)) -...
+%         (phi_at_z + alp_fn(z, p, c, theta));
+%       aux2 = ...
+%         (1 - sigma ^ 2) / (2 * lambda) * norm_fn(v + z0 -z) ^ 2 + ...
+%         a_theta / (2 * chi * c) * (norm_fn(p0) ^ 2 - norm_fn(p) ^ 2) + ...
+%         alpha_fn(chi) / (4 * chi * c) * (...
+%           norm_fn(p - p0) ^ 2 - norm_fn(p0 - p00) ^ 2);
+%       disp(table(aux1, aux2, c, c0)); 
+
+    end
+    % Run a bisection method to find the tightest chi.
+    low = theta ^ 2 / (2 * (2 - theta) * (1 - theta));
+    high = 1;
+    mid = (high + low) / 2;
+%     if (lhs_val > rhs_val(low))
+%       disp(table(lhs_val, rhs_val(low)));
+%       error('Descent inequality does not hold!');
+%     end
+    while (abs(low - high) > BISECTION_TOL)
+      if (lhs_val <= rhs_val(mid))
+        low = mid;
+      else
+        high = mid;
+      end
+      mid = (low + high) / 2;
+    end
+    chi = low;
+  end
+  % -----------------------------------------------------------------------
+
   % Fill in OPTIONAL input params.
   params = set_default_params(params);
   
   % Initialize other params.
   lambda = params.lambda;
   nu = params.nu;
+  sigma_min = params.sigma_min;
+  sigma_type = params.sigma_type;
   theta = params.theta;
   chi = params.chi;
 
@@ -124,10 +260,12 @@ function [model, history] = aidal(~, oracle, params)
   stage = 1;
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
-  c0 = max([MIN_PENALTY_CONST, L / K_constr ^ 2]);
+  p00 = p0;
+  c = max([MIN_PENALTY_CONST, L / K_constr ^ 2]);
+  c0 = c;
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
-  params_acg.termination_type = 'aipp';
+  params_acg.termination_type = 'aipp_sqr';
 
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -145,8 +283,8 @@ function [model, history] = aidal(~, oracle, params)
     end
     
     % Create the penalty and ALM oracle objects.
-    alp0_s = @(z) alp_fn(z, p0, c0, theta);
-    grad_alp0_s = @(z) grad_alp_fn(z, p0, c0, theta);
+    alp0_s = @(z) alp_fn(z, p0, c, theta);
+    grad_alp0_s = @(z) grad_alp_fn(z, p0, c, theta);
     alp0_oracle = Oracle(alp0_s, alp_n, grad_alp0_s, alp_prox);
     oracle_AL0 = copy(oracle);
     oracle_AL0.add_smooth_oracle(alp0_oracle);
@@ -157,10 +295,17 @@ function [model, history] = aidal(~, oracle, params)
     
     % Create the ACG params.
     L_psi = lambda * (L + L_constr * norm_fn(p0) + ...
-      c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
+      c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    if (strcmp(sigma_type, 'constant'))
+      sigma = sigma_min;
+    elseif (strcmp(sigma_type, 'variable'))
+      sigma = min([nu / sqrt(L_psi), sigma_min]);
+    else 
+      error('Unknown sigma type!');
+    end
     params_acg.x0 = z0;
     params_acg.z0 = z0;
-    params_acg.sigma = nu / sqrt(L_psi);
+    params_acg.sigma = sigma;
     params_acg.L = L_psi;
     params_acg.t_start = t_start;
     
@@ -175,8 +320,8 @@ function [model, history] = aidal(~, oracle, params)
       refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
     
     % Check for termination.
-    p_hat = dual_update(model_refine.z_hat, p0, c0, theta, chi);
-    q_hat = feas_fn(model_refine.z_hat);
+    p_hat = dual_update(model_refine.z_hat, p0, c, theta, chi);
+    q_hat = (1 / (chi * c)) * (p_hat - (1 - theta) * p0);
     w_hat = model_refine.v_hat;
     norm_w_hat = norm_fn(w_hat);
     norm_q_hat = norm_fn(q_hat);
@@ -184,20 +329,27 @@ function [model, history] = aidal(~, oracle, params)
       break;
     end
     
-    % Apply the dual update and create a new ALP oracle.
-    x = model_acg.y;
-    p = dual_update(x, p0, c0, theta, chi);
-    
-    % Check if we need to double c0 (and do some useful precomputations).    
+    % Check if we need to double c (and do some useful precomputations).    
     if ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && ...
         (norm_q_hat > feas_tol))
-      c0 = 2 * c0;
+      c = 2 * c;
       stage = stage + 1;
     end
     
+%     % Find a relaxed value for chi.
+%     if ((outer_iter >= 3) && (strcmp(params.chi_type, 'adaptive')))
+%       chi = find_chi(oracle, v, z0, z, p00, p0, c0, c, theta, sigma);
+%     end
+    chi = 1;
+    
+    % Apply the dual update and create a new ALP oracle.
+    p = dual_update(z, p0, c, theta, chi);
+    
     % Update the other iterates.
+    p00 = p0;
+    c0 = c;
     p0 = p;
-    z0 = x;
+    z0 = z;
     outer_iter = outer_iter + 1;
     
   end
@@ -224,14 +376,23 @@ function params = set_default_params(params)
     params.lambda = 1 / (2 * params.m);
   end
   if (~isfield(params, 'nu'))
-    params.nu = 0.3 * (params.lambda * params.M + 1);
+    params.nu = sqrt(0.3 * (params.lambda * params.M + 1));
+  end
+  if (~isfield(params, 'sigma_min'))
+    params.sigma_min = 1 / sqrt(2);
+  end
+  if (~isfield(params, 'sigma_type'))
+    params.sigma_type = 'constant';
   end
   if (~isfield(params, 'theta'))
-    params.theta = 0.99;
+    params.theta = 0.01;
   end
   if (~isfield(params, 'chi'))
     theta = params.theta;
     params.chi = theta ^ 2 / (2 * (2 - theta) * (1 - theta));
+  end
+  if (~isfield(params, 'chi_type'))
+    params.chi_type = 'constant';
   end
   if (~isfield(params, 'acg_steptype'))
     params.acg_steptype = "variable";

@@ -90,7 +90,7 @@ function [model, history] = ACG(oracle, params)
   elseif (termination_type == "gd")
     tau = params.tau;
     theta = params.theta;
-  elseif (termination_type == "aipp")
+  elseif (any(strcmp(termination_type, {'aipp', 'aipp_sqr'})))
     sigma = params.sigma;
   elseif (termination_type == "aipp_phase2")
     lambda = params.lambda;
@@ -336,6 +336,13 @@ function [model, history] = ACG(oracle, params)
     % Termination for the AIPP method (Phase 1).
     if (termination_type == "aipp")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2)
+        status = 1;
+        break;
+      end
+      
+    % Termination for the AIPP method (with sigma square).
+    elseif (termination_type == "aipp_sqr")
+      if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2)
         status = 1;
         break;
       end

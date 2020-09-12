@@ -10,7 +10,7 @@
 % Use a problem instance generator to create the oracle and
 % hyperparameters.
 N = 1000;
-M = 1000;
+M = 100;
 m = 1;
 seed = 777;
 dimM = 10;
@@ -44,9 +44,12 @@ ncvx_lc_qp.opt_type = 'relative';
 base_hparam = struct();
 aipp_hparam = base_hparam;
 aipp_hparam.aipp_type = 'aipp';
+adap_aidal_hparam = base_hparam;
+adap_aidal_hparam.chi_type = 'adaptive';
 
-% % Run a benchmark test and print the summary.
-% hparam_arr = {base_hparam, aipp_hparam, base_hparam};
+% Run a benchmark test and print the summary.
+
+% hparam_arr = {aipp_hparam, base_hparam, base_hparam};
 % name_arr = {'QP_AIPP', 'R_QP_AIPP', 'IAPIAL'};
 % framework_arr = {@penalty, @penalty, @iapial};
 % solver_arr = {@AIPP, @AIPP, @AIPP};
@@ -56,11 +59,20 @@ aipp_hparam.aipp_type = 'aipp';
 % framework_arr = {@penalty, @aidal, @iapial};
 % solver_arr = {@AIPP, @AIPP, @AIPP};
 
-hparam_arr = {base_hparam};
-name_arr = {'AIDAL'};
-framework_arr = {@aidal};
-solver_arr = {@AIPP};
+% hparam_arr = {base_hparam};
+% name_arr = {'IAPIAL'};
+% framework_arr = {@iapial};
+% solver_arr = {@AIPP};
 
+% hparam_arr = {adap_aidal_hparam};
+% name_arr = {'AIDAL'};
+% framework_arr = {@aidal};
+% solver_arr = {@AIPP};
+
+hparam_arr = {adap_aidal_hparam, aipp_hparam};
+name_arr = {'AIDAL', 'QP_AIPP'};
+framework_arr = {@aidal, @penalty};
+solver_arr = {@AIPP, @AIPP};
 
 [summary_tables, comp_models] = ...
   run_CCM_benchmark(...
