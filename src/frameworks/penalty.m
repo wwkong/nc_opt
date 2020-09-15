@@ -97,7 +97,7 @@ function [model, history] = penalty(solver, oracle, params)
   end
 
   % Initialize solver parameters.
-  iter = 0;
+  iter = 0; % Set to 0 because it calls an inner subroutine.
   stage = 1;
   solver_params = params;
   c = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);

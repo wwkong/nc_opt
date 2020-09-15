@@ -134,8 +134,7 @@ function [model, history] = iALM(~, oracle, params)
     w = w0 * min(...
       [1, params.gamma_fn(outer_iter - 1, c_at_x1) / norm_fn(c_at_x)]);
     
-%     % Check for termination.
-%     disp(table(norm_fn(c_at_x), beta0, w));
+    % Check for termination.
     if (norm_fn(c_at_x) <= feas_tol)
       break;
     end

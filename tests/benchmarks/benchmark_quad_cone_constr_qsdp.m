@@ -10,8 +10,8 @@
 % Set up paths.
 run('../../init.m');
 
-% % Set up curvatures (this can alternatively be set in Condor).
-% M = 1000; % Same as L_f
+% % % Set up curvatures (this can alternatively be set in Condor).
+% M = 100; % Same as L_f
 % m = 10;
 
 % Use a problem instance generator to create the oracle and

@@ -73,7 +73,7 @@ function [oracle, params] = test_fn_lin_cone_constr_01(N, M, m, seed, dimM, dimN
   % Constraint map methods.
   params.constr_fn = @(z) A * z - b;
   params.grad_constr_fn = @(z) A';
-  params.set_projector = @(z) 0;
+  params.set_projector = @(z) zeros(size(b));
   params.K_constr = norm_A;
   
   % Basic output params.
