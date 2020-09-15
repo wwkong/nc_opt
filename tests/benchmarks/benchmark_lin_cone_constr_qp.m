@@ -46,7 +46,7 @@ aipp_hparam.aipp_type = 'aipp';
 % % Run a benchmark test and print the summary.
 hparam_arr = {aipp_hparam, base_hparam, base_hparam};
 name_arr = {'QP_AIPP', 'R_QP_AIPP', 'IAPIAL'};
-framework_arr = {@penalty, @penalty, @iapial};
+framework_arr = {@penalty, @penalty, @IAPIAL};
 solver_arr = {@AIPP, @AIPP, @AIPP};
 [summary_tables, comp_models] = ...
   run_CCM_benchmark(...
