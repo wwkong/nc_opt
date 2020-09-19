@@ -10,7 +10,7 @@
 % Set up paths.
 run('../../init.m');
 
-% % % Set up curvatures (this can alternatively be set in Condor).
+% % Set up curvatures (this can alternatively be set in Condor).
 % M = 100; % Same as L_f
 % m = 10;
 
@@ -18,14 +18,15 @@ run('../../init.m');
 % hyperparameters.
 N = 1000;
 seed = 777;
-dimM = 5;
-dimN = 20;
+dimM = 10;
+dimN = 50;
 density = 0.01;
 [oracle, hparams] = ...
   test_fn_quad_cone_constr_02(N, M, m, seed, dimM, dimN, density);
 
 % Create the Model object and specify the limits (if any).
 ncvx_qc_qp = ConstrCompModel(oracle);
+ncvx_qc_qp.time_limit = 4000;
 
 % Set the curvatures and the starting point x0.
 ncvx_qc_qp.x0 = hparams.x0;
@@ -73,7 +74,10 @@ solver_arr = {@ECG, @ECG};
 % solver_arr = {@ECG};
 
 % Run the test.
+% profile on;
 [summary_tables, comp_models] = ...
   run_CCM_benchmark(...
     ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
 disp(summary_tables.all);
+% profile viewer;
+% profile off;

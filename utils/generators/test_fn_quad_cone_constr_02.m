@@ -20,9 +20,10 @@ function [oracle, params] = ...
 %   - xi and tau are chosen so that the curvature pair is (M, m)
 %   - Entries of B and C are drawn randomly from a U(0,1) distribution
 %   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
-%   - Gradient is -xi * B' * (D' * D) * B * Z + tau *  C' * (C * Z - d)
-%   - Constraint is (1 / 2) * (P * Z)' * (P * Z) + Q' * Q * Z <= I
+%   - Function is: -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
+%   - Gradient is: -xi * B' * (D' * D) * B * Z + tau *  C' * (C * Z - d)
+%   - Constraint is:
+%       (1 / 2) * (P * Z)' * (P * Z) + (Q' * Q * Z) + (Z' * Q' * Q) <= I
 %
 % Arguments:
 %  
@@ -80,10 +81,12 @@ function [oracle, params] = ...
   
   % Constraint map methods.
   params.constr_fn = @(Z) ...
-    (1 / 2) * (P * Z)' * (P * Z) + (Q' * Q) * Z - eye(dimN) / (dimN ^ 2);
+    (1 / 2) * (P * Z)' * (P * Z) + ...
+    (1 / 2) * (Q' * Q) * Z + (1 / 2) * Z' * (Q' * Q) ...
+    - eye(dimN) / (dimN ^ 2);
   params.grad_constr_fn = @(Z, Delta) ...
-    Z' * (P' * P) * Delta / 2 + Delta' * (P' * P) * Z / 2 + ...
-    (Q' * Q) * Delta;
+    (1 / 2) * (P' * P) * Z * Delta + (1 / 2) * (P' * P) * Z * Delta' + ...
+    (1 / 2) * (Q' * Q) * Delta + (1 / 2) * (Q' * Q) * Delta';
   params.set_projector = @(Z) psd_cone_proj(Z);
   params.dual_cone_projector = @(Z) psd_cone_proj(Z);
   params.K_constr = fro_P ^ 2 / 2 + fro_Q ^ 2;
@@ -97,10 +100,8 @@ function [oracle, params] = ...
   params.norm_fn = norm_fn;
   
   % Special params for individual constraints.
-  params.K_constr_vec = (1 / 2) * PtP_vec + QtQ_vec;
+  params.K_constr_vec = PtP_vec / 2 + QtQ_vec;
   params.L_constr_vec = PtP_vec;
-%   params.K_constr_vec = ones(dimN * dimN, 1);
-%   params.L_constr_vec = zeros(dimN * dimN, 1);
   params.m_constr_vec = zeros(dimN * dimN, 1);
 
   % Create the Oracle object.
