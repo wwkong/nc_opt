@@ -11,7 +11,7 @@
 run('../../init.m');
 
 % % Set up curvatures (this can alternatively be set in Condor).
-% M = 100; % Same as L_f
+% M = 1000; % Same as L_f
 % m = 10;
 
 % Use a problem instance generator to create the oracle and
@@ -19,14 +19,13 @@ run('../../init.m');
 N = 1000;
 seed = 777;
 dimM = 10;
-dimN = 50;
+dimN = 100;
 density = 0.01;
 [oracle, hparams] = ...
   test_fn_quad_cone_constr_02(N, M, m, seed, dimM, dimN, density);
 
 % Create the Model object and specify the limits (if any).
 ncvx_qc_qp = ConstrCompModel(oracle);
-ncvx_qc_qp.time_limit = 4000;
 
 % Set the curvatures and the starting point x0.
 ncvx_qc_qp.x0 = hparams.x0;
@@ -52,6 +51,9 @@ ncvx_qc_qp.opt_type = 'relative';
 % Create some basic hparams.
 base_hparam = struct();
 
+% Create the IAPIAL hparams.
+iapial_hparam = base_hparam;
+
 % Create the complicated iALM hparams.
 ialm_hparam = base_hparam;
 ialm_hparam.i_ineq_constr = true;
@@ -63,7 +65,7 @@ ialm_hparam.L_vec = hparams.L_constr_vec;
 ialm_hparam.B_vec = hparams.K_constr_vec;
 
 % Run a benchmark test and print the summary.
-hparam_arr = {ialm_hparam, base_hparam};
+hparam_arr = {ialm_hparam, iapial_hparam};
 name_arr = {'iALM', 'IAPIAL'};
 framework_arr = {@iALM, @IAPIAL};
 solver_arr = {@ECG, @ECG};

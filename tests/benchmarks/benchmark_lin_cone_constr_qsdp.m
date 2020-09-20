@@ -11,7 +11,7 @@
 run('../../init.m');
 
 % % Set up curvatures (this can alternatively be set in Condor).
-% M = 100; % Same as L_f
+% M = 1000; % Same as L_f
 % m = 10;
 
 % Use a problem instance generator to create the oracle and
@@ -19,7 +19,7 @@ run('../../init.m');
 N = 1000;
 seed = 777;
 dimM = 10;
-dimN = 20;
+dimN = 50;
 density = 0.01;
 [oracle, hparams] = ...
   test_fn_lin_cone_constr_02(N, M, m, seed, dimM, dimN, density);
@@ -34,8 +34,8 @@ ncvx_lc_qp.m = hparams.m;
 ncvx_lc_qp.K_constr = hparams.K_constr;
 
 % Set the tolerances
-ncvx_lc_qp.opt_tol = 1e-1;
-ncvx_lc_qp.feas_tol = 1e-1;
+ncvx_lc_qp.opt_tol = 5 * 1e-4;
+ncvx_lc_qp.feas_tol = 5 * 1e-4;
 
 % Add linear constraints
 ncvx_lc_qp.constr_fn = @(x) hparams.constr_fn(x);

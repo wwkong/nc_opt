@@ -58,6 +58,10 @@ function [oracle, params] = ...
   Q = rand(dimN, dimN) / dimN;
   d = rand([dimM, 1]);
   
+  % Auxiliary matrices
+  PtP = P' * P;
+  QtQ = Q' * Q;
+  
   % Choose (xi, tau).
   [tau, xi, Dfn, Z] = eigen_bisection(M, m, C, D * B);
   
@@ -68,8 +72,8 @@ function [oracle, params] = ...
   % Computing auxiliary constants of P and Q.
   fro_P = norm(P, 'fro');
   fro_Q = norm(Q, 'fro');
-  PtP_vec = reshape(P' * P, dimN * dimN, 1);
-  QtQ_vec = reshape(Q' * Q, dimN * dimN, 1);
+  PtP_vec = reshape(PtP, dimN * dimN, 1);
+  QtQ_vec = reshape(QtQ, dimN * dimN, 1);
   
   % Set up helper tensors and operators.
   B_tsr = ndSparse(B, [dimN, dimN, dimN]);
@@ -81,12 +85,21 @@ function [oracle, params] = ...
   
   % Constraint map methods.
   params.constr_fn = @(Z) ...
-    (1 / 2) * (P * Z)' * (P * Z) + ...
-    (1 / 2) * (Q' * Q) * Z + (1 / 2) * Z' * (Q' * Q) ...
-    - eye(dimN) / (dimN ^ 2);
+    (1 / 2) * Z' * PtP * Z + ...
+    (1 / 2) * (QtQ * Z + Z' * QtQ) - ...
+    (1 / (dimN ^ 2)) * eye(dimN);
+  
+  % MONTEIRO (gradient).
   params.grad_constr_fn = @(Z, Delta) ...
-    (1 / 2) * (P' * P) * Z * Delta + (1 / 2) * (P' * P) * Z * Delta' + ...
-    (1 / 2) * (Q' * Q) * Delta + (1 / 2) * (Q' * Q) * Delta';
+    (1 / 2) * (PtP * Z * Delta + Delta' * Z' * PtP') + ...
+    (1 / 2) * (QtQ * Delta + Delta' * QtQ');
+  
+%   % KONG (gradient).
+%   params.grad_constr_fn = @(Z, Delta) ...
+%     (1 / 2) * PtP * Z * (Delta + Delta') + ...
+%     (1 / 2) * QtQ * (Delta + Delta');
+
+  % Other maps and constants.
   params.set_projector = @(Z) psd_cone_proj(Z);
   params.dual_cone_projector = @(Z) psd_cone_proj(Z);
   params.K_constr = fro_P ^ 2 / 2 + fro_Q ^ 2;

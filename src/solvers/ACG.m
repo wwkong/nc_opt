@@ -208,6 +208,7 @@ function [model, history] = ACG(oracle, params)
       % Compute L_est.
       L = max(L, mu);
       L_est = compute_L_est(L, mu, A_prev, y_prev, x_prev);
+      iter = iter + 1;
       
       % Loop if a violation occurs.
       while (L < min([L_est, L_max]))
@@ -236,7 +237,7 @@ function [model, history] = ACG(oracle, params)
     [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
     f_s_at_y = o_y.f_s();
     f_n_at_y = o_y.f_n();
-    f_at_y = f_s_at_y + f_n_at_y;    
+    f_at_y = f_s_at_y + f_n_at_y;
     
     % ---------------------------------------------------------------------
     %% COMPUTE (u, η), Γ, and x.
