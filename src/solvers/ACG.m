@@ -134,8 +134,9 @@ function [model, history] = ACG(oracle, params)
   %% LOCAL FUNCTIONS
   % ---------------------------------------------------------------------
   
-  % Compute an estimate of L based on two points.
-  function L_est  = compute_L_est(L, mu, A_prev, y_prev, x_prev)
+  % Compute an estimate of L (and other quantities) based on two points.
+  function [L_est, aux_struct] = ...
+      compute_approx_iter(L, mu, A_prev, y_prev, x_prev)
 
     % Simple quantities.
     nu = nu_fn(mu, L);
@@ -161,6 +162,17 @@ function [model, history] = ACG(oracle, params)
         (f_s_at_x_tilde_prev + ...
          prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev))) / ...
       norm_fn(y - x_tilde_prev) ^ 2);
+    
+    % Save auxiliary quantities.
+    aux_struct.y = y;
+    aux_struct.o_y = o_y;
+    aux_struct.nu = nu;
+    aux_struct.nu_prev = nu_prev;
+    aux_struct.a_prev = a_prev;
+    aux_struct.A = A;
+    aux_struct.x_tilde_prev = x_tilde_prev;
+    aux_struct.f_s_at_x_tilde_prev = f_s_at_x_tilde_prev;
+    aux_struct.grad_f_s_at_x_tilde_prev = grad_f_s_at_x_tilde_prev;
   end
 
   % Function for efficiently obtaining y.
@@ -205,36 +217,56 @@ function [model, history] = ACG(oracle, params)
     % Variable L updates.
     if (params.acg_steptype == "variable")
       
-      % Compute L_est.
+      % Compute L_est and auxiliary quantities.
       L = max(L, mu);
-      L_est = compute_L_est(L, mu, A_prev, y_prev, x_prev);
+      [L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
       iter = iter + 1;
       
       % Loop if a violation occurs.
       while (L < min([L_est, L_max]))
         L = min(L_max, L_est * mult_L);
-        L_est = compute_L_est(L, mu, A_prev, y_prev, x_prev);
+        [L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
       end
       
-    end
+      % Load auxiliary quantities
+      y = aux_struct.y;
+      o_y = aux_struct.o_y;
+      nu = aux_struct.nu;
+      nu_prev = aux_struct.nu_prev;
+      a_prev = aux_struct.a_prev;
+      A = aux_struct.A;
+      x_tilde_prev = aux_struct.x_tilde_prev;
+      f_s_at_x_tilde_prev = aux_struct.f_s_at_x_tilde_prev;
+      grad_f_s_at_x_tilde_prev = aux_struct.grad_f_s_at_x_tilde_prev;
+      
+    % Constant L updates.
+    elseif (params.acg_steptype == "constant")
             
-    % Iteration parameters.
-    nu = nu_fn(mu, L);
-    nu_prev = (1 + mu * A_prev) * nu;
-    a_prev = (nu_prev + sqrt(nu_prev ^ 2 + 4 * nu_prev * A_prev)) / 2;
-    A = A_prev + a_prev;
-    x_tilde_prev = (A_prev / A) * y_prev + (a_prev / A) * x_prev;
+      % Iteration parameters.
+      nu = nu_fn(mu, L);
+      nu_prev = (1 + mu * A_prev) * nu;
+      a_prev = (nu_prev + sqrt(nu_prev ^ 2 + 4 * nu_prev * A_prev)) / 2;
+      A = A_prev + a_prev;
+      x_tilde_prev = (A_prev / A) * y_prev + (a_prev / A) * x_prev;
 
-    % Oracle at x_tilde_prev.
-    o_x_tilde_prev = oracle.eval(x_tilde_prev); 
-    f_s_at_x_tilde_prev = o_x_tilde_prev.f_s();
-    grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
-
-    % Oracle at y.
-    y_prox_mult = nu / (1 + nu * mu);
-    y_prox_ctr = x_tilde_prev - y_prox_mult * grad_f_s_at_x_tilde_prev;
-    [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
+      % Oracle at x_tilde_prev.
+      o_x_tilde_prev = oracle.eval(x_tilde_prev); 
+      f_s_at_x_tilde_prev = o_x_tilde_prev.f_s();
+      grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
+      
+      % Oracle at y.
+      y_prox_mult = nu / (1 + nu * mu);
+      y_prox_ctr = x_tilde_prev - y_prox_mult * grad_f_s_at_x_tilde_prev;
+      [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
+      
+      % Update the counter.
+      iter = iter + 1;
+    
+    else 
+      error('Unknown steptype!');
+    end   
+    
     f_s_at_y = o_y.f_s();
     f_n_at_y = o_y.f_n();
     f_at_y = f_s_at_y + f_n_at_y;
@@ -421,7 +453,6 @@ function [model, history] = ACG(oracle, params)
     A_prev = A;
     y_prev = y;
     x_prev = x;
-    iter = iter + 1;
            
   end
   

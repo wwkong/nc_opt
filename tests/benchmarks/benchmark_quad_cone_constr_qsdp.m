@@ -19,7 +19,7 @@ run('../../init.m');
 N = 1000;
 seed = 777;
 dimM = 10;
-dimN = 100;
+dimN = 50;
 density = 0.01;
 [oracle, hparams] = ...
   test_fn_quad_cone_constr_02(N, M, m, seed, dimM, dimN, density);
