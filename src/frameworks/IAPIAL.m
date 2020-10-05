@@ -12,33 +12,30 @@ Coders:
 function [model, history] = IAPIAL(~, oracle, params)
 % An inexact accelerated proximal augmeneted Lagrangian (IAPIAL) framework 
 % for solving a nonconvex composite optimization problem with 
-% convex cone constraints
+% convex cone constraints.
 % 
 % Note:
 % 
 %   Based on the paper:
 %
-%     ?????
+%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). Iteration-complexity of 
+%   a proximal augmented Lagrangian method for solving nonconvex composite 
+%   optimization problems with nonlinear convex constraints. *arXiv preprint 
+%   arXiv:2008.07080*\.
 %
 % Arguments:
 % 
-%   solver (function handle): A solver for unconstrained composite
-%     optimization.
+%   ~ : The first argument is ignored
 % 
 %   oracle (Oracle): The oracle underlying the optimization problem.
 % 
 %   params (struct): Contains instructions on how to call the framework.
-%   
-%   ??? add defaults here ???
 % 
 % Returns:
 %   
 %   A pair of structs containing model and history related outputs of the 
 %   solved problem associated with the oracle and input parameters.
 %
-
-  % Global constants.
-  MIN_PENALTY_CONST = 1;
 
   % Timer start.
   t_start = tic;
@@ -122,6 +119,8 @@ function [model, history] = IAPIAL(~, oracle, params)
   nu = params.nu;
   sigma_min = params.sigma_min;
   sigma_type = params.sigma_type;
+  penalty_multiplier = params.penalty_multiplier;
+  i_reset_multiplier = params.i_reset_multiplier;
 
   % Initialize history parameters.
   if params.i_logging
@@ -136,14 +135,16 @@ function [model, history] = IAPIAL(~, oracle, params)
   stage = 1;
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
-  c0 = max([MIN_PENALTY_CONST, M / K_constr ^ 2]);
+  o_p0 = p0;
+  c0 = params.c0;
+  first_c0 = c0;
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
   params_acg.termination_type = 'aipp_sqr';
   
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
-
+  
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
   % -----------------------------------------------------------------------
@@ -169,6 +170,9 @@ function [model, history] = IAPIAL(~, oracle, params)
     % Create the ACG params.
     L_psi = lambda * (M + L_constr * norm_fn(p0) + ...
       c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    if (iter == 0)
+      first_L_psi = L_psi;
+    end
     if (strcmp(sigma_type, 'constant'))
       sigma = sigma_min;
     elseif (strcmp(sigma_type, 'variable'))
@@ -186,6 +190,16 @@ function [model, history] = IAPIAL(~, oracle, params)
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
     
+    % If time is up, pre-maturely exit.
+    if (toc(t_start) > time_limit)
+      break;
+    end
+    
+    % If there are too many iterations performed, pre-maturely exit.
+    if (iter >= iter_limit)
+      break;
+    end
+        
     % Apply the refinement.
     model_refine = refine_IPP(...
       oracle_al0, params, L_psi, lambda, z0, model_acg.y, model_acg.u);
@@ -215,10 +229,13 @@ function [model, history] = IAPIAL(~, oracle, params)
         (stage_al_base - stage_al_val);
       % Check the update condition and update the relevant constants.
       Delta_mult = lambda * (1 - sigma ^ 2) / (4 * (1 + 2 * nu) ^ 2);
-      if (Delta <= opt_tol ^ 2 / Delta_mult)
-        c0 = 2 * c0;
+      if (Delta <= ((opt_tol ^ 2) * Delta_mult))
+        c0 = penalty_multiplier * c0;
         stage = stage + 1;
         stage_outer_iter = outer_iter + 1;
+        if (i_reset_multiplier)
+          p = o_p0;
+        end
       end
     else
       error('Something went wrong with the variable `outer_iter`');
@@ -236,8 +253,15 @@ function [model, history] = IAPIAL(~, oracle, params)
   model.y = p_hat;
   model.v = w_hat;
   model.w = q_hat;
+  history.acg_ratio = iter / outer_iter;
   history.iter = iter;
+  history.outer_iter = outer_iter;
   history.stage = stage;
+  history.first_L_psi = first_L_psi;
+  history.last_L_psi = L_psi;
+  history.last_sigma = sigma;
+  history.first_c0 = first_c0;
+  history.last_c0 = c0;
   history.runtime = toc(t_start);
   
 end
@@ -245,15 +269,27 @@ end
 % Fills in parameters that were not set as input.
 function params = set_default_params(params)
 
+  % Global constants.
+  MIN_PENALTY_CONST = 1;
+
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
+  end
+  if (~isfield(params, 'i_reset_multiplier')) 
+    params.i_reset_multiplier = false;
   end
   if (~isfield(params, 'lambda'))
     params.lambda = 1 / (2 * params.m);
   end
   if (~isfield(params, 'sigma_min'))
     params.sigma_min = 1 / sqrt(2);
+  end
+  if (~isfield(params, 'c0'))
+    params.c0 = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
+  end
+  if (~isfield(params, 'penalty_multiplier'))
+    params.penalty_multiplier = 5;
   end
   if (~isfield(params, 'nu'))
     params.nu = sqrt(params.sigma_min * (params.lambda * params.M + 1));

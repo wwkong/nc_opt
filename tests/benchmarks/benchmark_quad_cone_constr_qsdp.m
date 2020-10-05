@@ -26,6 +26,7 @@ density = 0.01;
 
 % Create the Model object and specify the limits (if any).
 ncvx_qc_qp = ConstrCompModel(oracle);
+ncvx_qc_qp.time_limit = 10000;
 
 % Set the curvatures and the starting point x0.
 ncvx_qc_qp.x0 = hparams.x0;
@@ -35,8 +36,8 @@ ncvx_qc_qp.K_constr = hparams.K_constr;
 ncvx_qc_qp.L_constr = hparams.L_constr;
 
 % Set the tolerances
-ncvx_qc_qp.opt_tol = 5 * 1e-3;
-ncvx_qc_qp.feas_tol = 5 * 1e-3;
+ncvx_qc_qp.opt_tol = 1e-3;
+ncvx_qc_qp.feas_tol = 1e-3;
 
 % Add linear constraints
 ncvx_qc_qp.constr_fn = hparams.constr_fn;
@@ -70,11 +71,6 @@ name_arr = {'iALM', 'IAPIAL'};
 framework_arr = {@iALM, @IAPIAL};
 solver_arr = {@ECG, @ECG};
 
-% hparam_arr = {base_hparam};
-% name_arr = {'IAPIAL'};
-% framework_arr = {@IAPIAL};
-% solver_arr = {@ECG};
-
 % Run the test.
 % profile on;
 [summary_tables, comp_models] = ...
@@ -83,3 +79,9 @@ solver_arr = {@ECG, @ECG};
 disp(summary_tables.all);
 % profile viewer;
 % profile off;
+
+%% Print the history for additional diagnostics.
+fprintf('IAPIAL History: \n\n')
+disp(comp_models.IAPIAL.history);
+fprintf('iALM History: \n\n')
+disp(comp_models.iALM.history);

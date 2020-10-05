@@ -36,7 +36,7 @@ comp_models:
 %}
 
 function [summary_tables, comp_models] = ...
-  run_CM_benchmark(comp_model, solver_arr, solver_hparams_arr, name_arr)
+  run_CM_benchmark(base_comp_model, solver_arr, solver_hparams_arr, name_arr)
 
   % Initialize
   if (~isempty(solver_hparams_arr) && ...
@@ -55,6 +55,7 @@ function [summary_tables, comp_models] = ...
   % Run an optimization routine for each algorithm.
   for i=1:n_solvers
     % Prepare.
+    comp_model = copy(base_comp_model);
     solver = solver_arr{i};
     if ~isempty(name_arr)
       solver_name = name_arr{i};

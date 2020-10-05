@@ -113,8 +113,8 @@ function [oracle, params] = ...
   params.norm_fn = norm_fn;
   
   % Special params for individual constraints.
-  params.K_constr_vec = PtP_vec / 2 + QtQ_vec;
-  params.L_constr_vec = PtP_vec;
+  params.K_constr_vec = abs(PtP_vec) / 2 + abs(QtQ_vec);
+  params.L_constr_vec = abs(PtP_vec);
   params.m_constr_vec = zeros(dimN * dimN, 1);
 
   % Create the Oracle object.

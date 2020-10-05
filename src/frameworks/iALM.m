@@ -10,6 +10,31 @@ Coders:
 %}
 
 function [model, history] = iALM(~, oracle, params)
+% An inexact augmented Lagrangian method (iALM) for solving a nonconvex 
+% composite optimization model with nonlinear equality constraints, 
+% i.e., g(x) = 0.
+% 
+% Note:
+% 
+%   Based on the paper:
+%
+%   Li, Z., Chen, P. Y., Liu, S., Lu, S., & Xu, Y. (2020). Rate-improved 
+%   inexact augmented Lagrangian method for constrained nonconvex 
+%   optimization. *arXiv preprint arXiv:2007.01284*\.
+%
+% Arguments:
+% 
+%   ~ : The first argument is ignored
+% 
+%   oracle (Oracle): The oracle underlying the optimization problem.
+% 
+%   params (struct): Contains instructions on how to call the framework.
+% 
+% Returns:
+%   
+%   A pair of structs containing model and history related outputs of the 
+%   solved problem associated with the oracle and input parameters.
+%
 
   % Timer start.
   t_start = tic;
@@ -75,6 +100,7 @@ function [model, history] = iALM(~, oracle, params)
   y0 = zeros(size(params.constr_fn(x0)));
   L0 = params.L0;
   rho0 = params.rho0;
+  first_beta0 = beta0;
   
   % Initialize iPPM params.
   ippm_params = params;
@@ -87,7 +113,8 @@ function [model, history] = iALM(~, oracle, params)
   
   % Iterate.
   iter = 0; % Set to 0 because it calls an inner subroutine.
-  outer_iter = 1;
+  outer_iter = 0;  
+  stage = 1;
   while true
     
     % If time is up, pre-maturely exit.
@@ -110,6 +137,9 @@ function [model, history] = iALM(~, oracle, params)
     % Create the curvatures.
     rho_hat = rho0 + L_bar * norm_fn(y0) + beta0 * rho_c;
     L_hat = L0 + L_bar * norm_fn(y0) + beta0 * L_c;
+    if (iter == 0)
+      first_L_hat = L_hat;
+    end
     
     % Set up the other iPPM params.
     ippm_params.rho = rho_hat;
@@ -122,17 +152,18 @@ function [model, history] = iALM(~, oracle, params)
     x = ippm_model.x;
     v = ippm_model.v;
     iter = iter + ippm_history.iter;
+    outer_iter = outer_iter + ippm_history.outer_iter;
     
     % Update the multiplier.
     c_at_x = params.constr_fn(x);
     y = y0 + w0 * c_at_x;
     
     % Update w.
-    if (outer_iter == 1)
+    if (stage == 1)
       c_at_x1 = c_at_x;
     end
     w = w0 * min(...
-      [1, params.gamma_fn(outer_iter - 1, c_at_x1) / norm_fn(c_at_x)]);
+      [1, params.gamma_fn(stage - 1, c_at_x1) / norm_fn(c_at_x)]);
     
     % Check for termination.
     if (norm_fn(c_at_x) <= feas_tol)
@@ -144,6 +175,7 @@ function [model, history] = iALM(~, oracle, params)
     x0 = x;
     y0 = y;
     w0 = w;
+    stage = stage + 1;
     
   end
   
@@ -151,7 +183,14 @@ function [model, history] = iALM(~, oracle, params)
   model.x = x;
   model.v = v;
   model.w = c_at_x;
+  history.acg_ratio = iter / outer_iter;
   history.iter = iter;
+  history.outer_iter = outer_iter;
+  history.stage = stage;
+  history.first_L_hat = first_L_hat;
+  history.last_L_hat = L_hat;
+  history.first_c0 = first_beta0;
+  history.last_c0 = beta0;
   history.runtime = toc(t_start);
 
   % Add special logic for inequality constraints
@@ -170,7 +209,7 @@ function [model, history] = iALM(~, oracle, params)
 end
 
 function [model, history] = iPPM(oracle, params)
-% Inexact Proximal Point Method (iPPM)
+% Inexact Proximal Point Method (iPPM) used in iALM.
 
   % Parse algorithm inputs.
   rho = params.rho;
@@ -196,6 +235,7 @@ function [model, history] = iPPM(oracle, params)
   
   % Iterate.
   iter = 0; % Set to 0 because it calls an inner subroutine.
+  outer_iter = 1;
   while true
     
     % If time is up, pre-maturely exit.
@@ -232,6 +272,7 @@ function [model, history] = iPPM(oracle, params)
     
     % Update iterates
     x0 = x;
+    outer_iter = outer_iter + 1;
     
   end
   
@@ -239,11 +280,12 @@ function [model, history] = iPPM(oracle, params)
   model.v = v;
   model.x = x;
   history.iter = iter;
-
+  history.outer_iter = outer_iter;
+  
 end
 
 function [model, history] = APG(oracle, params)
-% Accelerated Proximal Gradient (APG) Method
+% Accelerated Proximal Gradient (APG) Method used in iPPM.
 
   % Parse algorithm inputs.
   mu = params.mu;
@@ -317,10 +359,11 @@ function params = set_default_params(params)
 
   % Overwrite if necessary.
   if (~isfield(params, 'sigma')) 
-    params.sigma = 3;
+    params.sigma = 5;
   end
   if (~isfield(params, 'beta0')) 
-    params.beta0 = 0.01;
+%     params.beta0 = 0.01;
+    params.beta0 = max([1, params.L / params.K_constr ^ 2]);
   end
   if (~isfield(params, 'w0')) 
     params.w0 = 1;

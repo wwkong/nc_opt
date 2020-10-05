@@ -26,6 +26,7 @@ density = 0.01;
 
 % Create the Model object and specify the limits (if any).
 ncvx_lc_qp = ConstrCompModel(oracle);
+ncvx_lc_qp.time_limit = 10000;
 
 % Set the curvatures and the starting point x0.
 ncvx_lc_qp.x0 = hparams.x0;
@@ -34,8 +35,8 @@ ncvx_lc_qp.m = hparams.m;
 ncvx_lc_qp.K_constr = hparams.K_constr;
 
 % Set the tolerances
-ncvx_lc_qp.opt_tol = 5 * 1e-4;
-ncvx_lc_qp.feas_tol = 5 * 1e-4;
+ncvx_lc_qp.opt_tol = 1e-4;
+ncvx_lc_qp.feas_tol = 1e-4;
 
 % Add linear constraints
 ncvx_lc_qp.constr_fn = @(x) hparams.constr_fn(x);
@@ -70,3 +71,9 @@ solver_arr = {@ECG, @AIPP, @ECG};
   run_CCM_benchmark(...
     ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
 disp(summary_tables.all);
+
+%% Print the history for additional diagnostics.
+fprintf('IAPIAL History: \n\n')
+disp(comp_models.IAPIAL.history);
+fprintf('iALM History: \n\n')
+disp(comp_models.iALM.history);

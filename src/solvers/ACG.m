@@ -202,11 +202,17 @@ function [model, history] = ACG(oracle, params)
     
     % If time is up, pre-maturely exit.
     if (toc(t_start) > time_limit)
+      if (iter == 1)
+        model.status = -3;
+      end
       break;
     end
     
     % If there are too many iterations performed, pre-maturely exit.
     if (iter >= iter_limit)
+      if (iter == 1)
+        model.status = -3;
+      end
       break;
     end
         

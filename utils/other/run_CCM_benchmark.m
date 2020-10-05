@@ -42,8 +42,8 @@ comp_models:
 
 function [summary_tables, comp_models] = ...
   run_CCM_benchmark(...
-    constr_comp_model, framework_arr, solver_arr, framework_hparams_arr, ...
-    name_arr)
+    base_constr_comp_model, framework_arr, solver_arr, ...
+    framework_hparams_arr, name_arr)
 
   % Check lengths.
   if (length(framework_arr) ~= length(solver_arr))
@@ -73,6 +73,7 @@ function [summary_tables, comp_models] = ...
   % Run an optimization routine for each algorithm.
   for i=1:n_frameworks
     % Prepare.
+    constr_comp_model = copy(base_constr_comp_model);
     framework = framework_arr{i};
     solver = solver_arr{i};
     if ~isempty(name_arr)
