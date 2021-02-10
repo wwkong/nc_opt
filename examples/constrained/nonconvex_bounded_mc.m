@@ -1,4 +1,4 @@
-% Solve a Sparse PCA problem instance.
+% Solve a bounded matrix completion problem instance.
 
 % Test generator
 beta = 0.5;

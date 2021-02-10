@@ -3,7 +3,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  August 2, 2020
+  February 9, 2021
 Coders: 
   Weiwei Kong, Jiaming Liang
 
@@ -476,10 +476,10 @@ function [model, history] = ACG(oracle, params)
     model.u = u;
     model.eta = eta;
     model.A = A;
-    model.L_est = L;
   end
   
   % Other outputs.
+  model.L_est = L;
   model.status = status;
   history.iter = iter;
   history.runtime = toc(t_start);

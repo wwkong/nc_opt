@@ -39,7 +39,7 @@ ncvx_qc_qp.L_constr = hparams.L_constr;
 ncvx_qc_qp.opt_tol = 1e-3;
 ncvx_qc_qp.feas_tol = 1e-3;
 
-% Add linear constraints
+% Add quadratic constraints.
 ncvx_qc_qp.constr_fn = hparams.constr_fn;
 ncvx_qc_qp.grad_constr_fn = hparams.grad_constr_fn;
 ncvx_qc_qp.set_projector = hparams.set_projector;

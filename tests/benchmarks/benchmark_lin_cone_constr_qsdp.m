@@ -38,7 +38,7 @@ ncvx_lc_qp.K_constr = hparams.K_constr;
 ncvx_lc_qp.opt_tol = 1e-4;
 ncvx_lc_qp.feas_tol = 1e-4;
 
-% Add linear constraints
+% Add linear constraints.
 ncvx_lc_qp.constr_fn = @(x) hparams.constr_fn(x);
 ncvx_lc_qp.grad_constr_fn = hparams.grad_constr_fn;
 

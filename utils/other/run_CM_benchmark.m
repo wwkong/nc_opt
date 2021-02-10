@@ -3,19 +3,20 @@
 DESCRIPTION
 -----------
 A wrapper that runs several solvers on a user-provided 
-ContrCompModel object.
+CompModel object.
 
 FILE DATA
 ---------
 Last Modified: 
-  August 4, 2020
+  February 9, 2021
 Coders: 
   Weiwei Kong
 
 INPUT
 -----
 comp_model:
-  A ConstrCompModel object for running the solvers on.
+  A ConstrCompModel object (or an array of theses) for running the 
+  solvers on.
 
 solver_arr:
   An array of solvers to benchmark.
@@ -55,7 +56,11 @@ function [summary_tables, comp_models] = ...
   % Run an optimization routine for each algorithm.
   for i=1:n_solvers
     % Prepare.
-    comp_model = copy(base_comp_model);
+    if iscell(base_comp_model)
+      comp_model = base_comp_model{i};
+    else
+      comp_model = copy(base_comp_model);
+    end
     solver = solver_arr{i};
     if ~isempty(name_arr)
       solver_name = name_arr{i};
