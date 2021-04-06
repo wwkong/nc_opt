@@ -3,7 +3,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  August 22, 2020
+  March 10, 2021
 Coders: 
   Weiwei Kong
 
@@ -34,7 +34,7 @@ function [model, history] = IA_ICG(spectral_oracle, params)
 %     redistributed from $f_1$ to $f_2$. Defaults to ``params.M1``.
 %
 %   params.lambda (double): The initial stepsize $\lambda$. Defaults to 
-%     ``5 / params.M1``.
+%     ``1 / params.M1``.
 %
 %   params.steptype (character vector): Either ``'adaptive'`` or 
 %     ``'constant'``. If it is ``adaptive``, then the stepsize is chosen
@@ -95,13 +95,15 @@ function [model, history] = IA_ICG(spectral_oracle, params)
     function_values = spectral_oracle.f_s() + spectral_oracle.f_n();
     iteration_values = 0;
     time_values = 0;
+    vnorm_values = Inf;
   end
+  history.min_norm_of_v = Inf;
   
   % Initialize the model struct in case there is an ACG failure.
   x = Z0;
   v = -Inf;
      
-  % Initialize some auxillary functions and constants.
+  % Initialize some auxillary functions and constants. 
   iter = 0; % Set to zero to offset ACG iterations
   outer_iter = 1;
   mu_fn = @(lam, m) 1 / 2;
@@ -109,7 +111,7 @@ function [model, history] = IA_ICG(spectral_oracle, params)
   params_acg = params;
   params_acg.termination_type = 'aicg';
   [zM, zN] = size(Z0);
-  zR = min(zM, zN);  
+  zR = min(zM, zN);
   
   % Convexify the oracle.
   o_spectral_oracle = copy(spectral_oracle);
@@ -245,7 +247,9 @@ function [model, history] = IA_ICG(spectral_oracle, params)
     % Check termination based on the refined point
     x = model_refine.z_hat;
     v = model_refine.v_hat;
-    if(norm_fn(v) <= opt_tol)
+    norm_v = norm_fn(v);
+    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+    if(norm_v <= opt_tol)
       break;
     end
     
@@ -275,6 +279,7 @@ function [model, history] = IA_ICG(spectral_oracle, params)
         o_spectral_oracle.f_s() + o_spectral_oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
+      vnorm_values(end + 1) = norm_v;
     end
                               
     % Update AICG params.
@@ -298,6 +303,7 @@ function [model, history] = IA_ICG(spectral_oracle, params)
     history.function_values = function_values;
     history.iteration_values = iteration_values;
     history.time_values = time_values;
+    history.vnorm_values = vnorm_values;
   end
   
 end % function end

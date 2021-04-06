@@ -84,6 +84,11 @@ function [oracle, params] = test_fn_lin_cone_constr_01(N, M, m, seed, dimM, dimN
   x0_base = rand(dimN, 1);
   params.x0 = x0_base / sum(x0_base);
   
+  % Special params for individual constraints.
+  params.K_constr_vec = full(sqrt(sum(A .^ 2, 2)));
+  params.L_constr_vec = zeros(dimM, 1);
+  params.m_constr_vec = zeros(dimM, 1);
+  
   % Oracle construction
   f_s = @(x) ...
     -xi / 2 * norm_fn(D * B * x) ^ 2 + ...

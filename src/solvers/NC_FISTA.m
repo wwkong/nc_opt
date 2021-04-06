@@ -64,7 +64,9 @@ function [model, history] = NC_FISTA(oracle, params)
     function_values = oracle.f_s() + oracle.f_n();
     iteration_values = 0;
     time_values = 0;
+    vnorm_values = Inf;
   end
+  history.min_norm_of_v = Inf;
   
   % Initialize
   iter = 0;
@@ -100,6 +102,8 @@ function [model, history] = NC_FISTA(oracle, params)
     v = (1 + tau) / lambda * (tx - yNext) + grad_f_yNext - grad_f_tx;
     
     % Check for termination
+    norm_v = norm_fn(v);
+    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
     if (norm_fn(v) <= opt_tol)
       break
     end
@@ -110,6 +114,7 @@ function [model, history] = NC_FISTA(oracle, params)
       function_values(end + 1) = oracle.f_s() + oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
+      vnorm_values(end + 1) = norm_v;
     end
     
     % Update iterates
@@ -130,6 +135,7 @@ function [model, history] = NC_FISTA(oracle, params)
     history.function_values = function_values;
     history.iteration_values = iteration_values;
     history.time_values = time_values;
+    history.vnorm_values = vnorm_values;
   end
   
 end % function end

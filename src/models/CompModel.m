@@ -192,6 +192,7 @@ classdef CompModel < matlab.mixin.Copyable
   properties (SetAccess = protected, Hidden = true)
     f_at_x double {mustBeReal, mustBeFinite}
     norm_of_v double {mustBeReal}
+    min_norm_of_v double {mustBeReal}
     status (1,1) int32 {mustBeInteger} = 100
   end
   
@@ -307,6 +308,10 @@ classdef CompModel < matlab.mixin.Copyable
       o_at_x = obj.oracle.eval(obj.x);
       obj.f_at_x = o_at_x.f_s() + o_at_x.f_n();
       obj.norm_of_v = obj.norm_fn(obj.v);
+      if (isfield(obj.history, 'min_norm_of_v'))
+        obj.min_norm_of_v = ...
+          min([obj.history.min_norm_of_v, obj.norm_of_v]);
+      end
     end
     
     % Logging functions.

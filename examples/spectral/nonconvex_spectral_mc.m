@@ -12,8 +12,8 @@ seed = 777;
 
 % Create the Model object and specify the solver.
 ncvx_smc = CompModel(spectral_oracle);
-ncvx_smc.solver = @DA_ICG;
-ncvx_smc.time_limit = 10;
+ncvx_smc.solver = {@DA_ICG, @IA_ICG};
+ncvx_smc.time_limit = 3;
 ncvx_smc.opt_type = 'relative';
 ncvx_smc.opt_tol = 1e-6;
 

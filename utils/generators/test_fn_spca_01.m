@@ -69,6 +69,11 @@ function [oracle, params] = test_fn_spca_01(b, nu, p, n, s, k, seed)
   params.K_constr = 2;
   params.set_projector = @(Z) sparse(p, p);
   
+  % Special params for individual constraints.
+  params.K_constr_vec = ones(2 * p, 1);
+  params.L_constr_vec = zeros(2 * p, 1);
+  params.m_constr_vec = zeros(2 * p, 1);
+  
   % Basic output params.
   params.prod_fn = prod_fn;
   params.norm_fn = norm_fn;

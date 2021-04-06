@@ -183,6 +183,28 @@ classdef SpectralOracle < Oracle
       end
     end
     
+    function proxify(obj, alpha, X_hat)
+      % Modify the suboracles by multiplying by a positive constant 
+      % ``alpha`` and then adding a prox term at a point ``x_hat``. 
+      % That is, the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
+      % ``prox_f_n`` are updated as follows:
+      %
+      % .. code-block:: matlab
+      %
+      %   f_s() = alpha * f_s() + (1 / 2) * norm_fn(x - x_hat) ^ 2;
+      %   f_n() = alpha * f_n();
+      %   grad_f_s() = alpha * grad_f_s() + (x - x_hat);
+      %   prox_f_n(lambda) = prox_f_n(alpha * lambda);
+      %
+      eval_proxy_fn_cpy = obj.eval_proxy_fn;
+      function combined_struct = proxify_eval(X)
+        out_struct = eval_proxy_fn_cpy(X, []);
+        scaled_struct = obj.scale_struct(out_struct, alpha);
+        combined_struct = obj.add_prox_to_struct(scaled_struct, X, X_hat);
+      end
+      obj.eval_proxy_fn = @(X, x_dummy) proxify_eval(X);
+    end
+    
     function vector_linear_proxify(obj, alpha, x_hat)
       % Denoting $\alpha = {\rm alpha}$ and $\hat{x} = {\rm x\_hat}$, 
       % calling this method changes the underlying function of the oracle as 

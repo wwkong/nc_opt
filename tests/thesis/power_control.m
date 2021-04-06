@@ -64,13 +64,16 @@ for i = 1:length(N_vec)
   name_arr = {'PGSF', 'AG', 'R_AIPP'};
   [summary_tables, comp_models] = ...
     run_CM_benchmark(ncvx_power_control, solver_arr, hparam_arr, name_arr);
-  disp(summary_tables.all);
   
   % Set up the final table.
+  sub_table = summary_tables.all;
+  sub_table.dim_N = dim_N;
+  sub_table.dim_K = dim_K;
+  disp(sub_table);
   if (i == 1)
-    final_table = summary_tables.all;
+    final_table = sub_table;
   else
-    final_table = [final_table; summary_tables.all];
+    final_table = [final_table; sub_table];
   end
 end
 

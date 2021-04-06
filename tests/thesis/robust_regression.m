@@ -28,8 +28,7 @@ data_name_arr = ...
   {'../../data/heart_scale.txt', ...
    '../../data/diabetes_scale.txt', ...
    '../../data/ionosphere_scale.txt', ...
-   '../../data/sonar_scale.txt', ...
-   '../../data/breast-cancer_scale.txt'};
+   '../../data/sonar_scale.txt'};    
 % Loop over the upper curvature M.
 for i = 1:length(data_name_arr)
   data_name = data_name_arr{i};
@@ -66,13 +65,15 @@ for i = 1:length(data_name_arr)
   name_arr = {'PGSF', 'AG', 'R_AIPP'};
   [summary_tables, comp_models] = ...
     run_CM_benchmark(ncvx_rr, solver_arr, hparam_arr, name_arr);
-  disp(summary_tables.all);
   
   % Set up the final table.
+  sub_table = summary_tables.all;
+  sub_table.data_name = string(data_name);
+  disp(sub_table);
   if (i == 1)
-    final_table = summary_tables.all;
+    final_table = sub_table;
   else
-    final_table = [final_table; summary_tables.all];
+    final_table = [final_table; sub_table];
   end
 end
 

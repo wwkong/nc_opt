@@ -3,7 +3,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  August 22, 2020
+  March 10, 2021
 Coders: 
   Weiwei Kong
 
@@ -33,7 +33,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
 %     redistributed from $f_1$ to $f_2$. Defaults to ``params.M1``.
 %
 %   params.lambda (double): The initial stepsize $\lambda$. Defaults to 
-%     ``5 / params.M1``.
+%     ``1 / params.M1``.
 %
 %   params.steptype (character vector): Either ``'adaptive'`` or 
 %     ``'constant'``. If it is ``adaptive``, then the stepsize is chosen
@@ -100,6 +100,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     function_values = spectral_oracle.f_s() + spectral_oracle.f_n();
     iteration_values = 0;
     time_values = 0;
+    vnorm_values = Inf;
   end
   
   % Solver params.
@@ -121,6 +122,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   params_acg.termination_type = 'd_aicg';
   [zM, zN] = size(Z_y0);
   zR = min(zM, zN);
+  history.min_norm_of_v = Inf;
   
   % Set outer acceleration parameters.
   A0 = 0;
@@ -258,7 +260,9 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     % Check termination based on the refined point
     x = model_refine.z_hat;
     v = model_refine.v_hat;
-    if(norm_fn(v) <= opt_tol)
+    norm_v = norm_fn(v);
+    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+    if(norm_v <= opt_tol)
       break;
     end
     
@@ -292,6 +296,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
         o_spectral_oracle.f_s() + o_spectral_oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
+      vnorm_values(end + 1) = norm_v;
     end
                                      
     % Update D-AICG params for the next iteration
@@ -331,6 +336,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     history.function_values = function_values;
     history.iteration_values = iteration_values;
     history.time_values = time_values;
+    history.vnorm_values = vnorm_values;
   end
   
 end % function end
@@ -347,10 +353,10 @@ function params = set_default_params(params)
     params.xi = params.M1;
   end
   
-  % lambda = 5 / M1.
+  % lambda = 100 / M1.
   if (params.M1 - params.xi <= 0)
     if ~isfield(params, 'lambda')
-      params.lambda = 5 / params.M1;
+      params.lambda = 1 / params.M1;
     end
   else
     if ~isfield(params, 'lambda')

@@ -67,7 +67,9 @@ function [model, history] = UPFAG(oracle, params)
     function_values = oracle.f_s() + oracle.f_n();
     iteration_values = 0;
     time_values = 0;
+    vnorm_values = Inf;
   end
+  history.min_norm_of_v = Inf;
 
   % Initialize
   k = 0;
@@ -133,6 +135,9 @@ function [model, history] = UPFAG(oracle, params)
         line_search_cvx = 1;
       end
       itr_cvx = itr_cvx + 1;
+      if (toc(t_start) > time_limit)
+        break;
+      end
     end
     sum_lambda_k = sum_lambda_k + lambda_k; % (2.7)
     line_search_nocvx = 0;
@@ -163,6 +168,9 @@ function [model, history] = UPFAG(oracle, params)
         line_search_nocvx = 1;
       end
       itr_nocvx = itr_nocvx + 1;
+      if (toc(t_start) > time_limit)
+        break;
+      end
     end
     v = (x_ag - x_ag_bar) / beta_k + grad_f_s(x_ag) - grad_f_s(x_ag_bar);
     [~, min_idx] = min([f(x_ag), f(x_ag_bar), f(x_ag_tilde)]);
@@ -175,7 +183,9 @@ function [model, history] = UPFAG(oracle, params)
     end
     
     % Check for termination.
-    if (norm_fn(v) <= opt_tol)
+    norm_v = norm_fn(v);
+    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+    if (norm_v <= opt_tol)
       break;
     end
     
@@ -185,6 +195,7 @@ function [model, history] = UPFAG(oracle, params)
       function_values(end + 1) = oracle.f_s() + oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
+      vnorm_values(end + 1) = norm_v;
     end
     
     % Update iterates.
@@ -207,6 +218,7 @@ function [model, history] = UPFAG(oracle, params)
     history.function_values = function_values;
     history.iteration_values = iteration_values;
     history.time_values = time_values;
+    history.vnorm_values = vnorm_values;
   end
   
 end

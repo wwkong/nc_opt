@@ -357,8 +357,21 @@ function [model, history] = ACG(oracle, params)
     end
     
     % Minorization.
-    if (any(strcmp(termination_type, {'gd', 'aicg', 'd_aicg'})))
+    if (any(strcmp(termination_type, {'gd'})))
       small_gd = norm_fn(A * u + y - x0) ^ 2 + 2 * A * eta;
+      large_gd = norm_fn(y - x0) ^ 2;
+      del_gd = large_gd - small_gd;
+      base = max([abs(large_gd), abs(small_gd), 0.01]);
+      if (del_gd / base < -INEQ_COND_ERR_TOL)
+        model.status = -2;
+        break;
+      end
+    end
+    if (any(strcmp(termination_type, {'aicg', 'd_aicg'})))
+      u2 = u + mu * (x - y);
+      eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
+      small_gd = ...
+        (1 / (1 + mu * A)) * norm_fn(A * u2 + y - x0) ^ 2 + 2 * A * eta2;
       large_gd = norm_fn(y - x0) ^ 2;
       del_gd = large_gd - small_gd;
       base = max([abs(large_gd), abs(small_gd), 0.01]);
@@ -409,6 +422,8 @@ function [model, history] = ACG(oracle, params)
     % Termination for the AICG method.
     elseif (termination_type == "aicg")
       % Helper variables
+      u2 = u + mu * (x - y);
+      eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
       phi_at_Z_approx = ...
         f1_at_Z0 + o_y.orig_f2_s() + o_y.orig_f_n() + ...
         prod_fn(Dg_Pt_grad_f1_at_Z0_Q, y - x0) + ...
@@ -416,9 +431,9 @@ function [model, history] = ACG(oracle, params)
       delta_phi = phi_at_Z0 - phi_at_Z_approx;
       % Main condition checks
       cond1 = ...
-        (norm_fn(u) ^ 2 <= 4 * lambda * delta_phi);
+        (norm_fn(u2) ^ 2 <= 4 * lambda * delta_phi);
       cond2 = ...
-        (2 * eta <= 4 * lambda * delta_phi);
+        (2 * eta2 <= 4 * lambda * delta_phi);
       cond3 = ...
         (norm_fn(y - x0) + tau <= 4 * lambda * delta_phi);
       if (cond1 && cond2 && cond3)
@@ -429,7 +444,9 @@ function [model, history] = ACG(oracle, params)
       
     % Termination for the D-AICG method.
     elseif (termination_type == "d_aicg")
-      if (norm_fn(u) ^ 2  + 2 * eta <= sigma ^ 2 * norm_fn(y - x0) + tau)
+      u2 = u + mu * (x - y);
+      eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
+      if (norm_fn(u2) ^ 2  + 2 * eta2 <= sigma ^ 2 * norm_fn(y - x0) + tau)
         status = 1;
         break;
       end
@@ -476,6 +493,11 @@ function [model, history] = ACG(oracle, params)
     model.u = u;
     model.eta = eta;
     model.A = A;
+    % Other modifications
+    if (any(strcmp(termination_type, {'aicg', 'd_aicg'})))
+      model.u = u + mu * (x - y);
+      model.eta = eta + mu * norm_fn(y - x) ^ 2 / 2;
+    end
   end
   
   % Other outputs.

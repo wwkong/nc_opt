@@ -4,7 +4,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  August 2, 2020
+  March 10, 2021
 Coders: 
   Weiwei Kong
 
@@ -38,7 +38,9 @@ function [model, history] = ECG(oracle, params)
   x0 = params.x0;
   x_prev = x0;
   M = params.M;
+  m = params.m;
   norm_fn = params.norm_fn;
+  prod_fn = params.prod_fn;
   iter = 1;
   
   % Fill in OPTIONAL input params.
@@ -50,12 +52,27 @@ function [model, history] = ECG(oracle, params)
     function_values = oracle.f_s() + oracle.f_n();
     iteration_values = 0;
     time_values = 0;
+    vnorm_values = Inf;
   end
+  history.min_norm_of_v = Inf;
   
   % Solver params.
   opt_tol = params.opt_tol;
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
+  
+  % Choose the intial estimate of L.
+  if (strcmp(params.steptype, 'constant'))
+    L = max(m, M);
+  elseif strcmp(params.steptype, 'adaptive')
+    Lf = max(m, M);
+    L = Lf / 100;
+    L0 = L;
+    gamma_u = 2;
+    gamma_d = 2;
+  else
+    error('Unknown steptype!')
+  end
   
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -75,19 +92,37 @@ function [model, history] = ECG(oracle, params)
     % Oracle at xPrev.
     o_xPrev = oracle.eval(x_prev);
     grad_f_s_at_x_prev = o_xPrev.grad_f_s();
-    y_bar = x_prev - 1 / M * grad_f_s_at_x_prev;
+    y_bar = x_prev - 1 / L * grad_f_s_at_x_prev;
     
     % Oracle at yBar.
     o_yBar = oracle.eval(y_bar);
-    x_bar = o_yBar.prox_f_n(1 / M);
+    x_bar = o_yBar.prox_f_n(1 / L);
     
     % Oracle at xBar.
     o_xBar = oracle.eval(x_bar);
     grad_f_s_at_x_bar = o_xBar.grad_f_s();
     
+    % Update L based on Nesterov's suggested scheme.
+    if strcmp(params.steptype, 'adaptive')
+      while (o_xBar.f_s() - ...
+             (o_xPrev.f_s() + ...
+                prod_fn(grad_f_s_at_x_prev, x_bar - x_prev)) > ...
+             L * norm_fn(x_bar - x_prev) ^ 2 / 2 && ...
+             L < Lf)
+        L = L * gamma_u;
+        iter = iter + 1;
+        % Update oracles
+        o_yBar = oracle.eval(x_prev - 1 / L * grad_f_s_at_x_prev);
+        x_bar = o_yBar.prox_f_n(1 / L);
+        o_xBar = oracle.eval(x_bar);
+      end
+    end
+    
     % Check for termination.
-    v_bar = M * (x_prev - x_bar) + grad_f_s_at_x_bar - grad_f_s_at_x_prev;
-    if (norm_fn(v_bar) <= opt_tol)
+    v_bar = L * (x_prev - x_bar) + grad_f_s_at_x_bar - grad_f_s_at_x_prev;
+    norm_v = norm_fn(v_bar);
+    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+    if (norm_v <= opt_tol)
       break;
     end
     
@@ -97,11 +132,15 @@ function [model, history] = ECG(oracle, params)
       function_values(end + 1) = oracle.f_s() + oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
+      vnorm_values(end + 1) = norm_v;
     end
     
     % Update iterates.
     x_prev = x_bar;
     iter = iter + 1;
+    if strcmp(params.steptype, 'adaptive')
+      L = max([L0, L / gamma_d]);
+    end
     
   end
   
@@ -114,6 +153,7 @@ function [model, history] = ECG(oracle, params)
     history.function_values = function_values;
     history.iteration_values = iteration_values;
     history.time_values = time_values;
+    history.vnorm_values = vnorm_values;
   end
   
 end
@@ -124,6 +164,13 @@ function params = set_default_params(params)
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
+  end
+  
+  % Default steptype is 'adaptive'. It is based on Nesterov's
+  % adaptive scheme (see his paper titled "Gradient methods for minimizing 
+  % composite functions").
+  if (~isfield(params, 'steptype')) 
+    params.steptype = 'adaptive';
   end
 
 end

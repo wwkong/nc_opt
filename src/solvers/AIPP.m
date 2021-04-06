@@ -110,7 +110,9 @@ function [model, history] = AIPP(oracle, params)
     function_values = oracle.f_s() + oracle.f_n();
     iteration_values = 0;
     time_values = 0;
+    vnorm_values = Inf;
   end  
+  history.min_norm_of_v = Inf;
   
   % Solver params
   iter_limit = params.iter_limit;
@@ -214,7 +216,9 @@ function [model, history] = AIPP(oracle, params)
       oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
     x = model_refine.z_hat;
     v = model_refine.v_hat;
-    if(norm_fn(v) <= opt_tol)
+    norm_v = norm_fn(v);
+    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+    if(norm_v <= opt_tol)
       break;
     end
     
@@ -276,6 +280,7 @@ function [model, history] = AIPP(oracle, params)
       function_values(end + 1) = oracle.f_s() + oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
+      vnorm_values(end + 1) = norm_v;
     end
     
     % Update iterates
@@ -292,6 +297,8 @@ function [model, history] = AIPP(oracle, params)
   model.x = x;
   model.v = v;
   model.last_lambda = lambda;
+  norm_v = norm_fn(v);
+  history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
   history.iter = iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
@@ -299,6 +306,7 @@ function [model, history] = AIPP(oracle, params)
     history.function_values = function_values;
     history.iteration_values = iteration_values;
     history.time_values = time_values;
+    history.vnorm_values = vnorm_values;
   end
 
 end % function end

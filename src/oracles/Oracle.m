@@ -239,7 +239,7 @@ classdef Oracle < matlab.mixin.Copyable
     end
     
     function proxify(obj, alpha, x_hat)
-      % Modified the suboracles by multiplying by a positive constant 
+      % Modify the suboracles by multiplying by a positive constant 
       % ``alpha`` and then adding a prox term at a point ``x_hat``. 
       % That is, the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
       % ``prox_f_n`` are updated as follows:
