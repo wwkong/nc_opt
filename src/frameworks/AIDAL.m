@@ -39,7 +39,6 @@ function [model, history] = AIDAL(~, oracle, params)
 
   % Global constants.
   MIN_PENALTY_CONST = 1;
-  BISECTION_TOL = 1e-3;
 
   % Timer start.
   t_start = tic;
@@ -67,11 +66,6 @@ function [model, history] = AIDAL(~, oracle, params)
   % Initialize the augmented Lagrangian penalty (ALP) functions.
   alp_n = @(x) 0;
   alp_prox = @(x, lam) x;
-  % Value of the AL function: 
-  %   Q(x; p) = 1 / (2 * c) * [
-  %     dist((1-theta) * p + c * constr_fn(x), -K) ^ 2 - 
-  %     (1 - theta) ^ 2 |p| ^ 2 ],
-  % where K is the primal cone.
   function alp_val = alp_fn(x, p, c, theta)
     p_step = (1 - theta) * p + c * params.constr_fn(x);
     dist_val = norm_fn((-p_step) - pc_fn(-p_step));
@@ -103,63 +97,6 @@ function [model, history] = AIDAL(~, oracle, params)
          'constraint function']);
     end
   end
-
-  % -----------------------------------------------------------------------
-  % ADAPTIVE SUBROUTINES 
-  % -----------------------------------------------------------------------
-  % Finds the best choice of chi based on a bisection search
-  function chi = find_chi(oracle, v, z0, z, p00, p0, c0, c, theta, sigma)
-    % Basic evaluations
-    o_at_z0 = copy(oracle);
-    o_at_z0.eval(z0);
-    phi_at_z0 = o_at_z0.f_s() + o_at_z0.f_n();
-    o_at_z = copy(oracle);
-    o_at_z.eval(z);
-    phi_at_z = o_at_z.f_s() + o_at_z.f_n();
-    % Value of (1 - sigma ^ 2) / (2 * lambda) * |r| ^2.
-    lhs_val = ...
-      (1 - sigma ^ 2) / (2 * lambda) * norm_fn(v + z0 - z) ^ 2;
-    % Value of Psi_{j-1} - Psi_j + pi_{j}
-    function val = rhs_val(chi)
-      p = dual_update(z, p0, c, theta, chi);
-      f0 = (1 / (chi * c0)) * (p0 - (1 - theta) * p00);
-      a_theta = theta * (1 - theta);
-      b_theta = (2 - theta) * (1 - theta);
-      alpha_fn = @(chi) ...
-        ((1 - 2 * chi * b_theta) - (1 - theta) ^ 2) / ...
-        (2 * chi);
-      cur_Psi = ...
-        phi_at_z + alp_fn(z, p, c, theta) - ...
-        a_theta / (2 * chi * c) * norm_fn(p) ^ 2 + ...
-        alpha_fn(chi) / (4 * chi * c) * norm_fn(p - p0) ^ 2;
-      prev_Psi = ...
-        phi_at_z0 + alp_fn(z0, p0, c0, theta) - ...
-        a_theta / (2 * chi * c0) * norm_fn(p0) ^ 2 + ...
-        alpha_fn(chi) / (4 * chi * c0) * norm_fn(p0 - p00) ^ 2;
-      cur_pi = ...
-        (c - c0) / 2 * (...
-          norm_fn(f0) ^ 2 + ...
-          1 / (chi * c0) * ...
-            prod_fn((p - p0) - (1 - theta) * (p0 - p00), f0)) + ...
-        a_theta / (2 * chi) * (1 / c0 - 1 / c) * norm_fn(p0) ^ 2;
-      val = prev_Psi - cur_Psi + cur_pi;
-
-    end
-    % Run a bisection method to find the tightest chi.
-    low = theta ^ 2 / (2 * (2 - theta) * (1 - theta));
-    high = 1;
-    mid = (high + low) / 2;
-    while (abs(low - high) > BISECTION_TOL)
-      if (lhs_val <= rhs_val(mid))
-        low = mid;
-      else
-        high = mid;
-      end
-      mid = (low + high) / 2;
-    end
-    chi = low;
-  end
-  % -----------------------------------------------------------------------
 
   % Fill in OPTIONAL input params.
   params = set_default_params(params);
@@ -245,7 +182,8 @@ function [model, history] = AIDAL(~, oracle, params)
       refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
     
     % Check for termination.
-    p_hat = dual_update(model_refine.z_hat, p0, c, theta, chi);
+    z_hat = model_refine.z_hat;
+    p_hat = dual_update(z_hat, p0, c, theta, chi);
     q_hat = (1 / (chi * c)) * (p_hat - (1 - theta) * p0);
     w_hat = model_refine.v_hat;
     norm_w_hat = norm_fn(w_hat);
@@ -254,18 +192,29 @@ function [model, history] = AIDAL(~, oracle, params)
       break;
     end
     
-    % Check if we need to double c (and do some useful precomputations).    
-    if ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && ...
-        (norm_q_hat > feas_tol))
+    % Check if we need to double c. 
+    if strcmp(params.incr_cond, "default")
+      i_incr = ...
+        ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) ...
+          <= feas_tol / 2) && ...
+         (norm_q_hat > feas_tol));
+    elseif strcmp(params.incr_cond, "feas_alt1")
+      i_incr = ...
+        ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && ...
+         (norm_q_hat > feas_tol));
+    elseif strcmp(params.incr_cond, "opt_alt1")
+      i_incr = ...
+        ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) ...
+          <= feas_tol / 2) && ...
+         (norm_q_hat > feas_tol) && ...
+         norm_w_hat <= opt_tol);
+    else
+      error("Unknown incr_cond parameter!")
+    end
+    if i_incr
       c = 2 * c;
       stage = stage + 1;
     end
-    
-%     % Find a relaxed value for chi. (WIP)
-%     if ((outer_iter >= 3) && (strcmp(params.chi_type, 'adaptive')))
-%       chi = find_chi(oracle, v, z0, z, p00, p0, c0, c, theta, sigma);
-%     end
-    chi = 1;
     
     % Apply the dual update and create a new ALP oracle.
     p = dual_update(z, p0, c, theta, chi);
@@ -300,11 +249,11 @@ function params = set_default_params(params)
   if (~isfield(params, 'lambda'))
     params.lambda = 1 / (2 * params.m);
   end
-  if (~isfield(params, 'nu'))
-    params.nu = sqrt(0.3 * (params.lambda * params.M + 1));
-  end
   if (~isfield(params, 'sigma_min'))
     params.sigma_min = 1 / sqrt(2);
+  end
+  if (~isfield(params, 'nu'))
+    params.nu = sqrt(params.sigma_min * (params.lambda * params.M + 1));
   end
   if (~isfield(params, 'sigma_type'))
     params.sigma_type = 'constant';
@@ -321,6 +270,9 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'acg_steptype'))
     params.acg_steptype = "variable";
+  end  
+  if (~isfield(params, 'incr_cond'))
+    params.incr_cond = "default";
   end  
 
 end

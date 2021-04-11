@@ -1,7 +1,7 @@
 % Solve a sparse PCA problem using MULTIPLE SOLVERS.
 
 % Set up paths.
-run('../../init.m');
+run('../../../init.m');
 
 % -------------------------------------------------------------------------
 %% Global Variables
@@ -17,8 +17,25 @@ aipp_hparam = base_hparam;
 aipp_hparam.aipp_type = 'aipp';
 aipp_hparam.acg_steptype = 'constant';
 
+iapial_hparam = base_hparam;
+iapial_hparam.acg_steptype = 'constant';
+iapial_hparam.sigma_type = 'constant';
+iapial_hparam.sigma_min = 0.3;
+iapial_hparam.penalty_multiplier = 2;
+iapial_hparam.i_reset_multiplier = false;
+iapial_hparam.i_reset_prox_center = false;
+
 aidal_hparam = base_hparam;
-aidal_hparam.theta = 0.05;
+aidal_hparam.acg_steptype = 'constant';
+aidal_hparam.sigma_type = 'constant';
+aidal_hparam.sigma_min = 0.3;
+aidal0_hparam = aidal_hparam;
+aidal0_hparam.theta = 0;
+aidal0_hparam.chi = 1;
+aidal1_hparam = aidal_hparam;
+aidal1_hparam.theta = 0.5;
+aidal2_hparam = aidal_hparam;
+aidal2_hparam.theta = 0.7640;
 
 % Create global hyperparams
 b = 0.1;
@@ -27,8 +44,7 @@ p = 100;
 n = 100;
 k = 1;
 seed = 777;
-global_opt_tol = 1e-3;
-global_feas_tol = 1e-3;
+global_tol = 1e-3;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
@@ -70,15 +86,17 @@ for i = 1:length(s_vec)
   % Set up the termination criterion.
   spca.opt_type = 'relative';
   spca.feas_type = 'relative';
-  spca.opt_tol = global_opt_tol;
-  spca.feas_tol = global_feas_tol;
+  spca.opt_tol = global_tol;
+  spca.feas_tol = global_tol;
   spca.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, aipp_hparam, aidal_hparam};
-  name_arr = {'iALM', 'QP_AIPP', 'AIDAL'};
-  framework_arr = {@iALM, @penalty, @AIDAL};
-  solver_arr = {@ECG, @AIPP, @ECG};
+  hparam_arr = ...
+    {ialm_hparam, aipp_hparam, iapial_hparam, ...
+     aidal0_hparam, aidal1_hparam, aidal2_hparam};
+  name_arr = {'iALM', 'QP_AIPP', 'IAPIAL', 'AIDAL0', 'AIDAL1', 'AIDAL2'};
+  framework_arr = {@iALM, @penalty, @IAPIAL, @AIDAL, @AIDAL, @AIDAL};
+  solver_arr = {@ECG, @AIPP, @ECG, @ECG, @ECG, @ECG};
   [summary_tables, comp_models] = ...
     run_CCM_benchmark(...
       spca, framework_arr, solver_arr, hparam_arr, name_arr);

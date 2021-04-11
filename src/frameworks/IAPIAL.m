@@ -121,6 +121,7 @@ function [model, history] = IAPIAL(~, oracle, params)
   sigma_type = params.sigma_type;
   penalty_multiplier = params.penalty_multiplier;
   i_reset_multiplier = params.i_reset_multiplier;
+  i_reset_prox_center = params.i_reset_prox_center;
 
   % Initialize history parameters.
   if params.i_logging
@@ -136,6 +137,7 @@ function [model, history] = IAPIAL(~, oracle, params)
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
   o_p0 = p0;
+  o_z0 = z0;
   c0 = params.c0;
   first_c0 = c0;
   params_acg = params;
@@ -236,6 +238,9 @@ function [model, history] = IAPIAL(~, oracle, params)
         if (i_reset_multiplier)
           p = o_p0;
         end
+        if (i_reset_prox_center)
+          x = o_z0;
+        end
       end
     else
       error('Something went wrong with the variable `outer_iter`');
@@ -278,6 +283,9 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'i_reset_multiplier')) 
     params.i_reset_multiplier = false;
+  end
+  if (~isfield(params, 'i_reset_prox_center')) 
+    params.i_reset_prox_center = false;
   end
   if (~isfield(params, 'lambda'))
     params.lambda = 1 / (2 * params.m);
