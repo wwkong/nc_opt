@@ -3,7 +3,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  September 12, 2020
+  May 31, 2021
 Coders: 
   Weiwei Kong
 
@@ -65,7 +65,6 @@ function [model, history] = iALM(~, oracle, params)
   alp_prox = @(x, lam) x;
   % Value of the AL function: 
   %  Q_beta(x, y) = <y, c(x)> + (beta / 2) * |c(x)| ^ 2,
-  %  where K is the primal cone.
   function alp_val = alp_fn(x, y, beta)
     alp_val = ...
       prod_fn(y, params.constr_fn(x)) + ...

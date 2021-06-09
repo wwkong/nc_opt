@@ -15,25 +15,32 @@ run('../../../init.m');
 %% Global Variables
 % -------------------------------------------------------------------------
 
+% .........................................................................
 % Create basic hparams.
 base_hparam = struct();
 
 ialm_hparam = base_hparam;
 ialm_hparam.i_ineq_constr = false;
 
-aipp_hparam = base_hparam;
-aipp_hparam.aipp_type = 'aipp';
-aipp_hparam.acg_steptype = 'constant';
+qp_aipp_hparam = base_hparam;
+qp_aipp_hparam.aipp_type = 'aipp';
+qp_aipp_hparam.acg_steptype = 'variable';
+qp_aipp_hparam.i_reset_prox_center = true;
+
+rqp_aipp_hparam = base_hparam;
+rqp_aipp_hparam.aipp_type = 'aipp_v2';
+qp_aipp_hparam.acg_steptype = 'variable';
+rqp_aipp_hparam.i_reset_prox_center = false;
 
 iapial_hparam = base_hparam;
-iapial_hparam.acg_steptype = 'constant';
+iapial_hparam.acg_steptype = 'variable';
 iapial_hparam.sigma_min = 0.3;
 iapial_hparam.penalty_multiplier = 2;
 iapial_hparam.i_reset_multiplier = false;
 iapial_hparam.i_reset_prox_center = false;
 
 aidal_hparam = base_hparam;
-aidal_hparam.acg_steptype = 'constant';
+aidal_hparam.acg_steptype = 'variable';
 aidal_hparam.sigma_type = 'constant';
 aidal_hparam.sigma_min = 0.3;
 aidal0_hparam = aidal_hparam;
@@ -43,6 +50,9 @@ aidal1_hparam = aidal_hparam;
 aidal1_hparam.theta = 0.5;
 aidal2_hparam = aidal_hparam;
 aidal2_hparam.theta = 0.7640;
+
+% End basic hparams.
+% .........................................................................
 
 % Create global hyperparams
 N = 1000;
@@ -100,11 +110,14 @@ for i = 1:length(M_vec)
 
   % Run a benchmark test and print the summary.
   hparam_arr = ...
-    {ialm_hparam, aipp_hparam, iapial_hparam, ...
-     aidal0_hparam, aidal1_hparam, aidal2_hparam};
-  name_arr = {'iALM', 'QP_AIPP', 'IAPIAL', 'AIDAL0', 'AIDAL1', 'AIDAL2'};
-  framework_arr = {@iALM, @penalty, @IAPIAL, @AIDAL, @AIDAL, @AIDAL};
-  solver_arr = {@ECG, @AIPP, @ECG, @ECG, @ECG, @ECG};
+    {aidal0_hparam, aidal1_hparam, aidal2_hparam, ...
+     ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
+  name_arr = {...
+    'ADL0', 'ADL1', 'ADL2', 'iALM', 'IPL', 'QP', 'RQP'};
+  framework_arr = {...
+    @AIDAL, @AIDAL, @AIDAL, @iALM, @IAPIAL, @penalty, @penalty};
+  solver_arr = {...
+    @ECG, @ECG, @ECG, @ECG, @ECG, @AIPP, @AIPP};
   [summary_tables, comp_models] = ...
     run_CCM_benchmark(...
       ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);

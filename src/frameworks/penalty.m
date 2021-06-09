@@ -100,6 +100,7 @@ function [model, history] = penalty(solver, oracle, params)
   iter = 0; % Set to 0 because it calls an inner subroutine.
   stage = 1;
   solver_params = params;
+  i_reset_prox_center = params.i_reset_prox_center;
   c = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
 
   % -----------------------------------------------------------------------
@@ -162,7 +163,9 @@ function [model, history] = penalty(solver, oracle, params)
     end
     
     % Apply warm-start onto the initial point fed into the next iteration.
-    solver_params.x0 = solver_model.x;
+    if (~i_reset_prox_center)
+      solver_params.x0 = solver_model.x;
+    end
 
     % Update iterates.
     c = 2 * c;
@@ -186,6 +189,9 @@ function params = set_default_params(params)
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
+  end
+  if (~isfield(params, 'i_reset_prox_center')) 
+    params.i_reset_prox_center = false;
   end
 
 end

@@ -125,7 +125,10 @@ function [model, history] = IAPIAL(~, oracle, params)
 
   % Initialize history parameters.
   if params.i_logging
+    logging_oracle = copy(oracle);
     history.function_values = [];
+    history.norm_w_hat_values = [];
+    history.norm_q_hat_values = [];
     history.iteration_values = [];
     history.time_values = [];
   end
@@ -206,10 +209,27 @@ function [model, history] = IAPIAL(~, oracle, params)
     model_refine = refine_IPP(...
       oracle_al0, params, L_psi, lambda, z0, model_acg.y, model_acg.u);
     
-    % Check for termination.
+    % Compute refined quantities.
     p_hat = cone_proj(model_refine.z_hat, p0, c0);
     q_hat = (1 / c0) * (p0 - p_hat);
     w_hat = model_refine.v_hat;
+    
+    % Log some numbers if necessary.
+    if params.i_logging
+      logging_oracle.eval(model_refine.z_hat);
+      history.function_values = ...
+        [history.function_values; logging_oracle.f_s() + logging_oracle.f_n()];
+      history.norm_w_hat_values = ...
+        [history.norm_w_hat_values; norm_fn(w_hat)];
+      history.norm_q_hat_values = ...
+        [history.norm_q_hat_values; norm_fn(q_hat)];
+      history.iteration_values = ...
+        [history.iteration_values; iter];
+      history.time_values = ...
+        [history.time_values; toc(t_start)];
+    end
+    
+    % Check for termination.
     if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
       break;
     end
@@ -228,9 +248,9 @@ function [model, history] = IAPIAL(~, oracle, params)
       oracle_Delta.eval(x);
       stage_al_val = oracle_Delta.f_s() + oracle_Delta.f_n();
       Delta = 1 / (outer_iter - stage_outer_iter) * ...
-        (stage_al_base - stage_al_val);
+        (stage_al_base - stage_al_val - norm_fn(p) ^ 2 / (2 * c0));
       % Check the update condition and update the relevant constants.
-      Delta_mult = lambda * (1 - sigma ^ 2) / (4 * (1 + 2 * nu) ^ 2);
+      Delta_mult = lambda * (1 - sigma ^ 2) / (2 * (1 + 2 * nu) ^ 2);
       if (Delta <= ((opt_tol ^ 2) * Delta_mult))
         c0 = penalty_multiplier * c0;
         stage = stage + 1;
