@@ -156,7 +156,7 @@ function [model, history] = IAPIAL(~, oracle, params)
   while true
     
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && outer_iter > 1)
       break;
     end
     
@@ -317,7 +317,7 @@ function params = set_default_params(params)
     params.c0 = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
   end
   if (~isfield(params, 'penalty_multiplier'))
-    params.penalty_multiplier = 5;
+    params.penalty_multiplier = 2;
   end
   if (~isfield(params, 'nu'))
     params.nu = sqrt(params.sigma_min * (params.lambda * params.M + 1));

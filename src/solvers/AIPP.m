@@ -133,6 +133,7 @@ function [model, history] = AIPP(oracle, params)
   % Initialize some auxillary functions and constants.
   iter = 0; % Set to zero to offset ACG iterations
   outer_iter = 1;
+  i_early_stop = false;
   M_est = M;
   L = max(m, M);
   L_prox_fn = @(lam, L) lam * L + 1;
@@ -158,7 +159,7 @@ function [model, history] = AIPP(oracle, params)
   while true
        
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && i_early_stop)
       break;
     end
     
@@ -194,6 +195,21 @@ function [model, history] = AIPP(oracle, params)
     iter = iter + history_acg.iter;
     M_est = (model_acg.L_est - 1) / lambda;
     
+    % Refine if the ACG has a solution.
+    if (isfield(model_acg, 'y') && isfield(model_acg, 'u'))
+      model_refine = refine_IPP(...
+        oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
+      x = model_refine.z_hat;
+      v = model_refine.v_hat;
+      i_early_stop = true;
+      % Check for termination.
+      norm_v = norm_fn(v);
+      history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+      if(norm_v <= opt_tol)
+        break;
+      end
+    end
+    
     % Check for failure of the ACG method.
     if (model_acg.status < 0)
       if (any(strcmp(aipp_type, {'aipp_v1', 'aipp_v2'})))
@@ -210,17 +226,6 @@ function [model, history] = AIPP(oracle, params)
     % ---------------------------------------------------------------------
     %% OTHER UPDATES
     % ---------------------------------------------------------------------
-    
-    % Check for termination using the refinement
-    model_refine = refine_IPP(...
-      oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
-    x = model_refine.z_hat;
-    v = model_refine.v_hat;
-    norm_v = norm_fn(v);
-    history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
-    if(norm_v <= opt_tol)
-      break;
-    end
     
     % Update tau if necessary.
     if (i_variable_tau)
@@ -260,6 +265,7 @@ function [model, history] = AIPP(oracle, params)
     %% ORIGINAL AIPP'S PHASE II CHECK
     % ---------------------------------------------------------------------
     if strcmp(aipp_type, 'aipp')
+      % Phase I termination check.
       if (norm_fn(model_acg.u + z0 - model_acg.y) <= lambda * opt_tol / 5)
         % Final ACG call.
         params_acg.termination_type = 'aipp_phase2';

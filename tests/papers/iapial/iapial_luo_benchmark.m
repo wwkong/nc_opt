@@ -20,23 +20,47 @@ globals.N = 1000;
 globals.seed = 777;
 globals.dimM = 20;
 globals.dimN = 1000;
-globals.opt_tol = 1e-20;
-globals.feas_tol = 1e-20;
+globals.opt_tol = 1e-6;
+globals.feas_tol = 1e-6;
 
-% Run a single experiment.
-m = 1e1;
-M = 1e3;
-time_limit = 200;
-out_models = run_experiment(m, M, time_limit, globals);
-save('luo_models.mat', 'out_models')
+%% Run a single experiment.
 
-%% Create the graphs for the paper.
-load('luo_models.mat')
-generate_graphs(out_models)
+% The main parameters (m, M) should be spec'd by Condor.
+
+% E.g.
+% mM_mat = ...
+%   [1e1, 1e2; ...
+%    1e1, 1e3; ...
+%    1e1, 1e4; ...
+%    1e1, 1e5; ...
+%    1e1, 1e6; ];
+
+% Run an experiment.
+time_limit = 600;
+i_first_row = true;
+for i=1:size(mM_mat, 1)
+  [~, out_models] = ...
+    run_experiment(mM_mat(i, 1), mM_mat(i, 2), time_limit, globals);
+  tbl_row = parse_models(out_models);
+  disp(tbl_row);
+  if i_first_row
+    tbl = tbl_row;
+    i_first_row = false;
+  else
+    tbl = [tbl; tbl_row]; 
+  end
+end
+disp(tbl);
+
+
+%% Create the graphs for the paper. (DEPRECATED)
+% save('luo_models.mat', 'out_models')
+% load('luo_models.mat')
+% generate_graphs(out_models)
 
 %% Helper Functions
 
-% Generate the graphs for the paper.
+% Generate the graphs for the paper. (DEPRECATED)
 function generate_graphs(models)
 
   % Initialize.
@@ -114,8 +138,59 @@ function generate_graphs(models)
   
 end
 
+% Parse the output models and log the output.
+function out_tbl = parse_models(models)
+
+  % Initialize.
+  alg_names = fieldnames(models);
+  
+  % Loop over the different algorithms.
+  
+  % First for |w|
+  i_first_alg = true;
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    if i_first_alg
+      m = cur_mdl.m;
+      M = cur_mdl.M;
+      time_limit = cur_mdl.time_limit;
+      out_tbl = table(m, M, time_limit);
+      i_first_alg = false;
+    end
+    cur_mdl.oracle.eval(cur_mdl.x0);
+    grad_f_at_x0 = cur_mdl.oracle.grad_f_s();
+    opt_mult = 1  / (1 + cur_mdl.norm_fn(grad_f_at_x0));
+    eval([alg_names{i}, '_opt =', num2str(cur_mdl.norm_of_v * opt_mult), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_opt)];'])
+  end
+  
+  % Next for |Az-b|
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    feas_mult = 1 / (1 + cur_mdl.norm_fn(cur_mdl.constr_fn(cur_mdl.x0)));
+    eval([alg_names{i}, '_feas =', num2str(cur_mdl.norm_of_w * feas_mult), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_feas)];'])
+  end
+  
+  % Next for iter
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    eval([alg_names{i}, '_iter =', num2str(cur_mdl.iter), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_iter)];'])
+  end
+  
+  % Next for time
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    eval([alg_names{i}, '_time =', num2str(cur_mdl.runtime), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_time)];'])
+  end
+  
+
+end
+
 % Run a single experiment and output the summary models.
-function out_models = run_experiment(m, M, time_limit, params) 
+function [out_tbl, out_models] = run_experiment(m, M, time_limit, params) 
 
   % Gather the oracle and hparam instance.
   [oracle, hparams] = ...
@@ -146,24 +221,30 @@ function out_models = run_experiment(m, M, time_limit, params)
   
   % Create some basic hparams.
   base_hparam = struct();
-  base_hparam.i_logging = true;
+  base_hparam.i_logging = false; % Enable or diable logging.
   spa1_hparam = base_hparam;
   spa1_hparam.Gamma =0.1;
   spa2_hparam = base_hparam;
   spa2_hparam.Gamma = 1;
   spa3_hparam = base_hparam;
   spa3_hparam.Gamma = 10;  
-  iapial_hparam = base_hparam;
-  iapial_hparam.acg_steptype = 'constant';
+  rqp_hparam = base_hparam;
+  rqp_hparam.acg_steptype = 'variable';
+  ipla_hparam = base_hparam;
+  ipla_hparam.acg_steptype = 'variable';
+  qpa_hparam = base_hparam;
+  qpa_hparam.acg_steptype = 'variable';
+  qpa_hparam.aipp_type = 'aipp';
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {iapial_hparam, spa1_hparam, spa2_hparam, spa3_hparam};
-  name_arr = {'IAPIAL', 'SPA1', 'SPA2', 'SPA3'};
-  framework_arr = {@IAPIAL, @sProxALM, @sProxALM, @sProxALM};
-  solver_arr = {@ECG, @ECG, @ECG, @ECG};
+  hparam_arr = ...
+    {qpa_hparam, rqp_hparam, ipla_hparam, spa1_hparam, spa2_hparam, spa3_hparam};
+  name_arr = {'QP_A', 'RQP', 'IPL_A', 'SPA1', 'SPA2', 'SPA3'};
+  framework_arr = {@penalty, @penalty, @IAPIAL, @sProxALM, @sProxALM, @sProxALM};
+  solver_arr = {@AIPP, @AIPP, @ECG, @ECG, @ECG, @ECG};
   
   % Run the test.
-  [~, out_models] = run_CCM_benchmark(...
+  [out_tbl, out_models] = run_CCM_benchmark(...
     ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   
 end

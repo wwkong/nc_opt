@@ -59,7 +59,7 @@ function [model, history] = ACG(oracle, params)
   params = set_default_params(params);
   
   % Set other input params.
-  status = 0;
+  i_early_stop = false;
   iter = 1;
   t_start = params.t_start;
   L_grad_f_s_est = params.L_grad_f_s_est;
@@ -201,14 +201,12 @@ function [model, history] = ACG(oracle, params)
   while true
     
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit && iter > 1)
-      model.status = -3;
+    if (toc(t_start) > time_limit && i_early_stop)
       break;
     end
     
     % If there are too many iterations performed, pre-maturely exit.
-    if (iter >= iter_limit && iter > 1)
-      model.status = -3;
+    if (iter >= iter_limit && i_early_stop)
       break; 
     end
         
@@ -229,6 +227,9 @@ function [model, history] = ACG(oracle, params)
         L = min(L_max, L_est * mult_L);
         [L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
+        if (toc(t_start) > time_limit)
+          break;
+        end
       end
       
       % Load auxiliary quantities
@@ -330,11 +331,14 @@ function [model, history] = ACG(oracle, params)
     eta = max([0, exact_eta]);
     % Check the negativity of eta in a relative sense.
     if (termination_type == "aipp")
-      relative_exact_eta = exact_eta / (norm_fn(u + x0 - y) ^ 2 / 2);
+      relative_exact_eta = exact_eta / max([norm_fn(u + x0 - y) ^ 2 / 2, 0.01]);
       if (relative_exact_eta < -INEQ_COND_ERR_TOL)
         error(['eta is negative with a value of ', num2str(exact_eta)]);
       end
     end
+    
+    % Update status when we have a possible triple for termination.
+    i_early_stop = true;
         
     % ---------------------------------------------------------------------
     %% CHECK INVARIANTS.
@@ -384,21 +388,18 @@ function [model, history] = ACG(oracle, params)
     % Termination for the AIPP method (Phase 1).
     if (termination_type == "aipp")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2)
-        status = 1;
         break;
       end
       
     % Termination for the AIPP method (with sigma square).
     elseif (termination_type == "aipp_sqr")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2)
-        status = 1;
         break;
       end
       
     % Termination for the AIPP method (Phase 2).
     elseif (termination_type == "aipp_phase2")
       if (eta <= lambda * epsilon_bar)
-        status = 1;
         break;
       end
            
@@ -411,7 +412,6 @@ function [model, history] = ACG(oracle, params)
         theta * (phi_tilde_at_x0 - phi_tilde_at_y));
       cond2 = (2 * L_grad_f_s_est * eta <= tau * norm_fn(x0 - y + u) ^ 2);
       if (cond1 && cond2)
-        status = 1;
         break;
       end
       
@@ -434,7 +434,6 @@ function [model, history] = ACG(oracle, params)
         (norm_fn(y - x0) + tau <= 4 * lambda * delta_phi);
       if (cond1 && cond2 && cond3)
         model.phi_at_Z_approx = phi_at_Z_approx;
-        status = 1;
         break;
       end
       
@@ -443,7 +442,6 @@ function [model, history] = ACG(oracle, params)
       u2 = u + mu * (x - y);
       eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
       if (norm_fn(u2) ^ 2  + 2 * eta2 <= sigma ^ 2 * norm_fn(y - x0) + tau)
-        status = 1;
         break;
       end
 
@@ -480,7 +478,8 @@ function [model, history] = ACG(oracle, params)
   % -----------------------------------------------------------------------
   
   % Successful stop.
-  if (status == 1) 
+  if (i_early_stop) 
+    model.status = 1;
     model.y = y;
     model.o_y = o_y;
     model.f_s_at_y = f_s_at_y;
@@ -498,7 +497,6 @@ function [model, history] = ACG(oracle, params)
   
   % Other outputs.
   model.L_est = L;
-  model.status = status;
   history.iter = iter;
   history.runtime = toc(t_start);
           

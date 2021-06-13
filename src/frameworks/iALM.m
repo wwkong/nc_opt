@@ -117,7 +117,7 @@ function [model, history] = iALM(~, oracle, params)
   while true
     
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && outer_iter > 0)
       break;
     end
     

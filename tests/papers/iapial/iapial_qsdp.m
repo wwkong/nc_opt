@@ -15,32 +15,24 @@ run('../../../init.m');
 % Global parameters for each experiment.
 globals.N = 1000;
 globals.seed = 777;
-globals.dimM = 20;
+globals.dimM = 30;
 globals.dimN = 100;
-globals.density = 0.01;
-globals.opt_tol = 1e-3;
-globals.feas_tol = 1e-3;
+globals.density = 0.05;
+globals.opt_tol = 1e-4;
+globals.feas_tol = 1e-4;
 
 %% Run an experiment
 
 % The main parameters (mM_mat) should be spec'd by Condor.
 
-% E.g. Table 1.
+% E.g. 
 % mM_mat = ...
 %   [1e1, 1e2; ...
 %    1e1, 1e3; ...
 %    1e1, 1e4; ...
 %    1e1, 1e5; ...
 %    1e1, 1e6; ];
- 
-% E.g. Table 2.
-% mM_mat = ...
-%   [1e2, 1e2; ...
-%    1e3, 1e3; ...
-%    1e4, 1e4; ...
-%    1e5, 1e5; ...
-%    1e6, 1e6; ];
- 
+
 i_first_row = true;
 for i=1:size(mM_mat, 1)
   tbl_row = run_experiment(mM_mat(i, 1), mM_mat(i, 2), globals);
@@ -88,13 +80,18 @@ function out_tbl = run_experiment(m, M, params)
   
   % Create some basic hparams.
   base_hparam = struct();
-  iapial_hparam = base_hparam;
-  iapial_hparam.acg_steptype = 'constant';
-  raipp_hparam = base_hparam;
-  raipp_hparam.acg_steptype = 'variable';
-  aipp_hparam = base_hparam;
-  aipp_hparam.acg_steptype = 'constant';
-  aipp_hparam.aipp_type = 'aipp';
+  ipl_hparam = base_hparam;
+  ipl_hparam.acg_steptype = 'constant';
+  ipla_hparam = base_hparam;
+  ipla_hparam.acg_steptype = 'variable';
+  rqp_hparam = base_hparam;
+  rqp_hparam.acg_steptype = 'variable';
+  qp_hparam = base_hparam;
+  qp_hparam.acg_steptype = 'constant';
+  qp_hparam.aipp_type = 'aipp';
+  qpa_hparam = base_hparam;
+  qpa_hparam.acg_steptype = 'variable';
+  qpa_hparam.aipp_type = 'aipp';
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;
@@ -104,12 +101,14 @@ function out_tbl = run_experiment(m, M, params)
   ialm_hparam.L_vec = hparams.L_constr_vec;
   % Note that we are using the fact that |X|_F <= 1 over the spectraplex.
   ialm_hparam.B_vec = hparams.K_constr_vec;
+  ialm_hparam.sigma = 2;
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, aipp_hparam, raipp_hparam, iapial_hparam};
-  name_arr = {'iALM', 'QP_AIPP', 'R_QP_AIPP', 'IAPIAL'};
-  framework_arr = {@iALM, @penalty, @penalty, @IAPIAL};
-  solver_arr = {@ECG, @AIPP, @AIPP, @ECG};
+  hparam_arr = ...
+    {ialm_hparam, qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
+  name_arr = {'iALM', 'QP', 'QP_A', 'RQP', 'IPL', 'IPL_A'};
+  framework_arr = {@iALM, @penalty, @penalty, @penalty, @IAPIAL, @IAPIAL};
+  solver_arr = {@ECG, @AIPP, @AIPP, @AIPP, @ECG, @ECG};
   
   % Run the test.
   [summary_tables, ~] = ...

@@ -130,7 +130,9 @@ function [model, history] = penalty(solver, oracle, params)
     solver_oracle = copy(o_oracle);
     solver_oracle.add_smooth_oracle(penalty_oracle)
     
-    % Update curvatures, call the solver, and update iteration count.
+    % Update curvatures and time limit, call the solver, and update 
+    % iteration count.
+    solver_params.time_limit = max([0, time_limit - toc(t_start)]);
     solver_params.M = params.M + c * params.K_constr ^ 2;
     [solver_model, solver_history] = solver(solver_oracle, solver_params);
     iter = iter + solver_history.iter;
@@ -158,6 +160,7 @@ function [model, history] = penalty(solver, oracle, params)
     end
     
     % Check for termination.
+    feas = feas_fn(solver_model.x);
     if (feas_fn(solver_model.x) <= feas_tol)
       break;
     end
@@ -168,7 +171,7 @@ function [model, history] = penalty(solver, oracle, params)
     end
 
     % Update iterates.
-    c = 2 * c;
+    c = params.penalty_multiplier * c;
     stage = stage + 1;
     
   end
@@ -192,6 +195,9 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'i_reset_prox_center')) 
     params.i_reset_prox_center = false;
+  end
+  if (~isfield(params, 'penalty_multiplier'))
+    params.penalty_multiplier = 2;
   end
 
 end
