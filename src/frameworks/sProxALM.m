@@ -210,10 +210,10 @@ function params = set_default_params(params)
     params.alpha = params.Gamma / 4;
   end
   if (~isfield(params, 'p')) 
-    params.p = 2 * (params.L + params.Gamma * params.K_constr ^ 2);
+    params.p = params.L;
   end
   if (~isfield(params, 'c')) 
-    params.c = 1 / (2 * (params.L + params.Gamma * params.K_constr ^ 2));
+    params.c = 1 / (2 * (params.L + params.p + params.Gamma * params.K_constr ^ 2));
   end
   if (~isfield(params, 'beta')) 
     params.beta = 0.5; 

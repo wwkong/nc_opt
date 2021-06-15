@@ -52,22 +52,25 @@ function [model, history] = HiAPeM(~, oracle, params)
    
   % Initialize basic algorithm params.
   rho = params.rho;
-  sigma = params.sigma;
-  beta0 = params.beta0;
   x0 = params.x0;
   K0 = params.N0;
   N1 = params.N1;
   gamma = params.gamma;
-  L_min = params.L_min;
   eps = params.eps;
     
   % Iterate.
   iter = 0; % Set to 0 because it calls an inner subroutine.
-  stage = 1;
-  while true
+
+    
+  % =====================================================================
+  % ------------------------------ PHASE I ------------------------------
+  % =====================================================================
+  
+  % Call iALM for K0 iterations.
+  for k=0:(K0 - 1)
     
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && iter > 1)
       break;
     end
     
@@ -76,50 +79,116 @@ function [model, history] = HiAPeM(~, oracle, params)
       break;
     end
     
-    % =====================================================================
-    % ------------------------------ PHASE I ------------------------------
-    % =====================================================================
-    for k=0:(K0-1)
-                 
-      % Call the iALM to compute (beta, x, p)
+    % Call the iALM to compute (beta, x, p)
+    iALM_params = params;
+    iALM_params.alg_type = "iALM";
+    iALM_params.eps = params.eps1Hat / 2;
+    iALM_params.t_start = t_start;
+    iALM_params.xBar = x0;
+    [iALM_model, iALM_history] = MM_alg(oracle, iALM_params);
+    iter = iter + iALM_history.iter;
+    beta = iALM_model.beta;
+    x = iALM_model.x;
+    y = iALM_model.y;
+    z = iALM_model.z;
+    % Early termination.
+    v = (x - x0) * 4 * rho;
+    w = v;
+    if (norm_fn(v) <= eps)
+      break
+    end
+    % Update iterates
+    y0 = y;
+    z0 = z;
+    x0 = x;
+    
+%     % DEBUG
+%     disp(table(norm_fn(v), k, iter, beta));
+    
+  end
+  
+  % ====================================================================
+  % ----------------------------- PHASE II -----------------------------
+  % ====================================================================
+  
+%   % DEBUG
+%   disp('PHASE II')
+  
+  % Call penalty method and switch to iALM at exactly iteration (Ks - 1).
+  s = 1;
+  t = 0;
+  k = k + 1;
+  Ks = K0 + N1;
+  while true
+    
+    % If time is up, pre-maturely exit.
+    if (toc(t_start) > time_limit && iter > 0)
+      break;
+    end
+    
+    % If there are too many iterations performed, pre-maturely exit.
+    if (iter >= iter_limit)
+      break;
+    end
+    
+%     % DEBUG
+%     disp(table(k, Ks));
+    
+    % Call the penalty method.
+    Pen_params = params;
+    Pen_params.alg_type = "PenMM";
+    Pen_params.eps = params.eps2Hat / 2;
+    Pen_params.t_start = t_start;
+    Pen_params.beta = beta;
+    Pen_params.xBar = x;
+    Pen_params.yBar = y;
+    Pen_params.zBar = z;
+    [Pen_model, Pen_history] = MM_alg(oracle, Pen_params);
+    iter = iter + Pen_history.iter;
+    beta = Pen_model.beta;
+    x = Pen_model.x;
+    % Early termination.
+    if (norm_fn(x - x0) <= eps / (4 * rho))
+      break
+    end
+    
+    % Increment counters and check iALM condition.
+    t = t + 1;
+    k = k + 1;
+    
+    if (k == (Ks - 1))
+      % Call the iALM only when k is (Ks - 1).
       iALM_params = params;
+      iALM_params.alg_type = "iALM";
       iALM_params.eps = params.eps1Hat / 2;
       iALM_params.t_start = t_start;
-      iALM_params.x0 = x0;
-      [iALM_model, iALM_history] = iALM(oracle, iALM_params);
+      iALM_params.xBar = x;
+      [iALM_model, iALM_history] = MM_alg(oracle, iALM_params);
       iter = iter + iALM_history.iter;
       beta = iALM_model.beta;
       x = iALM_model.x;
       y = iALM_model.y;
       z = iALM_model.z;
-      
       % Early termination.
-      iALM_resid = norm_fn(x - x0);
-      % DEBUG
-%       disp(table(iALM_resid, eps / (4 * rho), iter));
       if (norm_fn(x - x0) <= eps / (4 * rho))
         break
       end
-      
-      % Update iterates
-      y0 = y;
-      z0 = z;
-      x0 = x;
-    end 
+      % Multipliers and indices (s, t, k) are updated when iALM is called.
+      t = 0;
+      k = Ks;
+      Ks = Ks + ceil(N1 * gamma ^ s);
+    end
     
-    % DEBUG
-    break
-    
-    % ====================================================================
-    % ----------------------------- PHASE II -----------------------------
-    % ====================================================================
-    
+    % Update iterates.
+    v = (x - x0) * 4 * rho;
+    w = v;
+    x0 = x;
   end
   
   % Get ready to output
   model.x = x;
-  model.v = 0.00;
-  model.w = 0.00;
+  model.v = v;
+  model.w = w;
   history.iter = iter;
   history.runtime = toc(t_start);
   
@@ -127,20 +196,28 @@ end
 
 %% Subroutines
 
-function [model, history] = iALM(oracle, params)
-% iALM subroutine used in the HiAPeM.
+function [model, history] = MM_alg(oracle, params)
+% Combined subroutine that implements either iALM or PenMM in the HiAPeM.
+% The choice of subroutine depends on the field 'alg_type';
 
   % Parse algorithm inputs.
   rho = params.rho;
   eps = params.eps;
   sigma = params.sigma;
-  xBar = params.x0;
-  y0 = zeros(size(params.lin_constr_fn(xBar)));
-  z0 = zeros(size(params.nonlin_constr_fn(xBar)));
-  beta0 = params.beta0;
+  x0 = params.xBar;
+  alg_type = params.alg_type;
+  if strcmp(alg_type, 'iALM')
+    y0 = zeros(size(params.lin_constr_fn(x0)));
+    z0 = zeros(size(params.nonlin_constr_fn(x0)));
+  elseif strcmp(alg_type, 'PenMM')
+    y0 = params.yBar;
+    z0 = params.zBar;
+  else
+    error('Unknown alg_type!');
+  end
+  beta = params.beta0;
   
   % Solver params.
-  norm_fn = params.norm_fn;
   t_start = params.t_start;
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
@@ -174,21 +251,21 @@ function [model, history] = iALM(oracle, params)
     end
   end
   
-  % Function that creates the proxified augmented Lagrangian oracle 
-  % for the function
+  % Function that creates the augmented Lagrangian oracle of the function
   %
   %   L_c(x; p1, p2) := 
   %     phi(x) + ...
   %     <p1, c1(x)> + beta / 2 * |c1(x)| ^ 2 +
   %     1 / (2 * beta) * [dist(p2 + beta * c2(x), -K) - |p2| ^ 2],
   %
-  % where K is the primal cone.
+  % where K is the primal cone, c1 is the linear constraint function, c2 is the
+  % nonlinear constraint function.
   function al_oracle = create_al_oracle(p1, p2, beta)
     
     % Create the penalty oracle.
     function oracle_struct = alp_eval_fn(x)
-      dual_proj_proint1 = p1 + beta * params.lin_constr_fn(x);
-      [dual_proj_proint2, primal_proj_point2]= cone_proj(x, p2, beta);
+      dual_proj_point1 = p1 + beta * params.lin_constr_fn(x);
+      [dual_proj_point2, primal_proj_point2]= cone_proj(x, p2, beta);
       p_step = p2 + beta * params.nonlin_constr_fn(x);
       dist_val = norm_fn((-p_step) - primal_proj_point2);
       % Auxiliary function values.
@@ -199,8 +276,8 @@ function [model, history] = iALM(oracle, params)
       oracle_struct.f_n = @() 0;
       % Auxiliary gradient operator.
       oracle_struct.grad_f_s = @() ...
-          grad_eval(params.lin_grad_constr_fn, x, dual_proj_proint1) + ...
-          grad_eval(params.nonlin_grad_constr_fn, x, dual_proj_proint2);
+          grad_eval(params.lin_grad_constr_fn, x, dual_proj_point1) + ...
+          grad_eval(params.nonlin_grad_constr_fn, x, dual_proj_point2);
       oracle_struct.prox_f_n = @(lam) x;
     end
     oracle_AL1 = Oracle(@alp_eval_fn);
@@ -214,29 +291,31 @@ function [model, history] = iALM(oracle, params)
   % Initialize the invariant APG params.
   apg_params = params;
   apg_params.mu = rho;
-  apg_params.eps = ...
-    eps / 2 * sqrt((sigma - 1) / (sigma + 1)) * min([1, sqrt(rho)]);
-    
-%   % DEBUG
-%   yOrig = y0;
-%   zOrig = z0;
-%   betaOrig = beta0;
+  if strcmp(alg_type, "iALM")
+    apg_params.eps = ...
+      eps / 2 * sqrt((sigma - 1) / (sigma + 1)) * min([1, sqrt(rho)]);
+  elseif strcmp(alg_type, "PenMM")
+    apg_params.eps = eps * min([1, sqrt(rho)]);
+  else
+    error('Unknown alg_type!')
+  end
   
   % Iterate.
   iter = 0; % Set to 0 because it calls an inner subroutine.
-  x0 = xBar;
-  x = xBar;
+  outer_iter = 1;
+  x = x0;
   y = y0;
   z = z0;
+  beta0 = beta;
   quad_f_n = @(u) 0;
-  quad_prox_f_n = @(u, lam) x;
-  quad_f_s = @(u) rho * norm_fn(u - xBar) ^ 2;
-  grad_quad_f_s = @(u) 2 * rho * (u - xBar);
+  quad_prox_f_n = @(u, lam) u;
+  quad_f_s = @(u) rho * norm_fn(u - x0) ^ 2;
+  grad_quad_f_s = @(u) 2 * rho * (u - x0);
   quad_oracle = Oracle(quad_f_s, quad_f_n, grad_quad_f_s, quad_prox_f_n);
   while true
         
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && iter > 0)
       break;
     end
     
@@ -246,44 +325,59 @@ function [model, history] = iALM(oracle, params)
     end
     
     % Create the APG oracle.
-    apg_oracle = create_al_oracle(y0, z0, beta0);
+    apg_oracle = create_al_oracle(y0, z0, beta);
     apg_oracle.add_smooth_oracle(quad_oracle);
         
     % Call the APG and parse the outputs.
+    apg_oracle.eval(x0);
     apg_params.x0 = x0;
     [apg_model, apg_history] = AdapAPG(apg_oracle, apg_params);
     x = apg_model.x;
     iter = iter + apg_history.iter;
     
     % Update multipliers
-    y = y0 + beta0 * params.lin_constr_fn(x);
-    z_step = z0 + beta0 * params.nonlin_constr_fn(x);
+    y = y0 + beta * params.lin_constr_fn(x);
+    z_step = z0 + beta * params.nonlin_constr_fn(x);
     z = z_step - params.set_projector(-z_step);
     
     % Check for termination.
-    err1 = (norm_fn([y0; z0]) + norm_fn([y; z])) / beta0; 
+    err1 = (norm_fn([y0; z0]) + norm_fn([y; z])) / beta; 
     err2 = abs(z' * params.nonlin_constr_fn(x));
     err = max([err1, err2]);
-%     % DEBUG
-%     apg_iter = apg_history.iter;
-%     disp(table(iter, apg_iter, err, eps, beta0));
     if (err <= eps)
       break;
     end
     
-    % Update iterates
+%     % DEBUG
+%     disp(table(alg_type, err, iter, outer_iter, beta));
+    
+    % Update iterates.
+    outer_iter = outer_iter + 1;
     x0 = x;
-    y0 = y;
-    z0 = z;
-    beta0 = sigma * beta0;
+    beta0 = beta;
+    % Only the iALM updates the multipliers.
+    if strcmp(alg_type, "iALM")
+      y0 = y;
+      z0 = z;
+    end
+    beta = sigma * beta;
     
   end
   
   % Get ready to output
-  model.x = x;
-  model.y = y;
-  model.z = z;
-  model.beta = beta0;
+  if strcmp(alg_type, "iALM")
+    model.x = x;
+    model.y = y;
+    model.z = z;
+    model.beta = beta;
+  elseif strcmp(alg_type, "PenMM")
+    model.x = x0;
+    model.y = y0;
+    model.z = z0;
+    model.beta = beta0;
+  else
+    error('Unknown alg_type!')
+  end  
   history.iter = iter;
   
 end
@@ -291,6 +385,9 @@ end
 function [model, history] = AdapAPG(oracle, params)
 % Adaptive Accelerated Proximal Gradient (APG) Method used in the iALM.
 
+  % Global constants.
+  INEQ_TOL = 1e-3;
+  
   % Parse algorithm inputs.
   eps = params.eps;
   L_min = params.L_min;
@@ -314,10 +411,11 @@ function [model, history] = AdapAPG(oracle, params)
   L0 = L_min;
   o_at_x_m2.eval(x_m2);
   iter = 1;
+  i_early_stop = false;
   while true
        
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && i_early_stop)
       break;
     end
     
@@ -331,15 +429,25 @@ function [model, history] = AdapAPG(oracle, params)
     o_at_x_m1_next.eval(x_m2 - (1 / L0) * o_at_x_m2.grad_f_s());
     x_m1 = o_at_x_m1_next.prox_f_n(1 / L0);
     
-    % Check termination
+    % Check termination (in a relative sense).
     o_at_x_m1.eval(x_m1);
-    if (o_at_x_m1.f_s() <= o_at_x_m2.f_s() + ...
-        prod_fn(o_at_x_m2.grad_f_s(), x_m1 - x_m2) + ...
-        L0 / 2 * norm_fn(x_m1 - x_m2) ^ 2)
+    small_err = o_at_x_m1.f_s();
+    large_err = ...
+      o_at_x_m2.f_s() + ...
+      prod_fn(o_at_x_m2.grad_f_s(), x_m1 - x_m2) + ...
+      (L0 / 2) * norm_fn(x_m1 - x_m2) ^ 2;
+    base_err = max(abs([0.01, small_err, large_err]));
+    
+%     % DEBUG
+%     disp(table(base_err, small_err, large_err, L0, iter));
+    
+    if ((small_err - large_err) / base_err <= INEQ_TOL)
       break;
     end
+
     
     % Update iterates
+    i_early_stop = true;
     iter = iter + 1;
     
   end
@@ -353,10 +461,11 @@ function [model, history] = AdapAPG(oracle, params)
   o_at_x_p1 = copy(oracle);
   ALS_oracle = copy(oracle);
   ALS_params = params;
+  i_early_stop = false;
   while true
         
     % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit)
+    if (toc(t_start) > time_limit && i_early_stop)
       break;
     end
     
@@ -374,11 +483,11 @@ function [model, history] = AdapAPG(oracle, params)
     
     % Parse output.
     x_p1 = ALS_model.x_p1;
+    tx = ALS_model.tx;
     M = ALS_model.M;
     alpha = ALS_model.alpha;
-    tx = ALS_model.tx;
     L = max([L_min, M / gamma2]);
-        
+    
     % Check for termination. Here, v is a proxy for dist(0, ∂F(x)).
     o_at_tx.eval(tx);
     o_at_x_p1.eval(x_p1);
@@ -387,10 +496,18 @@ function [model, history] = AdapAPG(oracle, params)
       break;
     end
 
+%     % DEBUG
+%     nrm_v = norm_fn(v);
+%     del1 = norm_fn(tx - x_p1);
+%     del2 = norm_fn(x0 - x_p1);
+%     disp(table(nrm_v, del1, del2, M, L, iter, alpha, eps));
+% %     disp(table(x0, tx, x_p1));
+    
     % Update iterates
     x0 = x;
     x = x_p1;
     alpha0 = alpha;
+    i_early_stop = true;
     iter = iter + ALS_history.iter;
     
   end
@@ -405,7 +522,7 @@ function [model, history] = AccelLineSearch(oracle, params)
 % Line search subroutine used in AdapAPG
 
   % Global constants
-  MACHEPS = 1e-3; % buffer room for comparing quantities
+  INEQ_TOL = 1e-3; % buffer room for comparing quantities
 
   % Parse inputs.
   x = params.x;
@@ -423,49 +540,30 @@ function [model, history] = AccelLineSearch(oracle, params)
   o_at_x_p1 = copy(oracle);
   
   % Main loop.
-  M = L / gamma1; % Equivalent to L in the paper.
+  M = L / gamma1; % M is equivalent to L (= Lk / gamma1) in the paper.
   iter = 1;
   while true
     M = M * gamma1;
     alpha = sqrt(mu / M);
+    
     % Compute and evaluate tx_k (= y_k in the paper).
     tx = x + (alpha * (1 - alpha0)) / (alpha0 * (1 + alpha)) * (x - x0);
     o_at_tx.eval(tx);
+    
     % Compute and evaluate x_{k+1}.
     o_at_tx_next.eval(tx - (1 / M) * o_at_tx.grad_f_s());
-    x_p1 = o_at_tx_next.prox_f_n(1 / M);
+    x_p1 = o_at_tx_next.prox_f_n(1 / M);    
     o_at_x_p1.eval(x_p1);
-    
-%     % DEBUG
-%     disp(table(...
-%       iter, ...
-%       norm_fn(x0 - x), ...
-%       norm_fn(x - x_p1), ...
-%       norm_fn(x0 - x_p1)));    
     
     % Check the descent condition in a relative sense.
     small_err = o_at_x_p1.f_s();
     large_err = ...
       o_at_tx.f_s() + prod_fn(o_at_tx.grad_f_s(), x_p1 - tx) + ...
       M / 2 * norm_fn(x_p1 - tx) ^ 2;
-    base_err = max(abs([small_err, large_err, MACHEPS]));
-    if ((small_err - large_err) / base_err < MACHEPS)
+    base_err = max(abs([small_err, large_err, 0.01]));    
+    if ((small_err - large_err) / base_err < INEQ_TOL)
       break;
     end
-    
-%     % DEBUG
-%     true_M = params.M;
-%     beta0 = params.beta0;
-%     K_constr = params.K_constr;
-%     rho = params.rho;
-%     Lpsc = true_M + beta0 * K_constr ^ 2 + rho;
-%     if (M > Lpsc)
-%       disp(table(M, true_M, beta0, rho, Lpsc, iter));
-%       disp(table(o_at_x_p1.f_s(), ...
-%                   o_at_tx.f_s() + ...
-%                   prod_fn(o_at_tx.grad_f_s(), x_p1 - tx) + ...
-%                   M / 2 * norm_fn(x_p1 - tx) ^ 2));
-%     end    
     
     % Update iterates
     iter = iter + 1;
@@ -489,7 +587,7 @@ function params = set_default_params(params)
     params.rho = params.m;
   end
   if (~isfield(params, 'L_min')) 
-    params.L_min = 2 * params.m;
+    params.L_min = 100 * params.m; % Extremely unstable when L_min == m.
   end
   if (~isfield(params, 'gamma1')) 
     params.gamma1 = 2;
@@ -498,7 +596,7 @@ function params = set_default_params(params)
     params.gamma2 = 1.25;
   end
   if (~isfield(params, 'N0')) 
-    params.N0 = 10;
+    params.N0 = 3;
   end
   if (~isfield(params, 'N1')) 
     params.N1 = 2;
@@ -506,7 +604,7 @@ function params = set_default_params(params)
   if (~isfield(params, 'sigma')) 
     params.sigma = 3;
   end
-  if (~isfield(params, 'beta0')) 
+  if (~isfield(params, 'beta0'))
     params.beta0 = max([1, params.L / params.K_constr ^ 2]);
   end
   if (~isfield(params, 'gamma')) 
