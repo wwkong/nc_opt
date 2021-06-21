@@ -3,7 +3,7 @@
 
 % The function of interest is
 %
-%  f(x) :=  -xi / 2 * ||D * B * x|| ^ 2 + tau / 2 * ||A * x - b|| ^ 2
+%  f(x) :=  (z - d)' * Q * (z - d) / 2
 %
 % with curvature pair (m, M). 
 
@@ -12,13 +12,12 @@ run('../../../init.m');
 
 % Use a problem instance generator to create the oracle and
 % hyperparameters.
-N = 1000;
-M = 100;
-m = 1;
+M = 1000;
+m = 10;
 seed = 777;
-dimM = 10;
-dimN = 100;
-[oracle, hparams] = test_fn_lin_cone_constr_01b(N, M, m, seed, dimM, dimN);
+dimM = 2;
+dimN = 10;
+[oracle, hparams] = test_fn_lin_box_constr_01(M, m, seed, dimM, dimN);
 
 % Create the Model object and specify the solver.
 ncvx_lc_qp = ConstrCompModel(oracle);
@@ -32,10 +31,10 @@ ncvx_lc_qp.K_constr = hparams.K_constr;
 % Set the tolerances
 ncvx_lc_qp.opt_tol = 1e-1;
 ncvx_lc_qp.feas_tol = 1e-1;
-ncvx_lc_qp.time_limit = 10;
+ncvx_lc_qp.time_limit = 100;
 
 % Add linear constraints
-ncvx_lc_qp.constr_fn = @(x) hparams.constr_fn(x);
+ncvx_lc_qp.constr_fn = hparams.constr_fn;
 ncvx_lc_qp.grad_constr_fn = hparams.grad_constr_fn;
 
 % Use a relative termination criterion.
@@ -44,11 +43,20 @@ ncvx_lc_qp.opt_type = 'relative';
 
 % Create some basic hparams.
 base_hparam = struct();
+hiapem_hparam = base_hparam;
+hiapem_hparam.full_L_min = true;
+hiapem_hparam.is_box = hparams.is_box;
+hiapem_hparam.box_lower = hparams.box_lower;
+hiapem_hparam.box_upper = hparams.box_upper;
+hiapem_hparam.lin_constr_fn = hparams.lin_constr_fn;
+hiapem_hparam.lin_grad_constr_fn = hparams.lin_grad_constr_fn;
+hiapem_hparam.nonlin_constr_fn = hparams.nonlin_constr_fn;
+hiapem_hparam.nonlin_grad_constr_fn = hparams.nonlin_grad_constr_fn;
 aipp_hparam = base_hparam;
 aipp_hparam.aipp_type = 'aipp';
 
 % % Run a benchmark test and print the summary.
-hparam_arr = {base_hparam};
+hparam_arr = {hiapem_hparam};
 name_arr = {'HiAPeM'};
 framework_arr = {@HiAPeM};
 solver_arr = {@ECG};

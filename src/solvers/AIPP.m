@@ -186,7 +186,7 @@ function [model, history] = AIPP(oracle, params)
     params_acg.L = L_prox_fn(lambda, M); % upper curvature
     params_acg.L_est = L_prox_fn(lambda, M_est); % est. upper curvature
     params_acg.L_grad_f_s_est = L_prox_fn(lambda, L_grad_f_s_est);
-    params_acg.t_start = t_start;
+    params_acg.time_limit = max([0, time_limit - toc(t_start)]);
         
     % Call the ACG.
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);

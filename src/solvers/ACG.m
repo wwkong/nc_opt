@@ -53,27 +53,34 @@ function [model, history] = ACG(oracle, params)
   L_max = params.L;
   prod_fn = params.prod_fn;
   norm_fn = params.norm_fn;
-  termination_type = params.termination_type;
   
   % Fill in OPTIONAL input params.
   params = set_default_params(params);
   
   % Set other input params.
+  termination_type = params.termination_type;
   i_early_stop = false;
   iter = 1;
-  t_start = params.t_start;
   L_grad_f_s_est = params.L_grad_f_s_est;
   L_est = params.L_est;
   x_prev = params.x_prev;
   y_prev = params.y_prev;
   A_prev = params.A_prev;
   
+  % Check for logging requirements.
+  if params.i_logging
+    history.function_values = [];
+    history.iteration_values = [];
+    history.time_values = [];
+  end
+  
   % Solver params.
+  t_start = tic;
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
   % Pull in some constants to save compute time (based on the caller).
-  if (termination_type == "aicg")
+  if strcmp(termination_type, "aicg")
     phi_at_Z0 = params.phi_at_Z0;
     f1_at_Z0 = params.f1_at_Z0;
     Dg_Pt_grad_f1_at_Z0_Q = params.Dg_Pt_grad_f1_at_Z0_Q;
@@ -82,19 +89,26 @@ function [model, history] = ACG(oracle, params)
     lambda = params.lambda;
     sigma = params.sigma;
     tau = sigma ^ 2 * (norm_fn(X0_mat) ^ 2 - norm_fn(x0) ^ 2);
-  elseif (termination_type == "d_aicg")
+  elseif strcmp(termination_type, "d_aicg")
     X0_mat = params.X0_mat;
     lambda = params.lambda;
     sigma = params.sigma;
     tau = sigma ^ 2 * (norm_fn(X0_mat) ^ 2 - norm_fn(x0) ^ 2);
-  elseif (termination_type == "gd")
+  elseif strcmp(termination_type, "gd")
     tau = params.tau;
     theta = params.theta;
   elseif (any(strcmp(termination_type, {'aipp', 'aipp_sqr'})))
     sigma = params.sigma;
-  elseif (termination_type == "aipp_phase2")
+  elseif strcmp(termination_type, "aipp_phase2")
     lambda = params.lambda;
     epsilon_bar = params.epsilon_bar;
+  elseif strcmp(termination_type, "none")
+    % Do nothing, but check the validity.
+  else
+    % Unknown termination type.
+    error(...
+      ['Unknown termination conditions for termination_type = ', ...
+      termination_type]);
   end
   
   % Initialize constants related to Gamma.
@@ -110,14 +124,14 @@ function [model, history] = ACG(oracle, params)
   end
     
   % Check if we should use variable stepsize approach.
-  if (params.acg_steptype == "variable")
+  if strcmp(params.acg_steptype, "variable")
     if (~isfield(params, 'mult_L'))
       mult_L = 1.25; % Default multiplier
     else  
       mult_L = params.mult_L;
     end
     L = mu + (L_est - 1) / 100;
-  elseif (params.acg_steptype == "constant")
+  elseif strcmp(params.acg_steptype, "constant")
     L = L_max;
   else
       error('Unknown ACG steptype!');
@@ -215,7 +229,7 @@ function [model, history] = ACG(oracle, params)
     % ---------------------------------------------------------------------
         
     % Variable L updates.
-    if (params.acg_steptype == "variable")
+    if strcmp(params.acg_steptype, "variable")
       
       % Compute L_est and auxiliary quantities.
       L = max(L, mu);
@@ -244,7 +258,7 @@ function [model, history] = ACG(oracle, params)
       grad_f_s_at_x_tilde_prev = aux_struct.grad_f_s_at_x_tilde_prev;
       
     % Constant L updates.
-    elseif (params.acg_steptype == "constant")
+    elseif strcmp(params.acg_steptype, "constant")
             
       % Iteration parameters.
       nu = nu_fn(mu, L);
@@ -274,6 +288,14 @@ function [model, history] = ACG(oracle, params)
     f_n_at_y = o_y.f_n();
     f_at_y = f_s_at_y + f_n_at_y;
     
+    % Add metrics for the current outer iteration if needed.
+    if params.i_logging
+      oracle.eval(y);
+      history.function_values(end + 1) = f_at_y;
+      history.iteration_values(end + 1) = iter;
+      history.time_values(end + 1) = toc(t_start);
+    end
+    
     % ---------------------------------------------------------------------
     %% COMPUTE (u, η), Γ, and x.
     % ---------------------------------------------------------------------
@@ -285,7 +307,7 @@ function [model, history] = ACG(oracle, params)
     u = (x0 - x) / A;
 
     % Compute eta.
-    if (strcmp(params.eta_type, 'recursive'))
+    if strcmp(params.eta_type, 'recursive')
       % -------- Gamma Function (recursive) --------
       gamma_at_x = ...
         f_n_at_y + ...
@@ -301,8 +323,9 @@ function [model, history] = ACG(oracle, params)
         (mu / 2) * A_prev / A * norm_fn(x - x_prev) ^ 2;
       eta_rcr = f_at_y - Gamma_at_x - prod_fn(u, y - x);
       eta = eta_rcr;
-      % -------- End Gamma Function (recursive) --------   
-    elseif (strcmp(params.eta_type, 'accumulative'))
+      % -------- End Gamma Function (recursive) -------- 
+      
+    elseif strcmp(params.eta_type, 'accumulative')
       % -------- Gamma Function (accumulative) --------
       p_at_y = f_s_at_x_tilde_prev + ...
         prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ...
@@ -320,6 +343,7 @@ function [model, history] = ACG(oracle, params)
       eta_acc = f_at_y - Gamma_at_x - prod_fn(u, y - x);
       eta = eta_acc;
       % ------ End Gamma Function (accumulative) ------
+      
     else
       error('Unknown eta type!');
     end
@@ -330,7 +354,7 @@ function [model, history] = ACG(oracle, params)
     exact_eta = eta;
     eta = max([0, exact_eta]);
     % Check the negativity of eta in a relative sense.
-    if (termination_type == "aipp")
+    if strcmp(termination_type, "aipp")
       relative_exact_eta = exact_eta / max([norm_fn(u + x0 - y) ^ 2 / 2, 0.01]);
       if (relative_exact_eta < -INEQ_COND_ERR_TOL)
         error(['eta is negative with a value of ', num2str(exact_eta)]);
@@ -367,6 +391,7 @@ function [model, history] = ACG(oracle, params)
         break;
       end
     end
+    
     if (any(strcmp(termination_type, {'aicg', 'd_aicg'})))
       u2 = u + mu * (x - y);
       eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
@@ -386,25 +411,25 @@ function [model, history] = ACG(oracle, params)
     % ---------------------------------------------------------------------
     
     % Termination for the AIPP method (Phase 1).
-    if (termination_type == "aipp")
+    if strcmp(termination_type, "aipp")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2)
         break;
       end
       
     % Termination for the AIPP method (with sigma square).
-    elseif (termination_type == "aipp_sqr")
+    elseif strcmp(termination_type, "aipp_sqr")
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2)
         break;
       end
       
     % Termination for the AIPP method (Phase 2).
-    elseif (termination_type == "aipp_phase2")
+    elseif strcmp(termination_type, "aipp_phase2")
       if (eta <= lambda * epsilon_bar)
         break;
       end
            
     % Termination for the R-AIPP method.
-    elseif (termination_type == "gd")
+    elseif strcmp(termination_type, "gd")
       phi_tilde_at_y = f_at_y - 1 / 2 * norm_fn(y - x0) ^ 2;
       phi_tilde_at_x0 = f_at_x0;
       cond1 = ...
@@ -416,7 +441,7 @@ function [model, history] = ACG(oracle, params)
       end
       
     % Termination for the AICG method.
-    elseif (termination_type == "aicg")
+    elseif strcmp(termination_type, "aicg")
       % Helper variables
       u2 = u + mu * (x - y);
       eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
@@ -438,18 +463,13 @@ function [model, history] = ACG(oracle, params)
       end
       
     % Termination for the D-AICG method.
-    elseif (termination_type == "d_aicg")
+    elseif strcmp(termination_type, "d_aicg")
       u2 = u + mu * (x - y);
       eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
       if (norm_fn(u2) ^ 2  + 2 * eta2 <= sigma ^ 2 * norm_fn(y - x0) + tau)
         break;
       end
-
-    % Unknown termination.
-    else
-      error(...
-        ['Unknown termination conditions for termination_type = ', ...
-         termination_type]);      
+      
     end
     
     % ---------------------------------------------------------------------
@@ -514,6 +534,12 @@ end
 function params = set_default_params(params)
 
   % Overwrite if necessary.
+  if (~isfield(params, 'acg_steptype'))
+    params.acg_steptype = 'constant';
+  end
+  if (~isfield(params, 'termination_type'))
+    params.termination_type = 'none';
+  end
   if (~isfield(params, 'eta_type'))
     params.eta_type = 'recursive';
   end

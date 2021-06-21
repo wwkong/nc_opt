@@ -3,7 +3,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  May 31, 2021
+  June 19, 2021
 Coders: 
   Weiwei Kong
 
@@ -91,28 +91,16 @@ function [model, history] = HiAPeM(~, oracle, params)
     x = iALM_model.x;
     y = iALM_model.y;
     z = iALM_model.z;
-    % Early termination.
-    v = (x - x0) * 4 * rho;
-    w = v;
     if (norm_fn(v) <= eps)
       break
     end
     % Update iterates
-    y0 = y;
-    z0 = z;
     x0 = x;
-    
-%     % DEBUG
-%     disp(table(norm_fn(v), k, iter, beta));
-    
   end
   
   % ====================================================================
   % ----------------------------- PHASE II -----------------------------
   % ====================================================================
-  
-%   % DEBUG
-%   disp('PHASE II')
   
   % Call penalty method and switch to iALM at exactly iteration (Ks - 1).
   s = 1;
@@ -130,9 +118,6 @@ function [model, history] = HiAPeM(~, oracle, params)
     if (iter >= iter_limit)
       break;
     end
-    
-%     % DEBUG
-%     disp(table(k, Ks));
     
     % Call the penalty method.
     Pen_params = params;
@@ -180,15 +165,13 @@ function [model, history] = HiAPeM(~, oracle, params)
     end
     
     % Update iterates.
-    v = (x - x0) * 4 * rho;
-    w = v;
     x0 = x;
   end
   
   % Get ready to output
   model.x = x;
-  model.v = v;
-  model.w = w;
+  model.v = (x - x0) * 4 * rho;
+  model.w = params.lin_constr_fn(x); % ADD NONLINEAR RESIDUAL
   history.iter = iter;
   history.runtime = toc(t_start);
   
@@ -275,12 +258,12 @@ function [model, history] = MM_alg(oracle, params)
         1 / (2 * beta) * (dist_val ^ 2 - norm_fn(p2) ^ 2);
       oracle_struct.f_n = @() 0;
       % Auxiliary gradient operator.
-      oracle_struct.grad_f_s = @() ...
-          grad_eval(params.lin_grad_constr_fn, x, dual_proj_point1) + ...
-          grad_eval(params.nonlin_grad_constr_fn, x, dual_proj_point2);
+      oracle_struct.grad_f_s = @() ...   
+        grad_eval(params.lin_grad_constr_fn, x, dual_proj_point1) + ...
+        grad_eval(params.nonlin_grad_constr_fn, x, dual_proj_point2);
       oracle_struct.prox_f_n = @(lam) x;
     end
-    oracle_AL1 = Oracle(@alp_eval_fn);
+    oracle_AL1 = Oracle(@alp_eval_fn); 
     
     % Create the combined oracle.
     al_oracle = copy(oracle);
@@ -326,30 +309,37 @@ function [model, history] = MM_alg(oracle, params)
     
     % Create the APG oracle.
     apg_oracle = create_al_oracle(y0, z0, beta);
-    apg_oracle.add_smooth_oracle(quad_oracle);
-        
+    apg_oracle.add_smooth_oracle(quad_oracle);    
+    
     % Call the APG and parse the outputs.
-    apg_oracle.eval(x0);
     apg_params.x0 = x0;
+    apg_params.time_limit = max([0, time_limit - toc(t_start)])
+    % DEBUG
+    apg_params.L_max = params.M + 2 * params.rho + beta * params.K_constr ^ 2;
+    if params.full_L_min
+      apg_params.L_min = apg_params.L_max;
+    end    
     [apg_model, apg_history] = AdapAPG(apg_oracle, apg_params);
     x = apg_model.x;
     iter = iter + apg_history.iter;
     
     % Update multipliers
-    y = y0 + beta * params.lin_constr_fn(x);
+    y = y0 + beta * params.lin_constr_fn(x);   
     z_step = z0 + beta * params.nonlin_constr_fn(x);
     z = z_step - params.set_projector(-z_step);
     
     % Check for termination.
     err1 = (norm_fn([y0; z0]) + norm_fn([y; z])) / beta; 
     err2 = abs(z' * params.nonlin_constr_fn(x));
-    err = max([err1, err2]);
+    err = max([err1, err2]);    
     if (err <= eps)
       break;
     end
     
-%     % DEBUG
-%     disp(table(alg_type, err, iter, outer_iter, beta));
+    % DEBUG
+    nrm_y = norm_fn(y);
+    L_min = apg_params.L_min;
+    disp(table(alg_type, err, iter, outer_iter, L_min, beta, nrm_y));
     
     % Update iterates.
     outer_iter = outer_iter + 1;
@@ -382,200 +372,6 @@ function [model, history] = MM_alg(oracle, params)
   
 end
 
-function [model, history] = AdapAPG(oracle, params)
-% Adaptive Accelerated Proximal Gradient (APG) Method used in the iALM.
-
-  % Global constants.
-  INEQ_TOL = 1e-3;
-  
-  % Parse algorithm inputs.
-  eps = params.eps;
-  L_min = params.L_min;
-  gamma1 = params.gamma1;
-  gamma2 = params.gamma2;
-  x_m2 = params.x0;
-  prod_fn = params.prod_fn;
-  
-  % Solver params.
-  norm_fn = params.norm_fn;
-  t_start = params.t_start;
-  time_limit = params.time_limit;
-  iter_limit = params.iter_limit;
-  
-  % Special oracles.
-  o_at_x_m2 = copy(oracle);
-  o_at_x_m1_next = copy(oracle);
-  o_at_x_m1 = copy(oracle);
-  
-  % First loop to estimate L0.
-  L0 = L_min;
-  o_at_x_m2.eval(x_m2);
-  iter = 1;
-  i_early_stop = false;
-  while true
-       
-    % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit && i_early_stop)
-      break;
-    end
-    
-    % If there are too many iterations performed, pre-maturely exit.
-    if (iter >= iter_limit)
-      break;
-    end
-    
-    % Compute L0 and x_m1.
-    L0 = gamma1 * L0;
-    o_at_x_m1_next.eval(x_m2 - (1 / L0) * o_at_x_m2.grad_f_s());
-    x_m1 = o_at_x_m1_next.prox_f_n(1 / L0);
-    
-    % Check termination (in a relative sense).
-    o_at_x_m1.eval(x_m1);
-    small_err = o_at_x_m1.f_s();
-    large_err = ...
-      o_at_x_m2.f_s() + ...
-      prod_fn(o_at_x_m2.grad_f_s(), x_m1 - x_m2) + ...
-      (L0 / 2) * norm_fn(x_m1 - x_m2) ^ 2;
-    base_err = max(abs([0.01, small_err, large_err]));
-    
-%     % DEBUG
-%     disp(table(base_err, small_err, large_err, L0, iter));
-    
-    if ((small_err - large_err) / base_err <= INEQ_TOL)
-      break;
-    end
-
-    
-    % Update iterates
-    i_early_stop = true;
-    iter = iter + 1;
-    
-  end
-  
-  % Main APG loop.
-  L = L0;
-  x = x_m1;
-  x0 = x_m1;
-  alpha0 = 1;
-  o_at_tx = copy(oracle);
-  o_at_x_p1 = copy(oracle);
-  ALS_oracle = copy(oracle);
-  ALS_params = params;
-  i_early_stop = false;
-  while true
-        
-    % If time is up, pre-maturely exit.
-    if (toc(t_start) > time_limit && i_early_stop)
-      break;
-    end
-    
-    % If there are too many iterations performed, pre-maturely exit.
-    if (iter >= iter_limit)
-      break;
-    end
-    
-    % Line search subroutine.
-    ALS_params.x = x;
-    ALS_params.x0 = x0;
-    ALS_params.L = L;
-    ALS_params.alpha0 = alpha0;
-    [ALS_model, ALS_history] = AccelLineSearch(ALS_oracle, ALS_params);
-    
-    % Parse output.
-    x_p1 = ALS_model.x_p1;
-    tx = ALS_model.tx;
-    M = ALS_model.M;
-    alpha = ALS_model.alpha;
-    L = max([L_min, M / gamma2]);
-    
-    % Check for termination. Here, v is a proxy for dist(0, ∂F(x)).
-    o_at_tx.eval(tx);
-    o_at_x_p1.eval(x_p1);
-    v = L * (tx - x_p1) + o_at_x_p1.grad_f_s() - o_at_tx.grad_f_s();
-    if (norm_fn(v) <= eps)
-      break;
-    end
-
-%     % DEBUG
-%     nrm_v = norm_fn(v);
-%     del1 = norm_fn(tx - x_p1);
-%     del2 = norm_fn(x0 - x_p1);
-%     disp(table(nrm_v, del1, del2, M, L, iter, alpha, eps));
-% %     disp(table(x0, tx, x_p1));
-    
-    % Update iterates
-    x0 = x;
-    x = x_p1;
-    alpha0 = alpha;
-    i_early_stop = true;
-    iter = iter + ALS_history.iter;
-    
-  end
-  
-  % Get ready to output.
-  model.x = x_p1;
-  history.iter = iter;
-  
-end
-
-function [model, history] = AccelLineSearch(oracle, params)
-% Line search subroutine used in AdapAPG
-
-  % Global constants
-  INEQ_TOL = 1e-3; % buffer room for comparing quantities
-
-  % Parse inputs.
-  x = params.x;
-  x0 = params.x0;
-  L = params.L;
-  mu = params.mu;
-  alpha0 = params.alpha0;
-  gamma1 = params.gamma1;
-  prod_fn = params.prod_fn;
-  norm_fn = params.norm_fn;
-  
-  % Initialization.
-  o_at_tx = copy(oracle);
-  o_at_tx_next = copy(oracle);
-  o_at_x_p1 = copy(oracle);
-  
-  % Main loop.
-  M = L / gamma1; % M is equivalent to L (= Lk / gamma1) in the paper.
-  iter = 1;
-  while true
-    M = M * gamma1;
-    alpha = sqrt(mu / M);
-    
-    % Compute and evaluate tx_k (= y_k in the paper).
-    tx = x + (alpha * (1 - alpha0)) / (alpha0 * (1 + alpha)) * (x - x0);
-    o_at_tx.eval(tx);
-    
-    % Compute and evaluate x_{k+1}.
-    o_at_tx_next.eval(tx - (1 / M) * o_at_tx.grad_f_s());
-    x_p1 = o_at_tx_next.prox_f_n(1 / M);    
-    o_at_x_p1.eval(x_p1);
-    
-    % Check the descent condition in a relative sense.
-    small_err = o_at_x_p1.f_s();
-    large_err = ...
-      o_at_tx.f_s() + prod_fn(o_at_tx.grad_f_s(), x_p1 - tx) + ...
-      M / 2 * norm_fn(x_p1 - tx) ^ 2;
-    base_err = max(abs([small_err, large_err, 0.01]));    
-    if ((small_err - large_err) / base_err < INEQ_TOL)
-      break;
-    end
-    
-    % Update iterates
-    iter = iter + 1;
-  end  
-
-  % Prepare output.
-  model.x_p1 = x_p1;
-  model.M = M;
-  model.alpha = alpha;
-  model.tx = tx;
-  history.iter = iter;
-end
 
 %% Helper functions
 
@@ -583,11 +379,17 @@ end
 function params = set_default_params(params)
 
   % Overwrite if necessary.
+   if (~isfield(params, 'is_box')) 
+    params.is_box = false;
+  end
   if (~isfield(params, 'rho')) 
     params.rho = params.m;
   end
   if (~isfield(params, 'L_min')) 
-    params.L_min = 100 * params.m; % Extremely unstable when L_min == m.
+    params.L_min = params.M; % Extremely unstable when L_min == m.
+  end
+  if (~isfield(params, 'full_L_min'))
+    params.full_L_min = false;
   end
   if (~isfield(params, 'gamma1')) 
     params.gamma1 = 2;
@@ -596,15 +398,16 @@ function params = set_default_params(params)
     params.gamma2 = 1.25;
   end
   if (~isfield(params, 'N0')) 
-    params.N0 = 3;
+    params.N0 = 2;
   end
   if (~isfield(params, 'N1')) 
     params.N1 = 2;
   end
   if (~isfield(params, 'sigma')) 
-    params.sigma = 3;
+    params.sigma = 2;
   end
   if (~isfield(params, 'beta0'))
+%     params.beta0 = 0.01;
     params.beta0 = max([1, params.L / params.K_constr ^ 2]);
   end
   if (~isfield(params, 'gamma')) 
