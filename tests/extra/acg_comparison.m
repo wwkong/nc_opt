@@ -3,6 +3,8 @@ run('../../init.m');
 seed = 777;
 n = 2000;
 
+%% Fixed mu
+
 % Loop over different choices of (mu, L) and generate a k-by-2 plot.
 mu_vec = [1e-2, 1e-2, 1e-2, 1e-2];
 L_vec =  [1e+1, 1e+2, 1e+3, 1e+4];
@@ -25,7 +27,33 @@ for i=1:length(L_vec)
 end
 
 % Save the figure.
-saveas(gcf, 'acg_cmp.fig');
+saveas(gcf, 'acg_cmp1.fig');
+
+%% Fixed L
+
+% Loop over different choices of (mu, L) and generate a k-by-2 plot.
+mu_vec = [10, 20, 40, 80];
+L_vec =  [1e+2, 1e+2, 1e+2, 1e+2];
+T_vec = sqrt(L_vec) * 1.5;
+
+figure;
+n_exp = min([length(mu_vec), length(L_vec)]);
+n_rows = ceil(n_exp / 2);
+for i=1:length(L_vec)
+  mu = mu_vec(i);
+  L = L_vec(i);
+  T = T_vec(i);
+  alg_hists = run_experiment(mu, L, n, T, seed);
+  subplot(n_rows, 2, i);
+  plot_hists(alg_hists)
+  title(...
+    ['$(T, \mu, L) = (' num2str(round(T, 1)) ',' ...
+     num2str(mu) ',' num2str(L) ')$'], ...
+     'interpreter', 'latex');
+end
+
+% Save the figure.
+saveas(gcf, 'acg_cmp2.fig');
 
 %% Helper Functions
 
