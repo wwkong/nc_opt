@@ -82,7 +82,7 @@ function out_tbl = run_experiment(m, M, m_est, params)
   % Run a benchmark test and print the summary.
   hparam_arr = {ipl_hparam};
   name_arr = {'IPL'};
-  framework_arr = {@IAPIAL};
+  framework_arr = {@IAIPAL};
   solver_arr = {@ECG};
   
   % Run the test.

@@ -240,7 +240,7 @@ function [out_tbl, out_models] = run_experiment(m, M, time_limit, params)
   hparam_arr = ...
     {qpa_hparam, rqp_hparam, ipla_hparam, spa1_hparam, spa2_hparam, spa3_hparam};
   name_arr = {'QP_A', 'RQP', 'IPL_A', 'SPA1', 'SPA2', 'SPA3'};
-  framework_arr = {@penalty, @penalty, @IAPIAL, @sProxALM, @sProxALM, @sProxALM};
+  framework_arr = {@penalty, @penalty, @IAIPAL, @sProxALM, @sProxALM, @sProxALM};
   solver_arr = {@AIPP, @AIPP, @ECG, @ECG, @ECG, @ECG};
   
   % Run the test.

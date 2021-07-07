@@ -77,7 +77,7 @@ for i = 1:length(M_vec)
   % Run a benchmark test and print the summary.
   hparam_arr = {ialm_hparam, aipp_hparam, base_hparam, base_hparam};
   name_arr = {'iALM', 'AIP_QP', 'AG_QP', 'AIP_AL'};
-  framework_arr = {@iALM, @penalty, @penalty, @IAPIAL};
+  framework_arr = {@iALM, @penalty, @penalty, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AG, @ECG};
   [summary_tables, comp_models] = ...
     run_CCM_benchmark(...

@@ -9,7 +9,7 @@ Coders:
 
 %}
 
-function [model, history] = IAPIAL(~, oracle, params)
+function [model, history] = IAIPAL(~, oracle, params)
 % An inexact accelerated proximal augmeneted Lagrangian (IAPIAL) framework 
 % for solving a nonconvex composite optimization problem with 
 % convex cone constraints.

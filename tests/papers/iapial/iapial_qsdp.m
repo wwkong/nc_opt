@@ -107,7 +107,7 @@ function out_tbl = run_experiment(m, M, params)
   hparam_arr = ...
     {ialm_hparam, qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
   name_arr = {'iALM', 'QP', 'QP_A', 'RQP', 'IPL', 'IPL_A'};
-  framework_arr = {@iALM, @penalty, @penalty, @penalty, @IAPIAL, @IAPIAL};
+  framework_arr = {@iALM, @penalty, @penalty, @penalty, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AIPP, @AIPP, @ECG, @ECG};
   
   % Run the test.

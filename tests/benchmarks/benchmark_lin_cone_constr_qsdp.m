@@ -63,7 +63,7 @@ ialm_hparam.B_vec = hparams.K_constr_vec;
 % Run a benchmark test and print the summary.
 hparam_arr = {ialm_hparam, aipp_hparam, base_hparam};
 name_arr = {'iALM', 'QP_AIPP', 'IAPIAL'};
-framework_arr = {@iALM, @penalty, @IAPIAL};
+framework_arr = {@iALM, @penalty, @IAIPAL};
 solver_arr = {@ECG, @AIPP, @ECG};
 
 % Run the test.
