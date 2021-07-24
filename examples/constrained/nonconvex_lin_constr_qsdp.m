@@ -12,15 +12,16 @@ N = 1000;
 M = 100;
 m = 1;
 seed = 777;
-dimM = 10;
-dimN = 20;
-density = 0.01;
+dimM = 30;
+dimN = 100;
+density = 0.05;
 [oracle, hparams] = ...
   test_fn_lin_constr_02(N, M, m, seed, dimM, dimN, density);
 
 % Create the Model object and specify the solver.
 ncvx_lc_qsdp = ConstrCompModel(oracle);
 ncvx_lc_qsdp.solver = @AIPP;
+ncvx_lc_qsdp.opt_type = 'relative';
 ncvx_lc_qsdp.feas_type = 'relative';
 
 % Add linear constraints
@@ -30,8 +31,8 @@ ncvx_lc_qsdp.set_projector = hparams.set_projector;
 
 % Add penalty framework
 ncvx_lc_qsdp.K_constr = hparams.K_constr;
-ncvx_lc_qsdp.opt_tol = 1e-2;
-ncvx_lc_qsdp.feas_tol = 1e-2;
+ncvx_lc_qsdp.opt_tol = 1e-3;
+ncvx_lc_qsdp.feas_tol = 1e-3;
 ncvx_lc_qsdp.framework = @penalty;
 
 % Set the curvatures and the starting point x0.

@@ -313,7 +313,7 @@ function [model, history] = MM_alg(oracle, params)
     
     % Call the APG and parse the outputs.
     apg_params.x0 = x0;
-    apg_params.time_limit = max([0, time_limit - toc(t_start)])
+    apg_params.time_limit = max([0, time_limit - toc(t_start)]);
     % DEBUG
     apg_params.L_max = params.M + 2 * params.rho + beta * params.K_constr ^ 2;
     if params.full_L_min

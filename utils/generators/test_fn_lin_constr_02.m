@@ -82,7 +82,7 @@ function [oracle, params] = ...
   adj_op = @(Qt, y) sparse(tsr_mult(Qt, y, 'dual'));
   
   % Compute the b vector
-  E = diag(ones(dimN, 1));
+  E = diag(ones(dimN, 1)) / dimN;
   b = lin_op(A_tsr, E);
   
   % Constraint map methods.
