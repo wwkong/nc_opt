@@ -18,6 +18,7 @@ run('../../../init.m');
 % Create basic hparams.
 base_hparam = struct();
 aipp_hparam = base_hparam;
+aipp_hparam.tau = 5000; % SET A SPECIAL VALUE OF TAU
 aipp_c_hparam = aipp_hparam;
 aipp_c_hparam.aipp_type = 'aipp_c';
 aipp_v1_hparam = aipp_hparam;
@@ -36,18 +37,19 @@ global_tol = 1e-1;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
-%% Table 1
+%% Table
 % -------------------------------------------------------------------------
-disp('========')
-disp('TABLE 1');
-disp('========')
 % Loop over the upper curvature M.
-M_vec = [1e1, 1e2, 1e3];
-for i = 1:length(M_vec)
+mM_vec = ...
+  [1e0, 1e1;
+   1e0, 1e2;
+   1e0, 1e3];
+[nrows, ncols] = size(mM_vec);
+for i = 1:nrows
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
-  M = M_vec(i);
-  m = 1e0;
+  m = mM_vec(i, 1);
+  M = mM_vec(i, 2);
   [oracle, hparams] = ...
     test_fn_lin_cone_constr_02(N, M, m, seed, dimM, dimN, density);
 
@@ -81,28 +83,15 @@ for i = 1:length(M_vec)
   ialm_hparam.B_vec = hparams.K_constr_vec;
 
   % Run a benchmark test and print the summary.
-  
   solver_arr = ...
     {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
   hparam_arr = ...
     {base_hparam, base_hparam, base_hparam, aipp_c_hparam, ...
      aipp_v1_hparam, aipp_v2_hparam};
-  name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', ...
-    'AIPP_v1', 'AIPP_v2'};
-  framework_arr = {@penalty, @penalty, @penalty, @penalty, ...
-    @penalty, @penalty};
-  
-  
-  solver_arr = ...
-    {@UPFAG, @AIPP, @AIPP, @AIPP};
-  hparam_arr = ...
-    {base_hparam, aipp_c_hparam, aipp_v1_hparam, aipp_v2_hparam};
   name_arr = ...
-    {'UPFAG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
+    {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
   framework_arr = ...
-    {@penalty, @penalty, @penalty, @penalty};
-  
-  
+    {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty}; 
   [summary_tables, comp_models] = ...
     run_CCM_benchmark(...
       ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);

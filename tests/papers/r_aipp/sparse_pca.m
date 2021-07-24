@@ -1,7 +1,7 @@
 % Solve a sparse PCA problem using MULTIPLE SOLVERS.
 
 % Set up paths.
-run('../../init.m');
+run('../../../init.m');
 
 % -------------------------------------------------------------------------
 %% Global Variables
@@ -10,31 +10,38 @@ run('../../init.m');
 % Create basic hparams.
 base_hparam = struct();
 aipp_hparam = base_hparam;
-aipp_hparam.aipp_type = 'aipp_v2';
+aipp_hparam.tau = 100000; % SET A SPECIAL VALUE OF TAU
+aipp_c_hparam = aipp_hparam;
+aipp_c_hparam.aipp_type = 'aipp_c';
+aipp_v1_hparam = aipp_hparam;
+aipp_v1_hparam.aipp_type = 'aipp_v1';
+aipp_v2_hparam = aipp_hparam;
+aipp_v2_hparam.aipp_type = 'aipp_v2';
 
 % Create global hyperparams
 b = 0.1;
 nu = 100;
 p = 100;
 n = 100;
-k = 1;
-seed = 777;
-global_opt_tol = 1e-6;
-global_feas_tol = 1e-3;
+seed = 7777;
+global_opt_tol = 1e-2;
+global_feas_tol = 1e-1;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
-%% Table 1
+%% Table
 % -------------------------------------------------------------------------
-disp('========')
-disp('TABLE 1');
-disp('========')
 % Loop over the upper curvature M.
-s_vec = [5, 10, 15];
-for i = 1:length(s_vec)
+sk_vec = ...
+  [5,  1;
+   10, 1;
+   15, 1];
+[nrows, ncols] = size(sk_vec);
+for i = 1:nrows
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
-  s = s_vec(i);
+  s = sk_vec(i, 1);
+  k = sk_vec(i, 2);
   [oracle, hparams] = ...
     test_fn_spca_01(b, nu, p, n, s, k, seed);
 
@@ -53,16 +60,21 @@ for i = 1:length(s_vec)
 
   % Set up the termination criterion.
   spca.opt_type = 'relative';
-  spca.feas_type = 'relative';
+  spca.feas_type = 'absolute';
   spca.opt_tol = global_opt_tol;
   spca.feas_tol = global_feas_tol;
   spca.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {aipp_hparam, base_hparam};
-  name_arr = {'AIP_QP', 'AG_QP'};
-  framework_arr = {@penalty, @penalty};
-  solver_arr = {@AIPP, @AG};
+  solver_arr = ...
+    {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
+  hparam_arr = ...
+    {base_hparam, base_hparam, base_hparam, aipp_c_hparam, ...
+     aipp_v1_hparam, aipp_v2_hparam};
+  name_arr = ...
+    {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
+  framework_arr = ...
+    {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty}; 
   [summary_tables, comp_models] = ...
     run_CCM_benchmark(...
       spca, framework_arr, solver_arr, hparam_arr, name_arr);

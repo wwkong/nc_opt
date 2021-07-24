@@ -16,11 +16,13 @@ run('../../../init.m');
 
 % Create basic hparams.
 base_hparam = struct();
-aipp_c_hparam = base_hparam;
+aipp_hparam = base_hparam;
+aipp_hparam.tau = 10000; % SET A SPECIAL VALUE OF TAU
+aipp_c_hparam = aipp_hparam;
 aipp_c_hparam.aipp_type = 'aipp_c';
-aipp_v1_hparam = base_hparam;
+aipp_v1_hparam = aipp_hparam;
 aipp_v1_hparam.aipp_type = 'aipp_v1';
-aipp_v2_hparam = base_hparam;
+aipp_v2_hparam = aipp_hparam;
 aipp_v2_hparam.aipp_type = 'aipp_v2';
 
 % Create global hyperparams
@@ -29,22 +31,26 @@ seed = 777;
 dimM = 50;
 dimN = 200;
 density = 0.025;
-global_tol = 1e-2;
+global_tol = 1e-3;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
-%% Table 1
+%% Tables
 % -------------------------------------------------------------------------
-disp('========')
-disp('TABLE 1');
-disp('========')
-% Loop over the upper curvature M.
-M_vec = [1e2, 1e3, 1e4, 1e5, 1e6];
-for i = 1:length(M_vec)
+% Loop over the curvature pair (m, M).
+mM_vec = ...
+  [1e0, 1e2;
+   1e0, 1e4;
+   1e0, 1e6;
+   1e2, 1e2;
+   1e4, 1e4;
+   1e6, 1e6];
+[nrows, ncols] = size(mM_vec);
+for i = 1:nrows
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
-  M = M_vec(i);
-  m = 1e1;
+  m = mM_vec(i, 1);
+  M = mM_vec(i, 2);
   [oracle, hparams] = ...
     test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density);
 
