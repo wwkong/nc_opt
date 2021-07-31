@@ -29,7 +29,7 @@ N = 1000;
 seed = 777;
 r = 50;
 density = 0.05;
-global_tol = 1e-3;
+opt_tol = 1e-3;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
@@ -60,7 +60,7 @@ for i = 1:nrows
 
   % Set up the termination criterion.
   ncvx_svm.opt_type = 'relative';
-  ncvx_svm.opt_tol = global_tol;
+  ncvx_svm.opt_tol = opt_tol;
   ncvx_svm.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.

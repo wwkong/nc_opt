@@ -10,7 +10,7 @@ Coders:
 %}
 
 function [oracle, params] = ...
-  test_fn_quad_cone_constr_02(N, M, m, seed, dimM, dimN, density)
+  test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density)
 % Generator of a test suite of unconstrained nonconvex quadratically 
 % constrained quadratic SDP functions. Data matrices are sparse and 
 % their densities are calibrated according to the input variable 'density'.
@@ -98,12 +98,6 @@ function [oracle, params] = ...
 %   params.grad_constr_fn = @(Z, Delta) ...
 %     (1 / 2) * PtP * Z * (Delta + Delta') + ...
 %     (1 / 2) * QtQ * (Delta + Delta');
-
-  % Other maps and constants.
-  params.set_projector = @(Z) psd_cone_proj(Z);
-  params.dual_cone_projector = @(Z) psd_cone_proj(Z);
-  params.K_constr = fro_P ^ 2 / 2 + fro_Q ^ 2;
-  params.L_constr = fro_P ^ 2;
   
   % Basic output params.
   params.M = eigs(Dfn(xi, tau) * Z, 1, 'lr');
@@ -116,6 +110,12 @@ function [oracle, params] = ...
   params.K_constr_vec = abs(PtP_vec) / 2 + abs(QtQ_vec);
   params.L_constr_vec = abs(PtP_vec);
   params.m_constr_vec = zeros(dimN * dimN, 1);
+  
+  % Other maps and constants.
+  params.set_projector = @(Z) psd_cone_proj(Z);
+  params.dual_cone_projector = @(Z) psd_cone_proj(Z);
+  params.K_constr = norm(params.K_constr_vec);
+  params.L_constr = norm(params.L_constr_vec);
 
   % Create the Oracle object.
   f_s = @(x) ...
@@ -125,7 +125,7 @@ function [oracle, params] = ...
   grad_f_s = @(x) ...
       -xi * adj_op(Bt_tsr, (D' * D) * lin_op(B_tsr, x)) + ...
       tau * adj_op(Ct_tsr, lin_op(C_tsr, x) - d);
-  prox_f_n = @(x, lam) psd_box_proj(x);
+  prox_f_n = @(x, lam) psd_box_proj(x, r);
   oracle = Oracle(f_s, f_n, grad_f_s, prox_f_n);
   
 end
@@ -138,11 +138,11 @@ function XP = psd_cone_proj(X)
   XP = Q * diag(d_nn) * Q';
 end
 
-function XP = psd_box_proj(X)
+function XP = psd_box_proj(X, R)
   % Projection onto the set of matrices with eigenvalues between 0 and 
   % 1 / sqrt(n).
   [Q, d] = eig((X + X') / 2, 'vector');
   n = length(d);
-  dP = min(max(d, 0), 1 / sqrt(n));
+  dP = min(max(d, 0), R / sqrt(n));
   XP = Q * diag(dP) * Q';
 end

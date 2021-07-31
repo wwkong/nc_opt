@@ -23,8 +23,8 @@ theta = 2;
 mu = sqrt(2);
 seed = 777;
 data_name = 'jester_24938u_100j';
-global_opt_tol = 1e-1;
-global_feas_tol = 1e-1;
+global_opt_tol = 5 * 1e-2;
+global_feas_tol = 1e-2;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
@@ -71,17 +71,7 @@ for i = 1:length(beta_vec)
   name_arr = ...
     {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
   framework_arr = ...
-    {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty};
-  
-  solver_arr = ...
-    {@AIPP, @AIPP, @AIPP};
-  hparam_arr = ...
-    {aipp_c_hparam, aipp_v1_hparam, aipp_v2_hparam};
-  name_arr = ...
-    {'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
-  framework_arr = ...
-    {@penalty, @penalty, @penalty}; 
-  
+    {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty};  
   
   [summary_tables, comp_models] = ...
     run_CCM_benchmark(...

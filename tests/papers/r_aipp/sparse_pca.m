@@ -24,8 +24,8 @@ nu = 100;
 p = 100;
 n = 100;
 seed = 7777;
-global_opt_tol = 1e-2;
-global_feas_tol = 1e-1;
+global_opt_tol = 1e-6;
+global_feas_tol = 1e-3;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------

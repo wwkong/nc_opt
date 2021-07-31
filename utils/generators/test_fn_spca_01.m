@@ -64,7 +64,7 @@ function [oracle, params] = test_fn_spca_01(b, nu, p, n, s, k, seed)
   norm_fn = @(a) norm(a, 'fro');
   
   % Constraint map methods.
-  params.constr_fn = @(Z) Z(1:p, :) - Z((p + 1):(2 * p), :);
+  params.constr_fn = @(Z) Z(1:p, :) - Z(p+1:2*p, :);
   params.grad_constr_fn = @(Z, Delta) [Delta; -Delta];
   params.K_constr = 2;
   params.set_projector = @(Z) sparse(p, p);

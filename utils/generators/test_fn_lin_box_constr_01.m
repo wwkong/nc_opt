@@ -91,6 +91,12 @@ function [oracle, params] = test_fn_lin_box_constr_01(M, m, seed, dimM, dimN)
   params.box_lower = 0;
   params.is_box = true;
   
+  % Extra params
+  params.Q = Q;
+  params.d = d;
+  params.A = A;
+  params.b = b;  
+  
   % Special params for individual constraints.
   params.K_constr_vec = full(sqrt(sum(A .^ 2, 2)));
   params.L_constr_vec = zeros(dimM, 1);
