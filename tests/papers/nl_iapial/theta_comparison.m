@@ -1,5 +1,5 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
-% problem constrained to an ellitope.
+% problem constrained to the unit simplex using MULTIPLE SOLVERS.
 
 % Set up paths.
 run('../../../init.m');
@@ -7,22 +7,20 @@ run('../../../init.m');
 % Use a problem instance generator to create the oracle and
 % hyperparameters.
 seed = 777;
-dimM = 10;
+dimM = 20;
 N = 1000;
-density = 1.00;
-global_tol = 1e-3;
-M_vec = [1e3, 1e4, 1e5, 1e6];
-r_vec = [2.5, 5, 10, 20];
+density = 0.05;
+global_tol = 1e-4;
 
 % ==============================================================================
-%% Table for dimN = 50
+%% Tables for dimN = 50
 % ==============================================================================
 first_tbl = true;
+
+m = 1e0;
+r = 1;
 dimN = 50;
-
-m = 1e0;
-r = 1;
-for M=M_vec
+for M=[1e2, 1e3, 1e4, 1e5]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -34,7 +32,7 @@ end
 
 m = 1e0;
 M = 1e4;
-for r=r_vec
+for r=[1, 2.5, 5, 10]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -43,18 +41,18 @@ for r=r_vec
     o_tbl = [o_tbl; tbl_row];
   end
 end
-disp(o_tbl);
 disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
 
 % ==============================================================================
-%% Table for dimN = 100
+%% Tables for dimN = 100
 % ==============================================================================
 first_tbl = true;
+
+m = 1e0;
+r = 1;
 dimN = 100;
-
-m = 1e0;
-r = 1;
-for M=M_vec
+for M=[1e2, 1e3, 1e4, 1e5]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -66,7 +64,7 @@ end
 
 m = 1e0;
 M = 1e4;
-for r=r_vec
+for r=[1, 2.5, 5, 10]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -75,18 +73,18 @@ for r=r_vec
     o_tbl = [o_tbl; tbl_row];
   end
 end
-disp(o_tbl);
 disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
 
 % ==============================================================================
-%% Table for dimN = 200
+%% Tables for dimN = 200
 % ==============================================================================
 first_tbl = true;
-dimN = 200;
 
 m = 1e0;
 r = 1;
-for M=M_vec
+dimN = 200;
+for M=[1e2, 1e3, 1e4, 1e5]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -98,7 +96,7 @@ end
 
 m = 1e0;
 M = 1e4;
-for r=r_vec
+for r=[1, 2.5, 5, 10]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -107,15 +105,15 @@ for r=r_vec
     o_tbl = [o_tbl; tbl_row];
   end
 end
-disp(o_tbl);
 disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
 
 %% Utility functions
 function o_tbl = ...
   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = ...
-    test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density);
+    test_fn_lin_cone_constr_03(N, r, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -129,7 +127,7 @@ function o_tbl = ...
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 4000;
+  ncvx_qsdp.time_limit = 2000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -146,24 +144,18 @@ function o_tbl = ...
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
-  ipla_hparam = base_hparam;
-  ipla_hparam.acg_steptype = 'variable';
-  
-  % Create the complicated iALM hparams.
-  ialm_hparam = base_hparam;
-  ialm_hparam.i_ineq_constr = true;
-  ialm_hparam.rho0 = hparams.m;
-  ialm_hparam.L0 = max([hparams.m, hparams.M]);
-  ialm_hparam.rho_vec = hparams.m_constr_vec;
-  ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
-  ialm_hparam.B_vec = hparams.K_constr_vec;
+  ipl0_hparam = base_hparam;
+  ipl0_hparam.theta = 0;
+  ipl0_hparam.acg_steptype = 'constant';
+  qp_hparam = base_hparam;
+  qp_hparam.acg_steptype = 'constant';
+  qp_hparam.aipp_type = 'aipp';
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
-  name_arr = {'iALM', 'IPL', 'IPL_A'};
-  framework_arr = {@iALM, @IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG, @ECG};
+  hparam_arr = {qp_hparam, ipl_hparam, ipl0_hparam};
+  name_arr = {'QP', 'IPL', 'IPL0'};
+  framework_arr = {@penalty, @IAIPAL, @IAIPAL};
+  solver_arr = {@AIPP, @ECG, @ECG};
   
   % Run the test.
   % profile on;

@@ -1,5 +1,14 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
-% problem constrained to an ellitope.
+% problem constrained to the unit simplex using MULTIPLE SOLVERS.
+
+% The function of interest is
+%
+%  f(x) :=  (z - d)' * Q * (z - d) / 2
+%
+% with curvature pair (m, M). 
+%
+% Constraint is of the form
+
 
 % Set up paths.
 run('../../../init.m');
@@ -9,52 +18,18 @@ run('../../../init.m');
 seed = 777;
 dimM = 10;
 N = 1000;
-density = 1.00;
-global_tol = 1e-3;
-M_vec = [1e3, 1e4, 1e5, 1e6];
-r_vec = [2.5, 5, 10, 20];
+density = 0.05;
 
 % ==============================================================================
-%% Table for dimN = 50
+%% Tables for tolerance 1e-3
 % ==============================================================================
 first_tbl = true;
-dimN = 50;
 
 m = 1e0;
 r = 1;
-for M=M_vec
-  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
-  if first_tbl
-    o_tbl = tbl_row;
-    first_tbl = false;
-  else
-    o_tbl = [o_tbl; tbl_row];
-  end
-end
-
-m = 1e0;
-M = 1e4;
-for r=r_vec
-  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
-  if first_tbl
-    o_tbl = tbl_row;
-    first_tbl = false;
-  else
-    o_tbl = [o_tbl; tbl_row];
-  end
-end
-disp(o_tbl);
-disp(['Tables for dimN = ', num2str(dimN)]);
-
-% ==============================================================================
-%% Table for dimN = 100
-% ==============================================================================
-first_tbl = true;
 dimN = 100;
-
-m = 1e0;
-r = 1;
-for M=M_vec
+global_tol = 1e-3;
+for M=[1e2, 1e3, 1e4, 1e5]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -66,7 +41,7 @@ end
 
 m = 1e0;
 M = 1e4;
-for r=r_vec
+for r=[1, 2.5, 5, 10]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -75,18 +50,19 @@ for r=r_vec
     o_tbl = [o_tbl; tbl_row];
   end
 end
+disp('Tables for tol = 1e-3')
 disp(o_tbl);
-disp(['Tables for dimN = ', num2str(dimN)]);
 
 % ==============================================================================
-%% Table for dimN = 200
+%% Tables tolerance 1e-4
 % ==============================================================================
 first_tbl = true;
-dimN = 200;
 
 m = 1e0;
 r = 1;
-for M=M_vec
+dimN = 100;
+global_tol = 1e-4;
+for M=[1e2, 1e3, 1e4, 1e5]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -98,7 +74,7 @@ end
 
 m = 1e0;
 M = 1e4;
-for r=r_vec
+for r=[1, 2.5, 5, 10]
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -107,15 +83,81 @@ for r=r_vec
     o_tbl = [o_tbl; tbl_row];
   end
 end
+disp('Tables for tol = 1e-4')
 disp(o_tbl);
-disp(['Tables for dimN = ', num2str(dimN)]);
+
+% ==============================================================================
+%% Tables tolerance 1e-5
+% ==============================================================================
+first_tbl = true;
+
+m = 1e0;
+r = 1;
+dimN = 100;
+global_tol = 1e-5;
+for M=[1e2, 1e3, 1e4, 1e5]
+  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e4;
+for r=[1, 2.5, 5, 10]
+  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp('Tables for tol = 1e-5')
+disp(o_tbl);
+
+% ==============================================================================
+%% Tables for tolerance 1e-6
+% ==============================================================================
+first_tbl = true;
+
+m = 1e0;
+r = 1;
+dimN = 100;
+global_tol = 1e-6;
+for M=[1e2, 1e3, 1e4, 1e5]
+  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e4;
+for r=[1, 2.5, 5, 10]
+  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp('Tables for tol = 1e-6')
+disp(o_tbl);
 
 %% Utility functions
 function o_tbl = ...
   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = ...
-    test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density);
+    test_fn_lin_cone_constr_03(N, r, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -129,7 +171,7 @@ function o_tbl = ...
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 4000;
+  ncvx_qsdp.time_limit = 2000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -148,22 +190,21 @@ function o_tbl = ...
   ipl_hparam.acg_steptype = 'constant';
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
-  
-  % Create the complicated iALM hparams.
-  ialm_hparam = base_hparam;
-  ialm_hparam.i_ineq_constr = true;
-  ialm_hparam.rho0 = hparams.m;
-  ialm_hparam.L0 = max([hparams.m, hparams.M]);
-  ialm_hparam.rho_vec = hparams.m_constr_vec;
-  ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
-  ialm_hparam.B_vec = hparams.K_constr_vec;
+  rqp_hparam = base_hparam;
+  rqp_hparam.acg_steptype = 'variable';
+  qp_hparam = base_hparam;
+  qp_hparam.acg_steptype = 'constant';
+  qp_hparam.aipp_type = 'aipp';
+  qpa_hparam = base_hparam;
+  qpa_hparam.acg_steptype = 'variable';
+  qpa_hparam.aipp_type = 'aipp';
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
-  name_arr = {'iALM', 'IPL', 'IPL_A'};
-  framework_arr = {@iALM, @IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG, @ECG};
+  hparam_arr = ...
+    {qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
+  name_arr = {'QP', 'QP_A', 'RQP', 'IPL', 'IPL_A'};
+  framework_arr = {@penalty, @penalty, @penalty, @IAIPAL, @IAIPAL};
+  solver_arr = {@AIPP, @AIPP, @AIPP, @ECG, @ECG};
   
   % Run the test.
   % profile on;

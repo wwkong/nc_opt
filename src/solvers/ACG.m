@@ -393,7 +393,7 @@ function [model, history] = ACG(oracle, params)
     end
     
     if (any(strcmp(termination_type, {'aicg', 'd_aicg'})))
-      u2 = u + mu * (x - y);
+      u2 = u + mu * (y - x);
       eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
       small_gd = ...
         (1 / (1 + mu * A)) * norm_fn(A * u2 + y - x0) ^ 2 + 2 * A * eta2;

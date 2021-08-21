@@ -75,33 +75,37 @@ function [model, history] = IAIPAL(~, oracle, params)
   function al_oracle = create_al_oracle(p, c)
     
     % Create the penalty oracle.
-    function oracle_struct = alp_eval_fn(x)
-      [dual_proj_proint, primal_proj_point]= cone_proj(x, p, c);
-      p_step = p + c * params.constr_fn(x);
-      dist_val = norm_fn((-p_step) - primal_proj_point);
-      % Function values.
-      oracle_struct.f_s = @() 1 / (2 * c) * (dist_val ^ 2 - norm_fn(p) ^ 2);
-      oracle_struct.f_n = @() 0;
-      % Gradient operator.
-      grad_constr_fn = params.grad_constr_fn;
-      %  If the gradient function has a single argument, assume that the
-      %  gradient at a point is a constant tensor.
-      if nargin(grad_constr_fn) == 1
-        oracle_struct.grad_f_s = @() ...
-          tsr_mult(grad_constr_fn(x), dual_proj_proint, 'dual');
-      % Else, assume that the gradient is a bifunction; the first argument is
-      % the point of evaluation, and the second one is what the gradient
-      % operator acts on.
-      elseif nargin(grad_constr_fn) == 2
-        oracle_struct.grad_f_s = @() ...
-          grad_constr_fn(x, dual_proj_proint);
-      else
-        error(...
-          ['Unknown function prototype for the gradient of the ', ...
-           'constraint function']);
+    function oracle_struct = alp_eval_fn(~)
+      % Wrapper functions.
+      function val = wrap_f_s(x)
+        [~, primal_proj_point]= cone_proj(x, p, c);
+        p_step = p + c * params.constr_fn(x);
+        dist_val = norm_fn((-p_step) - primal_proj_point);
+        val = 1 / (2 * c) * (dist_val ^ 2 - norm_fn(p) ^ 2);
       end
-      % Prox operator.
-      oracle_struct.prox_f_n = @(lam) x;
+      function val = wrap_grad_f_s(x)
+        [dual_proj_proint, ~]= cone_proj(x, p, c);
+        grad_constr_fn = params.grad_constr_fn;
+        %  If the gradient function has a single argument, assume that the
+        %  gradient at a point is a constant tensor.
+        if nargin(grad_constr_fn) == 1
+          val = tsr_mult(grad_constr_fn(x), dual_proj_proint, 'dual');
+          % Else, assume that the gradient is a bifunction; the first argument is
+          % the point of evaluation, and the second one is what the gradient
+          % operator acts on.
+        elseif nargin(grad_constr_fn) == 2
+          val = grad_constr_fn(x, dual_proj_proint);
+        else
+          error(...
+            ['Unknown function prototype for the gradient of the ', ...
+            'constraint function']);
+        end
+      end
+      % Create the function struct.
+      oracle_struct.f_s = @wrap_f_s;
+      oracle_struct.f_n = @(x) 0;
+      oracle_struct.grad_f_s = @wrap_grad_f_s;
+      oracle_struct.prox_f_n = @(x, lam) x;
     end
     oracle_AL1 = Oracle(@alp_eval_fn);
     

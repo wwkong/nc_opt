@@ -1,18 +1,5 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
-% problem constrained to the unit simplex using MULTIPLE SOLVERS.
-
-% The function of interest is
-%
-%  f(x) :=  z' * Q0 * z / 2 + c0' * z + d0,
-%
-% with curvature pair (m, M). 
-%
-% Constraints are of the form
-%
-%  z' * Q0 * z / 2 + c0' * z + d0 <= 0,
-%  x_l <= z <= x_u.
-%
-
+% problem constrained to a box using MULTIPLE SOLVERS.
 
 % Set up paths.
 run('../../../init.m');
@@ -21,18 +8,20 @@ run('../../../init.m');
 % hyperparameters.
 seed = 777;
 dimM = 10;
-dimN = 200;
 global_tol = 1e-5;
-first_tbl = true;
+M_vec = [1e3, 1e4, 1e5, 1e6];
+r_vec = [2.5, 5, 10, 20];
 
 % ==============================================================================
-%% Table for variable M
+%% Table for dimN = 200
 % ==============================================================================
+first_tbl = true;
+dimN = 200;
 
 m = 1e0;
 x_l = -5;
 x_u = 5;
-for M=[1e2, 1e3, 1e4, 1e5]
+for M=M_vec
   tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -41,33 +30,10 @@ for M=[1e2, 1e3, 1e4, 1e5]
     o_tbl = [o_tbl; tbl_row];
   end
 end
-disp(o_tbl);
-
-% ==============================================================================
-%% Table for variable m
-% ==============================================================================
-
-M = 1e6;
-x_l = -5;
-x_u = 5;
-for m=[1e1, 1e2, 1e3]
-  tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
-  if first_tbl
-    o_tbl = tbl_row;
-    first_tbl = false;
-  else
-    o_tbl = [o_tbl; tbl_row];
-  end
-end
-disp(o_tbl);
-
-% ==============================================================================
-%% Table for variable (x_u, x_l) = (-r, r)
-% ==============================================================================
 
 m = 1e0;
 M = 1e4;
-for r=[1, 2.5, 5, 10]
+for r=r_vec
   tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   if first_tbl
     o_tbl = tbl_row;
@@ -76,6 +42,73 @@ for r=[1, 2.5, 5, 10]
     o_tbl = [o_tbl; tbl_row];
   end
 end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
+
+% ==============================================================================
+%% Table for dimN = 500
+% ==============================================================================
+first_tbl = true;
+dimN = 500;
+
+m = 1e0;
+x_l = -5;
+x_u = 5;
+for M=M_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e4;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
+
+% ==============================================================================
+%% Table for dimN = 1000
+% ==============================================================================
+first_tbl = true;
+dimN = 1000;
+
+m = 1e0;
+x_l = -5;
+x_u = 5;
+for M=M_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e4;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
 disp(o_tbl);
 
 %% Utility functions
@@ -97,7 +130,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Set the tolerances
   ncvx_qc_qp.opt_tol = global_tol;
   ncvx_qc_qp.feas_tol = global_tol;
-  ncvx_qc_qp.time_limit = 2000;
+  ncvx_qc_qp.time_limit = 4000;
   
   % Add linear constraints
   ncvx_qc_qp.constr_fn = hparams.constr_fn;
