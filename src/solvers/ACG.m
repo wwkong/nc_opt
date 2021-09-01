@@ -62,7 +62,7 @@ function [model, history] = ACG(oracle, params)
   i_early_stop = false;
   iter = 1;
   L_grad_f_s_est = params.L_grad_f_s_est;
-  L_est = params.L_est;
+  local_L_est = params.L_est;
   x_prev = params.x_prev;
   y_prev = params.y_prev;
   A_prev = params.A_prev;
@@ -125,12 +125,7 @@ function [model, history] = ACG(oracle, params)
     
   % Check if we should use variable stepsize approach.
   if strcmp(params.acg_steptype, "variable")
-    if (~isfield(params, 'mult_L'))
-      mult_L = 1.25; % Default multiplier
-    else  
-      mult_L = params.mult_L;
-    end
-    L = mu + (L_est - 1) / 100;
+    L = mu + (local_L_est - 1) * params.init_mult_L;
   elseif strcmp(params.acg_steptype, "constant")
     L = L_max;
   else
@@ -149,7 +144,7 @@ function [model, history] = ACG(oracle, params)
   % ---------------------------------------------------------------------
   
   % Compute an estimate of L (and other quantities) based on two points.
-  function [L_est, aux_struct] = ...
+  function [local_L_est, aux_struct] = ...
       compute_approx_iter(L, mu, A_prev, y_prev, x_prev)
 
     % Simple quantities.
@@ -171,10 +166,10 @@ function [model, history] = ACG(oracle, params)
     f_s_at_y = o_y.f_s();
     
     % Estimate of L based on y and x_tilde_prev.
-    L_est = ...
+    local_L_est = ...
       max(0, 2 * (f_s_at_y - ...
-        (f_s_at_x_tilde_prev + ...
-         prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev))) / ...
+                   (f_s_at_x_tilde_prev + ...
+                    prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev))) / ...
       norm_fn(y - x_tilde_prev) ^ 2);
     
     % Save auxiliary quantities.
@@ -233,13 +228,16 @@ function [model, history] = ACG(oracle, params)
       
       % Compute L_est and auxiliary quantities.
       L = max(L, mu);
-      [L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
+      [local_L_est, aux_struct] = ...
+        compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
       iter = iter + 1;
       
-      % Loop if a violation occurs.
-      while (L < min([L_est, L_max]))
-        L = min(L_max, L_est * mult_L);
-        [L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
+      % Update based on the value of the local L compared to the current 
+      % estimate of L.
+      while (L < min([L_max, local_L_est]))
+        L = min(L_max, local_L_est * params.mult_L);
+        [local_L_est, aux_struct] = ...
+          compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
         if (toc(t_start) > time_limit)
           break;
@@ -510,7 +508,7 @@ function [model, history] = ACG(oracle, params)
     model.A = A;
     % Other modifications
     if (any(strcmp(termination_type, {'aicg', 'd_aicg'})))
-      model.u = u + mu * (x - y);
+      model.u = u + mu * (y - x);
       model.eta = eta + mu * norm_fn(y - x) ^ 2 / 2;
     end
   end
@@ -548,6 +546,12 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'L_est'))
     params.L_est = params.L;
+  end
+  if (~isfield(params, 'mult_L'))
+    params.mult_L = 1.25;
+  end
+  if (~isfield(params, 'init_mult_L'))
+    params.init_mult_L = 0.5;
   end
   if (~isfield(params, 'z0'))
     params.z0 = params.x0;

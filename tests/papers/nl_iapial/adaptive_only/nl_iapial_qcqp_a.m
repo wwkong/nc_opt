@@ -1,65 +1,117 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
 % problem constrained to a box using MULTIPLE SOLVERS.
-run('../../../init.m');
 
-% Run an instance via the command line.
-print_tbls(n);
+% Set up paths.
+run('../../../../init.m');
+
+% Use a problem instance generator to create the oracle and
+% hyperparameters.
+seed = 777;
+dimM = 10;
+global_tol = 1e-5;
+M_vec = [1e3, 1e4, 1e5, 1e6];
+r_vec = [2.5, 5, 10, 20];
+
+% ==============================================================================
+%% Table for dimN = 200
+% ==============================================================================
+first_tbl = true;
+dimN = 200;
+
+m = 1e0;
+x_l = -5;
+x_u = 5;
+for M=M_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e6;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
+
+% ==============================================================================
+%% Table for dimN = 500
+% ==============================================================================
+first_tbl = true;
+dimN = 500;
+
+m = 1e0;
+x_l = -5;
+x_u = 5;
+for M=M_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e6;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
+
+% ==============================================================================
+%% Table for dimN = 1000
+% ==============================================================================
+first_tbl = true;
+dimN = 1000;
+
+m = 1e0;
+x_l = -5;
+x_u = 5;
+for M=M_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+
+m = 1e0;
+M = 1e6;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
 
 %% Utility functions
-function print_tbls(dimN) 
-
-  % Initialize
-  seed = 777;
-  dimM = 25;
-  global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 20];
-  first_tbl = true;
-
-  % Variable M.
-  m = 1e0;
-  r = 1;
-  for M=M_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable m.
-  M = 1e6;
-  r = 1;
-  for m=m_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable r.
-  m = 1e0;
-  M = 1e6;
-  for r=r_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  disp(['Tables for dimN = ', num2str(dimN)]);
-  disp(o_tbl);
-  
-end
 function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   [oracle, hparams] = ...
@@ -94,26 +146,14 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   base_hparam = struct();
   
   % Create the IAPIAL hparams.
-  ipl_hparam = base_hparam;
-  ipl_hparam.acg_steptype = 'constant';
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
   
-  % Create the complicated iALM hparams.
-  ialm_hparam = base_hparam;
-  ialm_hparam.i_ineq_constr = true;
-  ialm_hparam.rho0 = hparams.m;
-  ialm_hparam.L0 = max([hparams.m, hparams.M]);
-  ialm_hparam.rho_vec = hparams.m_constr_vec;
-  ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
-  ialm_hparam.B_vec = hparams.K_constr_vec;
-  
   % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
-  name_arr = {'iALM', 'IPL', 'IPL_A'};
-  framework_arr = {@iALM, @IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG, @ECG};
+  hparam_arr = {ipla_hparam};
+  name_arr = {'IPL_A'};
+  framework_arr = {@IAIPAL};
+  solver_arr = {@ECG};
 
   % Run the test.
   [summary_tables, ~] = ...

@@ -1,65 +1,77 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
 % problem constrained to a box using MULTIPLE SOLVERS.
-run('../../../init.m');
 
-% Run an instance via the command line.
-print_tbls(n);
+% Set up paths.
+run('../../../../init.m');
+
+% Use a problem instance generator to create the oracle and
+% hyperparameters.
+seed = 777;
+dimM = 10;
+global_tol = 1e-5;
+r_vec = [2.5, 5, 10, 20];
+
+% ==============================================================================
+%% Table for dimN = 200
+% ==============================================================================
+first_tbl = true;
+
+dimN = 200;
+m = 1e0;
+M = 1e6;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
+
+% ==============================================================================
+%% Table for dimN = 500
+% ==============================================================================
+first_tbl = true;
+
+dimN = 500;
+m = 1e0;
+M = 1e6;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
+
+% ==============================================================================
+%% Table for dimN = 1000
+% ==============================================================================
+first_tbl = true;
+
+dimN = 1000;
+m = 1e0;
+M = 1e6;
+for r=r_vec
+  tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+  if first_tbl
+    o_tbl = tbl_row;
+    first_tbl = false;
+  else
+    o_tbl = [o_tbl; tbl_row];
+  end
+end
+disp(['Tables for dimN = ', num2str(dimN)]);
+disp(o_tbl);
 
 %% Utility functions
-function print_tbls(dimN) 
-
-  % Initialize
-  seed = 777;
-  dimM = 25;
-  global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 20];
-  first_tbl = true;
-
-  % Variable M.
-  m = 1e0;
-  r = 1;
-  for M=M_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable m.
-  M = 1e6;
-  r = 1;
-  for m=m_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable r.
-  m = 1e0;
-  M = 1e6;
-  for r=r_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  disp(['Tables for dimN = ', num2str(dimN)]);
-  disp(o_tbl);
-  
-end
 function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   [oracle, hparams] = ...

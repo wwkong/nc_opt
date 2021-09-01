@@ -21,8 +21,8 @@ run('../../../init.m');
 % hyperparameters.
 seed = 777;
 dimM = 10;
-dimN = 100;
-global_tol = 3 * 1e-3;
+dimN = 50;
+global_tol = 1e-3;
 first_tbl = true;
 
 % ==============================================================================
