@@ -42,6 +42,7 @@ function [model, history] = ACG(oracle, params)
   % Set some ACG global tolerances.
   INEQ_COND_ERR_TOL = 1e-6;
   CURV_TOL = 1e-6;
+  DIV_TOL = 1e-6;
 
   % -----------------------------------------------------------------------
   %% PRE-PROCESSING
@@ -125,7 +126,7 @@ function [model, history] = ACG(oracle, params)
     
   % Check if we should use variable stepsize approach.
   if strcmp(params.acg_steptype, "variable")
-    L = mu + (local_L_est - 1) * params.init_mult_L;
+    L = mu + (local_L_est - mu) * params.init_mult_L;
   elseif strcmp(params.acg_steptype, "constant")
     L = L_max;
   else
@@ -232,10 +233,22 @@ function [model, history] = ACG(oracle, params)
         compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
       iter = iter + 1;
       
+      % Adjust if the local estimate is smaller, up to a point.
+      if (L / 2 < local_L_est && local_L_est < L)
+        L = local_L_est;
+        [local_L_est, aux_struct] = ...
+          compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
+        iter = iter + 1;
+      end
+      
       % Update based on the value of the local L compared to the current 
       % estimate of L.
       while (L < min([L_max, local_L_est]))
-        L = min(L_max, local_L_est * params.mult_L);
+        if (norm_fn(aux_struct.x_tilde_prev - aux_struct.y) ^ 2 <= DIV_TOL)
+          L = min(L_max, L * params.mult_L);
+        else
+          L = min(L_max, L * params.mult_L);
+        end
         [local_L_est, aux_struct] = ...
           compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
@@ -410,13 +423,13 @@ function [model, history] = ACG(oracle, params)
     
     % Termination for the AIPP method (Phase 1).
     if strcmp(termination_type, "aipp")
-      if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2)
+      if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2 + INEQ_COND_ERR_TOL)
         break;
       end
       
     % Termination for the AIPP method (with sigma square).
     elseif strcmp(termination_type, "aipp_sqr")
-      if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2)
+      if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2 + INEQ_COND_ERR_TOL)
         break;
       end
       

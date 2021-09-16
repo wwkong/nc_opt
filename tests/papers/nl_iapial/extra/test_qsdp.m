@@ -1,7 +1,7 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
 % problem constrained to the unit simplex using MULTIPLE SOLVERS.
 
-run('../../../init.m');
+run('../../../../init.m');
 print_tbls(100);
 
 %% Utility functions
@@ -9,14 +9,14 @@ function print_tbls(dimN)
 
   % Initialize
   seed = 777;
-  dimM = 30;
+  dimM = 25;
   N = 1000;
   density = 0.05;
-  global_tol = 1e-1;
+  global_tol = 1e-3;
   
   % Variable m.
   m = 1e0;
-  M = 1e6;
+  M = 1e4;
   r = 1;
   tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
   disp(tbl_row);
@@ -25,7 +25,7 @@ end
 function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = ...
-    test_fn_lin_cone_constr_03(N, r, M, m, seed, dimM, dimN, density);
+    test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -82,10 +82,20 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
 %   framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
 %   solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
   
-  hparam_arr = {ipla_hparam};
-  name_arr = {'IPL_A'};
-  framework_arr = {@IAIPAL};
-  solver_arr = {@ECG};
+%   hparam_arr = {qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
+%   name_arr = {'QP', 'QP_A', 'IPL', 'IPL_A'};
+%   framework_arr = { @penalty, @penalty, @IAIPAL, @IAIPAL};
+%   solver_arr = {@AIPP, @AIPP, @ECG, @ECG};
+  
+  hparam_arr = {ipl_hparam, ipla_hparam};
+  name_arr = {'IPL', 'IPL_A'};
+  framework_arr = {@IAIPAL, @IAIPAL};
+  solver_arr = {@ECG, @ECG};
+
+%   hparam_arr = {ipla_hparam};
+%   name_arr = {'IPL_A'};
+%   framework_arr = {@IAIPAL};
+%   solver_arr = {@ECG};
   
   % Run the test.
   % profile on;

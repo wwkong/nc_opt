@@ -23,7 +23,13 @@ function [x,z,out] = HiAPeM_qcqp(Q, c, d, m, x_l, x_u, opts) % nonconvex QCQP.
 
 nobj = 0; % numObj
 ngrad = 0; % numGrad
+
 % NEW: From William Kong.
+if (~isfield(opts, 'termination_fn'))
+    opts.termination_fn = [];
+end
+outer_iter = 1;
+
 niter = 0;
 n = length(x_l); %m = size(Q);
 
@@ -89,10 +95,20 @@ for k = 1:K0
     I1 = (x == x_l); I2 = (x == x_u); I3 = (x > x_l & x < x_u);
     dres = norm( min(0,gradL0(I1)) )^2 + norm( max(0,gradL0(I2)) )^2 + norm(gradL0(I3))^2;
     dres = sqrt(dres);
-    if dres <= tol % only check the dual_res because primal_res is below tol/2
+    [~, feas] = feasibility(Q, c, d, x);
+    
+    % NEW: From William Kong
+    if (isempty(opts.termination_fn))
+      if (dres <= tol && feas <= tol) % only check the dual_res because primal_res is below tol/2
         fprintf('succeed during the initial stage!\n');
         break;
+      end
+    else
+      if (opts.termination_fn(x, z))
+        break;
+      end
     end
+    outer_iter = outer_iter + 1;
 end
 
 if dres > tol
@@ -109,19 +125,37 @@ while dres > tol % only check dual_res since primal_res must below tol
         xk = x;
         [x, z, beta,total_PG_k] = PenMM(xk, z_fix, rho, tol_pen, beta_fix);
         hist_numPG = [hist_numPG; total_PG_k];
-        if norm(x - xk) <= (1-frc)*tol/2/rho
+        [~, feas] = feasibility(Q, c, d, x);
+        % NEW: From William Kong
+        if (isempty(opts.termination_fn))
+          if (norm(x - xk) <= (1-frc)*tol/2/rho && feas <= tol)
             fprintf('final subproblem solved by PenMM\n');
             break;
+          end
+        else
+          if (opts.termination_fn(x,z))
+            break;
+          end
         end
+        outer_iter = outer_iter + 1;
     else
         % call the iALM method
         xk = x;
         [x,z,beta,total_PG_k] = iALM_str(x, xk, tol*frc, rho, beta0);
         hist_numPG = [hist_numPG; total_PG_k];
-        if norm(x - xk) <= (1-frc)*tol/2/rho
+        [~, feas] = feasibility(Q, c, d, x);
+        % NEW: From William Kong
+        if (isempty(opts.termination_fn))
+          if (norm(x - xk) <= (1-frc)*tol/2/rho && feas <= tol)
             fprintf('final subproblem solved by iALM\n');
             break;
+          end
+        else
+          if (opts.termination_fn(x,z))
+            break;
+          end
         end
+        outer_iter = outer_iter + 1;
         z_fix = z;
     end
     
@@ -177,6 +211,7 @@ end
 
 pres = norm( max(0, fval(1:m)) );
 
+out.acg_ratio = niter / outer_iter;
 out.nobj = nobj; % = 0 for non-adaptive!
 out.ngrad = ngrad;
 out.niter = niter;
@@ -400,4 +435,14 @@ out.numPG = hist_numPG;
         end
     end % end of APG_adp.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+end
+
+% Utility function
+function [residual_vec, feas] = feasibility(Q, c, d, x)
+  m = length(Q) - 1;
+  residual_vec = -Inf * ones(m, 1);
+  for j=1:m
+    residual_vec(j) = max([.5*x'*Q{j}*x + c{j}'*x + d{j}, 0]);
+  end
+  feas = norm(residual_vec);
 end

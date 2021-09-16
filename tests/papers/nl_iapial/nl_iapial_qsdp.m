@@ -1,4 +1,4 @@
-% Solve a multivariate nonconvex quadratically constrained quadratic programming  
+% Solve a multivariate nonconvex linear constrained quadratic semidefinite programming  
 % problem constrained to the unit simplex using MULTIPLE SOLVERS.
 run('../../../init.m');
 
@@ -13,7 +13,7 @@ function print_tbls(dimN)
   dimM = 25;
   N = 1000;
   density = 0.05;
-  global_tol = 1e-4;
+  global_tol = 1e-3;
   m_vec = [1e2, 1e3, 1e4];
   M_vec = [1e4, 1e5, 1e6];
   r_vec = [5, 10, 20];
@@ -65,7 +65,7 @@ end
 function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = ...
-    test_fn_lin_cone_constr_03(N, r, M, m, seed, dimM, dimN, density);
+    test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -79,7 +79,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 4000;
+  ncvx_qsdp.time_limit = 8000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -127,7 +127,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   [summary_tables, ~] = ...
     run_CCM_benchmark(...
     ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
-  o_tbl = [table(r), summary_tables.all];
+  o_tbl = [table(dimN, r), summary_tables.all];
   disp(o_tbl);
   
 end

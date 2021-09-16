@@ -54,7 +54,7 @@ function [oracle, params] = ...
   D = sparse(1:dimN, 1:dimN, randi([1, N], 1, dimN), dimN, dimN);
   C = sprand(dimM, dimN * dimN, density);
   B = sprand(dimN, dimN * dimN, density);
-  P = rand(dimN, dimN) / sqrt(dimN);
+  P = sqrt(log(M / m) / log(1000000)) * rand(dimN, dimN) / sqrt(dimN);
   Q = rand(dimN, dimN) / dimN;
   d = rand([dimM, 1]);
   

@@ -150,6 +150,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
   params_acg.termination_type = 'aipp_sqr';
+  i_first_acg_run = true;
   
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
@@ -179,7 +180,7 @@ function [model, history] = IAIPAL(~, oracle, params)
     % Create the ACG params.
     L_psi = lambda * (M + L_constr * norm_fn(p0) + ...
       c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
-    if (iter == 0)
+    if (outer_iter == 1)
       first_L_psi = L_psi;
     end
     if (strcmp(sigma_type, 'constant'))
@@ -192,12 +193,40 @@ function [model, history] = IAIPAL(~, oracle, params)
     params_acg.x0 = z0;
     params_acg.z0 = z0;
     params_acg.sigma = sigma;
-    params_acg.L = L_psi;
     params_acg.t_start = t_start;
+    
+    % Stepsize selection
+    if strcmp(params.acg_steptype, 'constant') 
+      params_acg.L_est = L_psi;
+    elseif strcmp(params.acg_steptype, 'variable') 
+      if (i_first_acg_run)
+        o_z0 = copy(oracle);
+        o_z0.eval(z0);
+        iter = iter + 1;
+        o_z1 = copy(oracle);
+        o_z1.eval(z0 - o_z0.grad_f_s() / M);
+        iter = iter + 1;
+        z1 = o_z1.prox_f_n(1 / M);
+        o_z1.eval(z1);
+        iter = iter + 1;
+        if (norm_fn(z0 - z1) <= 1e-6)
+          params_acg.L_est = lambda * M + 1;
+        else
+          M_est = norm_fn(o_z0.grad_f_s() - o_z1.grad_f_s()) / norm_fn(z0 - z1);
+          params_acg.L_est = lambda * M_est + 1;
+        end
+      else
+        % Use the previous estimate.
+        params_acg.L_est = model_acg.L_est;
+      end
+    else
+      error('Unknown ACG steptype!');
+    end
     
     % Call the ACG algorithm and update parameters.
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
+    i_first_acg_run = false;
     
     % If time is up, pre-maturely exit.
     if (toc(t_start) > time_limit)
@@ -234,8 +263,14 @@ function [model, history] = IAIPAL(~, oracle, params)
     end
     
     % Check for termination.
-    if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
-      break;
+    if (isempty(params.termination_fn))
+      if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
+        break;
+      end
+    else 
+      if params.termination_fn(model_refine.z_hat, p_hat)
+        break;
+      end
     end
     
     % Apply the dual update and create a new ALP oracle.
@@ -332,5 +367,7 @@ function params = set_default_params(params)
   if (~isfield(params, 'acg_steptype'))
     params.acg_steptype = "variable";
   end  
-
+  if (~isfield(params, 'termination_fn'))
+    params.termination_fn = [];
+  end
 end

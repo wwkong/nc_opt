@@ -10,7 +10,7 @@ Coders:
 %}
 
 function [oracle, params] = ...
-  test_fn_lin_cone_constr_03(N, r, M, m, seed, dimM, dimN, density)
+  test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density)
 % Generator of a test suite of unconstrained nonconvex quadratic SDP 
 % functions. Data matrices are sparse and their densities are calibrated
 % according to the input variable 'density'.
@@ -83,7 +83,7 @@ function [oracle, params] = ...
   
   % Compute the b vector
   E = diag(ones(dimN, 1)) / dimN;
-  b = lin_op(A_tsr, E);
+  b = lin_op(A_tsr, E) * r;
   
   % Constraint map methods.
   params.constr_fn = @(Z) lin_op(A_tsr, Z) - b;
@@ -95,7 +95,7 @@ function [oracle, params] = ...
   A_map = @(Z) lin_op(A_tsr, Z);
   params.M = eigs(Dfn(xi, tau) * Z, 1, 'lr');
   params.m = -eigs(Dfn(xi, tau) * Z, 1, 'sr');
-  params.x0 = init_point(dimN, A_map, b, seed);
+  params.x0 = init_point(r, dimN, A_map, b, seed);
   params.prod_fn = prod_fn;
   params.norm_fn = norm_fn;
   
@@ -118,7 +118,7 @@ function [oracle, params] = ...
 end
 
 %% Generator of an initial point for some of the penalty problems
-function x0 = init_point(dimN, A_map, b, seed)
+function x0 = init_point(r, dimN, A_map, b, seed)
 
   rng(seed);
   feasible = true;
@@ -137,5 +137,6 @@ function x0 = init_point(dimN, A_map, b, seed)
     end
     feasible = (norm(A_map(x0) - b, 'fro') <= 1e-6);
   end
+  x0 = r * x0;
 
 end

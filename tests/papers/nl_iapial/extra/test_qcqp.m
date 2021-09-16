@@ -1,61 +1,24 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
 % problem constrained to a box using MULTIPLE SOLVERS.
-run('../../../init.m');
+run('../../../../init.m');
 
 % Run an instance via the command line.
-print_tbls(n);
+print_tbls(250);
 
 %% Utility functions
 function print_tbls(dimN) 
 
   % Initialize
-  seed = 77777;
+  seed = 777;
   dimM = 5;
-  global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 20];
+  global_tol = 1e-3;
   first_tbl = true;
 
   % Variable M.
-  m = 1e0;
-  r = 1;
-  for M=M_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable m.
+  m = 1e3;
   M = 1e6;
   r = 1;
-  for m=m_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable r.
-  m = 1e0;
-  M = 1e6;
-  for r=r_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
+  o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   disp(['Tables for dimN = ', num2str(dimN)]);
   disp(o_tbl);
   
@@ -64,29 +27,6 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   [oracle, hparams] = ...
     test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
-  
-  % Set up the termination function.
-  function proj = proj_dh(a, b)
-    I1 = (a == x_l); I2 = (a == x_u);
-    proj = b;
-    proj(I1) = min(0, proj(I1));
-    proj(I2) = max(0, proj(I2));
-  end
-  function proj = proj_NKt(a, b)
-    I0 = (a == 0);
-    I1 = (a > 0);
-    proj = b;
-    proj(I0) = min(0, proj(I0));
-    proj(I1) = 0;
-  end
-  o_at_x0 = copy(oracle);
-  o_at_x0.eval(hparams.x0);
-  g0 = hparams.constr_fn(hparams.x0);
-  rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
-  eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
-  term_wrap = @(x,p) ...
-    termination_check(x, p, o_at_x0, hparams.constr_fn, hparams.grad_constr_fn, ...
-                      @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
 
   % Create the Model object and specify the solver.
   ncvx_qc_qp = ConstrCompModel(oracle);
@@ -115,16 +55,12 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   % Create some basic hparams.
   base_hparam = struct();
-  base_hparam.termination_fn = term_wrap;
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
-  ipl_hparam.sigma_min = 1/sqrt(2);
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
-  ipla_hparam.init_mult_L = 0.5;
-  ipla_hparam.sigma_min = 1/sqrt(2);
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;
@@ -135,18 +71,17 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   ialm_hparam.L_vec = hparams.L_constr_vec;
   % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
   ialm_hparam.B_vec = hparams.K_constr_vec;
-  
+
 %   % Run a benchmark test and print the summary.
-%   hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
-%   name_arr = {'iALM', 'IPL', 'IPL_A'};
-%   framework_arr = {@iALM, @IAIPAL, @IAIPAL};
-%   solver_arr = {@ECG, @ECG, @ECG};
+%   hparam_arr = {ipl_hparam, ipla_hparam};
+%   name_arr = {'IPL', 'IPL_A'};
+%   framework_arr = {@IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @ECG};
   
-  % Run a benchmark test and print the summary.
-  hparam_arr = {ipl_hparam, ipla_hparam};
-  name_arr = {'IPL', 'IPL_A'};
-  framework_arr = {@IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG};
+  hparam_arr = {ipla_hparam};
+  name_arr = {'IPL_A'};
+  framework_arr = {@IAIPAL};
+  solver_arr = {@ECG};
   
   % Run the test.
   [summary_tables, ~] = ...
@@ -172,9 +107,6 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   opts.rho = hparams.m; % Lower curvature.
   x_l_vec = ones(dimN, 1) * hparams.x_l;
   x_u_vec = ones(dimN, 1) * hparams.x_u;
-  
-  % EXTRA opts.
-  opts.termination_fn = term_wrap;
   
   % Run the HiAPeM code.
   tic;

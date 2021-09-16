@@ -45,6 +45,9 @@ function [model, history] = sProxALM(~, oracle, params)
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
   
+  % Fill in OPTIONAL input params (custom implementation).
+  params = set_default_params(params);
+  
   % Initialize history parameters.
   if params.i_logging
     logging_oracle = copy(oracle);
@@ -58,9 +61,6 @@ function [model, history] = sProxALM(~, oracle, params)
   % Set the topology.
   norm_fn = params.norm_fn;
   prod_fn = params.prod_fn;
-  
-  % Fill in OPTIONAL input params (custom implementation).
-  params = set_default_params(params);
   
   % Gradient of the constraint function
   function grad_c_at_x_op_y = grad_constr_fn(x, y)

@@ -165,8 +165,15 @@ function [model, history] = iALM(~, oracle, params)
       [1, params.gamma_fn(stage - 1, c_at_x1) / norm_fn(c_at_x)]);
     
     % Check for termination.
-    if (norm_fn(c_at_x) <= feas_tol)
-      break;
+    if (isempty(params.termination_fn))
+      if (norm_fn(c_at_x) <= feas_tol)
+        break;
+      end
+    else
+      orig_dim = length(x) - length(y);
+      if params.termination_fn(x(1:orig_dim), y)
+        break;
+      end
     end
     
     % Update iterates
@@ -374,6 +381,9 @@ function params = set_default_params(params)
   % Indicator for if the constraint is a conic inequality constraint.
   if (~isfield(params, 'i_ineq_constr')) 
     params.i_ineq_constr = false; 
+  end
+  if (~isfield(params, 'termination_fn'))
+    params.termination_fn = [];
   end
   
 end

@@ -3,7 +3,7 @@
 FILE DATA
 ---------
 Last Modified: 
-  August 17, 2020
+  August 17, 2021
 Coders: 
   Weiwei Kong
 
@@ -47,11 +47,11 @@ function [oracle, params] = ...
   % Initialize Q{1:dimM} and d{1:dimM}.
   for i=1:dimM
     [U, ~] = qr(rand(dimN));
-    v = rand(dimN, 1);
+    v = log(M / m) / log(100) * rand(dimN, 1);
     Q{i} = U * diag(v) * U';
     Q{i} = (Q{i} + Q{i}') / 2;
     c{i} = rand([dimN, 1]);
-    d{i} = -1 - rand();
+    d{i} = -1 - 9 * rand();
   end
   
   % Initialize Q{1:dimM} and d{1:dimM}.

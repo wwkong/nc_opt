@@ -13,7 +13,7 @@ function print_tbls(dimN)
   dimM = 25;
   N = 1000;
   density = 1.00;
-  global_tol = 1e-3;
+  global_tol = 1e-2;
   m_vec = [1e2, 1e3, 1e4];
   M_vec = [1e4, 1e5, 1e6];
   r_vec = [5, 10, 20];
@@ -68,27 +68,28 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
     test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
-  ncvx_qsdp = ConstrCompModel(oracle);
+  ncvx_qc_qsdp = ConstrCompModel(oracle);
   
   % Set the curvatures and the starting point x0.
-  ncvx_qsdp.x0 = hparams.x0;
-  ncvx_qsdp.M = hparams.M;
-  ncvx_qsdp.m = hparams.m;
-  ncvx_qsdp.K_constr = hparams.K_constr;
+  ncvx_qc_qsdp.x0 = hparams.x0;
+  ncvx_qc_qsdp.M = hparams.M;
+  ncvx_qc_qsdp.m = hparams.m;
+  ncvx_qc_qsdp.K_constr = hparams.K_constr;
+  ncvx_qc_qsdp.L_constr = hparams.L_constr;
   
   % Set the tolerances
-  ncvx_qsdp.opt_tol = global_tol;
-  ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 4000;
+  ncvx_qc_qsdp.opt_tol = global_tol;
+  ncvx_qc_qsdp.feas_tol = global_tol;
+  ncvx_qc_qsdp.time_limit = 6000;
   
   % Add linear constraints
-  ncvx_qsdp.constr_fn = hparams.constr_fn;
-  ncvx_qsdp.grad_constr_fn = hparams.grad_constr_fn;
-  ncvx_qsdp.set_projector = hparams.set_projector;
+  ncvx_qc_qsdp.constr_fn = hparams.constr_fn;
+  ncvx_qc_qsdp.grad_constr_fn = hparams.grad_constr_fn;
+  ncvx_qc_qsdp.set_projector = hparams.set_projector;
   
   % Use a relative termination criterion.
-  ncvx_qsdp.feas_type = 'relative';
-  ncvx_qsdp.opt_type = 'relative';
+  ncvx_qc_qsdp.feas_type = 'relative';
+  ncvx_qc_qsdp.opt_type = 'relative';
   
   % Create some basic hparams.
   base_hparam = struct();
@@ -119,8 +120,8 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   % profile on;
   [summary_tables, ~] = ...
     run_CCM_benchmark(...
-    ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
-  o_tbl = [table(r), summary_tables.all];
+    ncvx_qc_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
+  o_tbl = [table(dimN, r), summary_tables.all];
   disp(o_tbl);
   
 end
