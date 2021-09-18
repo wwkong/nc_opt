@@ -10,7 +10,7 @@ function print_tbls(dimN)
 
   % Initialize
   seed = 77777;
-  dimM = 5;
+  dimM = 10;
   global_tol = 1e-5;
   m_vec = [1e2, 1e3, 1e4];
   M_vec = [1e4, 1e5, 1e6];
@@ -202,7 +202,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   function o_tbl = agg_tbl(summary_tbls, f_HiAPeM, iter_HiAPeM, t_HiAPeM)
     o_tbl = [...
-      table(dimN, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, ...
+      table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, ...
       table(f_HiAPeM), summary_tbls.iter, table(iter_HiAPeM), ...
       summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
   end

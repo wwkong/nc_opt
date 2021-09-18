@@ -13,8 +13,8 @@ function print_tbls(dimN)
   dimM = 25;
   N = 1000;
   density = 1.00;
-  global_tol = 1e-2;
-  m_vec = [1e2, 1e3, 1e4];
+  global_tol = 1e-3;
+  m_vec = [1e1, 1e2, 1e3];
   M_vec = [1e4, 1e5, 1e6];
   r_vec = [5, 10, 20];
   first_tbl = true;
@@ -80,7 +80,7 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   % Set the tolerances
   ncvx_qc_qsdp.opt_tol = global_tol;
   ncvx_qc_qsdp.feas_tol = global_tol;
-  ncvx_qc_qsdp.time_limit = 6000;
+  ncvx_qc_qsdp.time_limit = 12000;
   
   % Add linear constraints
   ncvx_qc_qsdp.constr_fn = hparams.constr_fn;
