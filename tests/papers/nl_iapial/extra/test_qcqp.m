@@ -15,8 +15,8 @@ function print_tbls(dimN)
   first_tbl = true;
 
   % Variable M.
-  m = 1e3;
-  M = 1e6;
+  m = 1e1;
+  M = 1e4;
   r = 1;
   o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   disp(['Tables for dimN = ', num2str(dimN)]);
