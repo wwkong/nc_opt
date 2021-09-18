@@ -72,13 +72,13 @@ function [oracle, params] = ...
   function cx = constr_sub_fn(z)
     cx = zeros(dimM, 1);
     for j=1:dimM
-      cx(j) = z' * Q{j} * z / 2 + c{j}' * z + d{j};
+      cx(j) = z' * (Q{j} * z) / 2 + c{j}' * z + d{j};
     end
   end
   function gcx = grad_constr_sub_fn(z, delta)
     gcx = zeros(dimN, 1);
     for j=1:dimM
-      gcx = gcx + delta(j) * Q{j} * z + c{j};
+      gcx = gcx + delta(j) * (Q{j} * z) + c{j};
     end
   end
   

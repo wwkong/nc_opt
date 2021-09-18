@@ -4,7 +4,7 @@ run('../../../../init.m');
 
 % Run an instance via the command line.
 profile on;
-print_tbls(200);
+print_tbls(250);
 profile viewer;
 profile off;
 
@@ -126,7 +126,6 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   %Aggregate
   o_tbl = agg_tbl(summary_tables, fval_hpm, iter_hpm, t_hpm);
-  disp(o_tbl);
   
   % Compute feasibility
   function feas = feasibility(x)

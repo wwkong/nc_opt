@@ -509,7 +509,7 @@ function [model, history] = ACG(oracle, params)
   % -----------------------------------------------------------------------
   
   % Successful stop.
-  if (i_early_stop) 
+  if (i_early_stop)
     model.status = 1;
     model.y = y;
     model.o_y = o_y;
