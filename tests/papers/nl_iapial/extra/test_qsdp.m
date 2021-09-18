@@ -2,7 +2,10 @@
 % problem constrained to the unit simplex using MULTIPLE SOLVERS.
 
 run('../../../../init.m');
-print_tbls(100);
+profile on;
+print_tbls(50);
+profile viewer
+profile off;
 
 %% Utility functions
 function print_tbls(dimN) 
@@ -12,7 +15,7 @@ function print_tbls(dimN)
   dimM = 25;
   N = 1000;
   density = 0.05;
-  global_tol = 1e-3;
+  global_tol = 1e-2;
   
   % Variable m.
   m = 1e0;
@@ -87,15 +90,15 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
 %   framework_arr = { @penalty, @penalty, @IAIPAL, @IAIPAL};
 %   solver_arr = {@AIPP, @AIPP, @ECG, @ECG};
   
-  hparam_arr = {ipl_hparam, ipla_hparam};
-  name_arr = {'IPL', 'IPL_A'};
-  framework_arr = {@IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG};
+%   hparam_arr = {ipl_hparam, ipla_hparam};
+%   name_arr = {'IPL', 'IPL_A'};
+%   framework_arr = {@IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @ECG};
 
-%   hparam_arr = {ipla_hparam};
-%   name_arr = {'IPL_A'};
-%   framework_arr = {@IAIPAL};
-%   solver_arr = {@ECG};
+  hparam_arr = {ipla_hparam};
+  name_arr = {'IPL_A'};
+  framework_arr = {@IAIPAL};
+  solver_arr = {@ECG};
   
   % Run the test.
   % profile on;

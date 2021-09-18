@@ -3,7 +3,10 @@
 run('../../../../init.m');
 
 % Run an instance via the command line.
-print_tbls(250);
+profile on;
+print_tbls(200);
+profile viewer;
+profile off;
 
 %% Utility functions
 function print_tbls(dimN) 
@@ -15,8 +18,8 @@ function print_tbls(dimN)
   first_tbl = true;
 
   % Variable M.
-  m = 1e3;
-  M = 1e6;
+  m = 1e1;
+  M = 1e4;
   r = 1;
   o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   disp(['Tables for dimN = ', num2str(dimN)]);
