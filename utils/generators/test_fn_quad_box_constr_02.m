@@ -47,11 +47,11 @@ function [oracle, params] = ...
   % Initialize Q{1:dimM} and d{1:dimM}.
   for i=1:dimM
     [U, ~] = qr(rand(dimN));
-    v = log(M / m) / log(100) * rand(dimN, 1);
+    v = log(M / m) / 3 * rand(dimN, 1);
     Q{i} = U * diag(v) * U';
     Q{i} = (Q{i} + Q{i}') / 2;
     c{i} = rand([dimN, 1]);
-    d{i} = -1 - 9 * rand();
+    d{i} = -20 - 10 * rand();
   end
   
   % Initialize Q{1:dimM} and d{1:dimM}.

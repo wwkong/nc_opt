@@ -1,72 +1,28 @@
 % Solve a multivariate nonconvex linear constrained quadratic semidefinite programming  
 % problem constrained to the unit simplex using MULTIPLE SOLVERS.
-run('../../../init.m');
+run('../../../../init.m');
+
+n = 100;
+r = 1;
+m = 1;
+M = 1e4;
+global_tol = 1e+1;
 
 % Run an instance via the command line.
-print_tbls(n);
+print_tbls(n, r, m, M, global_tol);
 
 %% Utility functions
-function print_tbls(dimN) 
-
-  % Initialize
+function print_tbls(dimN, r, m, M, global_tol) 
   seed = 777;
   dimM = 25;
   N = 1000;
   density = 0.05;
-  global_tol = 1e-3;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 20];
-  first_tbl = true;
-
-  % Variable M.
-  m = 1e0;
-  r = 1;
-  for M=M_vec
-    tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable m.
-  M = 1e6;
-  r = 1;
-  for m=m_vec
-    tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable r.
-  m = 1e0;
-  M = 1e6;
-  for r=r_vec
-    tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  disp(['Tables for dimN = ', num2str(dimN)]);
-  disp(o_tbl);
-  
+  tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
+  disp(tbl_row);
 end
 function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
-  [oracle, hparams] = ...
-    test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, dimN, density);
-  
+  [oracle, hparams] = test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, dimN, density);
   % Set up the termination function. The domain is 0 <= lam_i(X) <= r.
   function proj = proj_dh(A, B)
     % Projection of `B` onto the subdifferential of `h` at `A`.
@@ -133,12 +89,10 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
   ialm_hparam.rho_vec = hparams.m_constr_vec;
   ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
   ialm_hparam.B_vec = hparams.K_constr_vec;
   
   % Run a benchmark test and print the summary.
-  hparam_arr = ...
-    {ialm_hparam, qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
+  hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
   name_arr = {'iALM', 'QP', 'QP_A', 'IPL', 'IPL_A'};
   framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
@@ -154,9 +108,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
 %   solver_arr = {@AIPP};
   
   % Run the test.
-  [summary_tables, ~] = ...
-    run_CCM_benchmark(...
-    ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
   o_tbl = [table(dimN, r), summary_tables.all];
   disp(o_tbl);
   

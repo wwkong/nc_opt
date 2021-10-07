@@ -96,9 +96,7 @@ function [model, history] = IAIPAL(~, oracle, params)
         elseif nargin(grad_constr_fn) == 2
           val = grad_constr_fn(x, dual_proj_proint);
         else
-          error(...
-            ['Unknown function prototype for the gradient of the ', ...
-            'constraint function']);
+          error('Unknown function prototype for the gradient of the constraint function');
         end
       end
       % Create the function struct.
@@ -136,13 +134,26 @@ function [model, history] = IAIPAL(~, oracle, params)
     history.iteration_values = [];
     history.time_values = [];
   end
+  
+  % DEBUG ONLY.
+  if params.i_debug
+    history.theta1 = [];
+    history.theta2 = [];
+    history.inner_iter = [];
+    history.c = [];
+    history.sigma = [];
+    history.L_est = [];
+    history.norm_p_hat = [];
+  end
 
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
   stage = 1;
   z0 = params.x0;
+  z_hat = z0;
   p0 = zeros(size(params.constr_fn(z0)));
+  p_hat = p0;
   o_p0 = p0;
   o_z0 = z0;
   c0 = params.c0;
@@ -151,6 +162,8 @@ function [model, history] = IAIPAL(~, oracle, params)
   params_acg.mu = 1 - lambda * m;
   params_acg.termination_type = 'aipp_sqr';
   i_first_acg_run = true;
+  w_hat = Inf;
+  q_hat = Inf;
   
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
@@ -178,8 +191,7 @@ function [model, history] = IAIPAL(~, oracle, params)
     oracle_acg.proxify(lambda, z0);
     
     % Create the ACG params.
-    L_psi = lambda * (M + L_constr * norm_fn(p0) + ...
-      c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    L_psi = lambda * (M + L_constr * norm_fn(p0) + c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
     if (outer_iter == 1)
       first_L_psi = L_psi;
     end
@@ -239,38 +251,46 @@ function [model, history] = IAIPAL(~, oracle, params)
     end
         
     % Apply the refinement.
-    model_refine = refine_IPP(...
-      oracle_al0, params, L_psi, lambda, z0, model_acg.y, model_acg.u);
+    model_refine = refine_IPP(oracle_al0, params, L_psi, lambda, z0, model_acg.y, model_acg.u);
+    z_hat = model_refine.z_hat;
     
     % Compute refined quantities.
-    p_hat = cone_proj(model_refine.z_hat, p0, c0);
+    p_hat = cone_proj(z_hat, p0, c0);
     q_hat = (1 / c0) * (p0 - p_hat);
     w_hat = model_refine.v_hat;
     
     % Log some numbers if necessary.
     if params.i_logging
-      logging_oracle.eval(model_refine.z_hat);
-      history.function_values = ...
-        [history.function_values; logging_oracle.f_s() + logging_oracle.f_n()];
-      history.norm_w_hat_values = ...
-        [history.norm_w_hat_values; norm_fn(w_hat)];
-      history.norm_q_hat_values = ...
-        [history.norm_q_hat_values; norm_fn(q_hat)];
-      history.iteration_values = ...
-        [history.iteration_values; iter];
-      history.time_values = ...
-        [history.time_values; toc(t_start)];
+      logging_oracle.eval(z_hat);
+      history.function_values = [history.function_values; logging_oracle.f_s() + logging_oracle.f_n()];
+      history.norm_w_hat_values = [history.norm_w_hat_values; norm_fn(w_hat)];
+      history.norm_q_hat_values = [history.norm_q_hat_values; norm_fn(q_hat)];
+      history.iteration_values = [history.iteration_values; iter];
+      history.time_values = [history.time_values; toc(t_start)];
     end
     
     % Check for termination.
-    if (isempty(params.termination_fn))
+    if (isempty(params.termination_fn) || params.check_all_terminations)
       if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
         break;
       end
-    else 
-      if params.termination_fn(model_refine.z_hat, p_hat)
+    end
+    if (~isempty(params.termination_fn) || params.check_all_terminations)
+      [tpred, w_hat, q_hat] = params.termination_fn(model_refine.z_hat, p_hat);
+      if tpred
         break;
       end
+    end
+    
+    % DEBUG ONLY.
+    if params.i_debug
+      history.theta1 = [history.theta1; norm_fn(w_hat) / norm_fn(model_refine.v_hat)];
+      history.theta2 = [history.theta2; norm_fn(q_hat) / norm_fn((1 / c0) * (p0 - p_hat))];
+      history.inner_iter = [history.inner_iter; history_acg.iter];
+      history.c = [history.c; c0];
+      history.sigma = [history.sigma; sigma];
+      history.L_est = [history.L_est; params_acg.L_est];
+      history.norm_p_hat = [history.norm_p_hat; norm_fn(p_hat)];
     end
     
     % Apply the dual update and create a new ALP oracle.
@@ -286,8 +306,7 @@ function [model, history] = IAIPAL(~, oracle, params)
       % Compute Delta_k.
       oracle_Delta.eval(x);
       stage_al_val = oracle_Delta.f_s() + oracle_Delta.f_n();
-      Delta = 1 / (outer_iter - stage_outer_iter) * ...
-        (stage_al_base - stage_al_val - norm_fn(p) ^ 2 / (2 * c0));
+      Delta = 1 / (outer_iter - stage_outer_iter) * (stage_al_base - stage_al_val - norm_fn(p) ^ 2 / (2 * c0));
       % Check the update condition and update the relevant constants.
       Delta_mult = lambda * (1 - sigma ^ 2) / (2 * (1 + 2 * nu) ^ 2);
       if (Delta <= ((opt_tol ^ 2) * Delta_mult))
@@ -313,7 +332,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   end
   
   % Prepare to output
-  model.x = model_refine.z_hat;
+  model.x = z_hat;
   model.y = p_hat;
   model.v = w_hat;
   model.w = q_hat;
@@ -339,6 +358,9 @@ function params = set_default_params(params)
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
+  end
+  if (~isfield(params, 'i_debug')) 
+    params.i_debug = false;
   end
   if (~isfield(params, 'i_reset_multiplier')) 
     params.i_reset_multiplier = false;
@@ -369,5 +391,8 @@ function params = set_default_params(params)
   end  
   if (~isfield(params, 'termination_fn'))
     params.termination_fn = [];
+  end
+  if (~isfield(params, 'check_all_terminations'))
+    params.check_all_terminations = false;
   end
 end

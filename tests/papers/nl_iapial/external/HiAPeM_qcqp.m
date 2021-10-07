@@ -48,6 +48,9 @@ if isfield(opts,'inc')       inc = opts.inc;           else  inc = 1.5;         
 if isfield(opts,'dec')       dec = opts.dec;           else  dec = 2;            end
 if isfield(opts,'rho')       rho = opts.rho;           else  rho = min(min(eig(Q{m+1})),0);        end
 
+% NEW: By William Kong
+if isfield(opts,'maxniter') maxniter = opts.maxniter;  else  maxniter = Inf;        end
+
 x0 = min(max(x0, x_l),x_u);
 x = x0;
 z = zeros(m,1); % dual var
@@ -95,19 +98,16 @@ for k = 1:K0
     I1 = (x == x_l); I2 = (x == x_u); I3 = (x > x_l & x < x_u);
     dres = norm( min(0,gradL0(I1)) )^2 + norm( max(0,gradL0(I2)) )^2 + norm(gradL0(I3))^2;
     dres = sqrt(dres);
-    [~, feas] = feasibility(Q, c, d, x);
-    
-    % NEW: From William Kong
-    if (isempty(opts.termination_fn))
-      if (dres <= tol && feas <= tol) % only check the dual_res because primal_res is below tol/2
-        fprintf('succeed during the initial stage!\n');
-        break;
-      end
-    else
-      if (opts.termination_fn(x, z))
-        break;
-      end
+    if (dres <= tol) % only check the dual_res because primal_res is below tol/2
+      fprintf('succeed during the initial stage!\n');
+      break;
     end
+        
+    % NEW: From William Kong
+    if (niter >= maxniter)
+      break
+    end
+    
     outer_iter = outer_iter + 1;
 end
 
@@ -126,6 +126,7 @@ while dres > tol % only check dual_res since primal_res must below tol
         [x, z, beta,total_PG_k] = PenMM(xk, z_fix, rho, tol_pen, beta_fix);
         hist_numPG = [hist_numPG; total_PG_k];
         [~, feas] = feasibility(Q, c, d, x);
+        
         % NEW: From William Kong
         if (isempty(opts.termination_fn))
           if (norm(x - xk) <= (1-frc)*tol/2/rho && feas <= tol)
@@ -179,6 +180,11 @@ while dres > tol % only check dual_res since primal_res must below tol
         Ks = ceil(gamma^s*K1);
         s = s + 1;
         K_total = K_total + Ks;
+    end
+    
+    % NEW: From William Kong
+    if (niter >= maxniter)
+      break
     end
     
 end

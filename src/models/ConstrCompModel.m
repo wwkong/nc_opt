@@ -68,8 +68,7 @@ classdef ConstrCompModel < CompModel
     grad_constr_fn = @(x) zeros(size(x));
     set_projector = @(x) zeros(size(x));
     dual_cone_projector = @(x) x;
-    feas_type {mustBeMember(feas_type, {'relative', 'absolute'})} = ...
-      'absolute'
+    feas_type {mustBeMember(feas_type, {'relative', 'absolute'})} = 'absolute'
   end
   
   % -----------------------------------------------------------------------
@@ -119,8 +118,7 @@ classdef ConstrCompModel < CompModel
       if ~isempty(status_string)
         return;
       else
-        status_map = ...
-          containers.Map('KeyType', 'int32', 'ValueType', 'char');
+        status_map = containers.Map('KeyType', 'int32', 'ValueType', 'char');
         status_map(-202) = 'ALL_STOPPING_CONDITONS_FAILED';
         status_map(-201) = 'FEASIBILITY_CONDITION_FAILED';
         status_map(201)  = 'ALL_STOPPING_CONDITONS_ACHIEVED';
@@ -143,9 +141,7 @@ classdef ConstrCompModel < CompModel
     
     % Compute the feasibility at a point
     function feas = compute_feas(obj, x)
-      feas = obj.norm_fn(...
-        obj.constr_fn(x) - ...
-          obj.set_projector(obj.constr_fn(x)));
+      feas = obj.norm_fn(obj.constr_fn(x) - obj.set_projector(obj.constr_fn(x)));
     end
     
     % Key subroutines.
@@ -163,8 +159,7 @@ classdef ConstrCompModel < CompModel
     function get_status(obj)
       get_status@CompModel(obj)
       if (~ismember(obj.status, [103, 104]))
-        if (obj.norm_of_v <= obj.internal_opt_tol && ...
-            obj.norm_of_w <= obj.internal_feas_tol)
+        if (obj.norm_of_v <= obj.internal_opt_tol && obj.norm_of_w <= obj.internal_feas_tol)
           obj.status = 201; % ALL_STOPPING_CONDITONS_ACHIEVED
         elseif (obj.norm_of_v > obj.internal_opt_tol)
           obj.status = -101; % STATIONARITY_CONDITION_FAILED
@@ -201,17 +196,14 @@ classdef ConstrCompModel < CompModel
       update_tolerances@CompModel(obj);
       obj.internal_feas_tol = obj.feas_tol;
       if strcmp(obj.feas_type, 'relative')
-        obj.internal_feas_tol = ...
-          obj.internal_feas_tol * (1 + obj.compute_feas(obj.x0));
+        obj.internal_feas_tol = obj.internal_feas_tol * (1 + obj.compute_feas(obj.x0));
       end
       obj.solver_input_params.feas_tol = obj.internal_feas_tol;
     end
     function update_solver_inputs(obj)
       update_solver_inputs@CompModel(obj);
-      MAIN_INPUT_NAMES = {...
-        'B_constr', 'K_constr', 'L_constr', 'constr_fn', 'grad_constr_fn', ...
-        'set_projector', 'dual_cone_projector', ...
-      };
+      MAIN_INPUT_NAMES = ...
+        {'B_constr', 'K_constr', 'L_constr', 'constr_fn', 'grad_constr_fn', 'set_projector', 'dual_cone_projector'};
       % Create the input params (order is important here!)
       for i=1:length(MAIN_INPUT_NAMES)
         NAME = MAIN_INPUT_NAMES{i};
@@ -232,8 +224,7 @@ classdef ConstrCompModel < CompModel
         obj.log_input;
         fprintf('\n');
       end
-      [obj.model, obj.history] = ...
-        obj.framework(obj.solver, obj.oracle, obj.solver_input_params);
+      [obj.model, obj.history] = obj.framework(obj.solver, obj.oracle, obj.solver_input_params);
       obj.post_process;
       obj.get_status;
       if (obj.i_verbose)
@@ -253,6 +244,7 @@ classdef ConstrCompModel < CompModel
       solns.norm_of_w = obj.norm_of_w;
       disp(solns);
     end
+    
     function view_curvatures(obj)
       curvatures.L = obj.L;
       curvatures.M = obj.M;

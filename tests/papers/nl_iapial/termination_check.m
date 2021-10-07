@@ -5,17 +5,19 @@
 %   - proj_dh(a,b) is the projection of `b` onto the subdifferential of h at `a`.
 %   - proj_NKt(a,b) is the projection of `b` onto the normal cone of of the dual 
 %     cone of K at `a`.
-function terminate = termination_check(x, p, oracle, constr_fn, grad_constr_fn, ...
-                                       proj_dh, proj_NKt, norm_fn, rho, eta) 
+function [terminate, w, q] = termination_check(x, p, oracle, constr_fn, grad_constr_fn, proj_dh, proj_NKt, norm_fn, rho, eta) 
   
   % Initialize.
   o_at_x = oracle.eval(x);
   primal_subgrad = -o_at_x.grad_f_s() - grad_constr_fn(x, p);
-  primal_residual = norm_fn(proj_dh(x, primal_subgrad) - primal_subgrad);
+  w = proj_dh(x, primal_subgrad) - primal_subgrad;
+  primal_residual = norm_fn(w);
   dual_subgrad = constr_fn(x);
-  dual_residual = norm_fn(proj_NKt(p, dual_subgrad) - dual_subgrad);
+  q = proj_NKt(p, dual_subgrad) - dual_subgrad;
+  dual_residual = norm_fn(q);
   
   % Check and output.
+%   disp(table(primal_residual, dual_residual));
   if (primal_residual <= rho && dual_residual <= eta)
     terminate = true;
   else

@@ -202,9 +202,14 @@ function [model, history] = AIPP(oracle, params)
       x = model_refine.z_hat;
       v = model_refine.v_hat;
       i_early_stop = true;
-      % Check for termination.
       norm_v = norm_fn(v);
       history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+      % Check for termination.
+      if (~isempty(params.termination_fn))
+        if params.termination_fn(model_refine.z_hat)
+          break;
+        end
+      end
       if(norm_v <= opt_tol)
         break;
       end
@@ -273,7 +278,7 @@ function [model, history] = AIPP(oracle, params)
         [model_acg, history_acg] = ACG(oracle_acg, params_acg);
         iter = iter + history_acg.iter;
         % Final refinement.
-        model_refine = refine_IPP(L, lambda, z0, model_acg.y, model_acg.u);
+        model_refine = refine_IPP(oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
         x = model_refine.z_hat;
         v = model_refine.v_hat;
         break;

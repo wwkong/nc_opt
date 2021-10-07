@@ -130,6 +130,11 @@ function [model, history] = penalty(solver, oracle, params)
     solver_oracle = copy(o_oracle);
     solver_oracle.add_smooth_oracle(penalty_oracle)
     
+    % Modify the termination of the termination funciton of the subproblem solver if needed.
+    if (~isempty(params.termination_fn))
+      solver_params.termination_fn = @(x) wrap_termination(params, x, c);
+    end
+    
     % Update curvatures and time limit, call the solver, and update 
     % iteration count.
     solver_params.time_limit = max([0, time_limit - toc(t_start)]);
@@ -161,7 +166,7 @@ function [model, history] = penalty(solver, oracle, params)
     
     % Check for termination.
     feas = feas_fn(solver_model.x);
-    if (feas_fn(solver_model.x) <= feas_tol)
+    if (feas <= feas_tol)
       break;
     end
     
@@ -177,13 +182,26 @@ function [model, history] = penalty(solver, oracle, params)
   end
   
   % Prepare to output
-  [~, feas_vec] = feas_fn(solver_model.x);
   model = solver_model;
-  model.w = feas_vec;
+  if (isempty(params.termination_fn) || params.check_all_terminations)
+    [~, feas_vec] = feas_fn(solver_model.x);
+    model.w = feas_vec;
+  end
+  if (~isempty(params.termination_fn) || params.check_all_terminations)
+    [~, model.v, model.w] = wrap_termination(params, solver_model.x, c);  
+  end
   history.iter = iter;
   history.stage = stage;
   history.runtime = toc(t_start);
   
+end
+
+% Utility functions for custom termination conditions.
+function [stop, w, q] = wrap_termination(params, x, c)
+  % Based on the R-QP-AIPP paper.
+  Ax = params.constr_fn(x);
+  p = c * (Ax - params.set_projector(Ax));
+  [stop, w, q] = params.termination_fn(x, p);
 end
 
 % Fills in parameters that were not set as input.
@@ -199,5 +217,10 @@ function params = set_default_params(params)
   if (~isfield(params, 'penalty_multiplier'))
     params.penalty_multiplier = 2;
   end
-
+  if (~isfield(params, 'termination_fn'))
+    params.termination_fn = [];
+  end
+  if (~isfield(params, 'check_all_terminations'))
+    params.check_all_terminations = false;
+  end
 end

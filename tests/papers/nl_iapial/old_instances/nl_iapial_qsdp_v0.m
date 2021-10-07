@@ -65,26 +65,8 @@ end
 function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = ...
-    test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, dimN, density);
-  
-  % Set up the termination function. The domain is 0 <= lam_i(X) <= r.
-  function proj = proj_dh(A, B)
-    % Projection of `B` onto the subdifferential of `h` at `A`.
-    proj = normal_eigenbox_proj(A, B, r); 
-  end
-  function proj = proj_NKt(~, B)
-    % Projection of `B` onto the normal cone of the dual cone of `K`={0} at `A`.
-    proj = zeros(size(B));
-  end
-  o_at_x0 = copy(oracle);
-  o_at_x0.eval(hparams.x0);
-  g0 = hparams.constr_fn(hparams.x0);
-  rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
-  eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
-  alt_grad_constr_fn = @(x, p) tsr_mult(hparams.grad_constr_fn(x), p, 'dual');
-  term_wrap = @(x,p) ...
-    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
-  
+    test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
+
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
   
@@ -97,7 +79,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 6000;
+  ncvx_qsdp.time_limit = 12000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -110,8 +92,6 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   
   % Create some basic hparams.
   base_hparam = struct();
-  base_hparam.termination_fn = term_wrap;
-  base_hparam.check_all_terminations = true;
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
@@ -127,7 +107,6 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;
-  ialm_hparam.proj_dh = @proj_dh;
   ialm_hparam.i_ineq_constr = false;
   ialm_hparam.rho0 = hparams.m;
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
@@ -143,17 +122,8 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
   
-%   hparam_arr = {ipl_hparam, ipla_hparam};
-%   name_arr = {'IPL', 'IPL_A'};
-%   framework_arr = {@IAIPAL, @IAIPAL};
-%   solver_arr = {@ECG, @ECG};
-
-%   hparam_arr = {qpa_hparam};
-%   name_arr = {'QP_A'};
-%   framework_arr = {@penalty};
-%   solver_arr = {@AIPP};
-  
   % Run the test.
+  % profile on;
   [summary_tables, ~] = ...
     run_CCM_benchmark(...
     ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);

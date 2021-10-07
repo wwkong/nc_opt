@@ -3,30 +3,60 @@
 run('../../../../init.m');
 
 % Run an instance via the command line.
-print_tbls(250);
+print_tbls(n);
 
 %% Utility functions
 function print_tbls(dimN) 
 
   % Initialize
-  seed = 777;
-  dimM = 5;
+  seed = 77777;
+  dimM = 10;
   global_tol = 1e-3;
+  m_vec = [1e2, 1e3, 1e4];
+  M_vec = [1e4, 1e5, 1e6];
+  r_vec = [5, 10, 20];
   first_tbl = true;
-
-  % Variable M.
-  m = 1e1;
-  M = 1e4;
+  
+  % Variable m.
+  M = 1e6;
   r = 1;
-  o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-  disp(['Tables for dimN = ', num2str(dimN)]);
-  disp(o_tbl);
+  for m=m_vec
+    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
+    if first_tbl
+      o_tbl = tbl_row;
+      first_tbl = false;
+    else
+      o_tbl = [o_tbl; tbl_row];
+    end
+  end
   
 end
 function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   [oracle, hparams] = ...
     test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
+  
+  % Set up the termination function.
+  function proj = proj_dh(a, b)
+    I1 = (abs(a - x_l) < 1e-12); 
+    I2 = (abs(a - x_u) <= 1e-12);
+    I3 = (abs(a - x_l) > 1e-12 & abs(a - x_u) > 1e-12);
+    proj = b;
+    proj(I1) = min(0, b(I1));
+    proj(I2) = max(0, b(I2));
+    proj(I3) = 0;
+  end
+  function proj = proj_NKt(~, b)
+    proj = min(0, b);
+  end
+  o_at_x0 = copy(oracle);
+  o_at_x0.eval(hparams.x0);
+  g0 = hparams.constr_fn(hparams.x0);
+  rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
+  eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
+  term_wrap = @(x,p) ...
+    termination_check(x, p, o_at_x0, hparams.constr_fn, hparams.grad_constr_fn, ...
+                      @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
 
   % Create the Model object and specify the solver.
   ncvx_qc_qp = ConstrCompModel(oracle);
@@ -41,7 +71,8 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Set the tolerances
   ncvx_qc_qp.opt_tol = global_tol;
   ncvx_qc_qp.feas_tol = global_tol;
-  ncvx_qc_qp.time_limit = 6000;
+  ncvx_qc_qp.time_limit = 18000;
+  ncvx_qc_qp.iter_limit = 1000000;
   
   % Add linear constraints
   ncvx_qc_qp.constr_fn = hparams.constr_fn;
@@ -55,33 +86,52 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   % Create some basic hparams.
   base_hparam = struct();
+  base_hparam.termination_fn = term_wrap;
+  base_hparam.check_all_terminations = true;
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
+  ipl_hparam.sigma_min = 1/sqrt(2);
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.init_mult_L = 0.5;
+  ipla_hparam.sigma_min = 1/sqrt(2);
   
-  % Create the complicated iALM hparams.
-  ialm_hparam = base_hparam;
-  ialm_hparam.i_ineq_constr = true;
-  ialm_hparam.rho0 = hparams.m;
-  ialm_hparam.L0 = max([hparams.m, hparams.M]);
-  ialm_hparam.rho_vec = hparams.m_constr_vec;
-  ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
-  ialm_hparam.B_vec = hparams.K_constr_vec;
-
+%   % Create the complicated iALM hparams.
+%   ialm_hparam = base_hparam;
+%   ialm_hparam.proj_dh = @proj_dh;
+%   ialm_hparam.i_ineq_constr = true;
+%   ialm_hparam.rho0 = hparams.m;
+%   ialm_hparam.L0 = max([hparams.m, hparams.M]);
+%   ialm_hparam.rho_vec = hparams.m_constr_vec;
+%   ialm_hparam.L_vec = hparams.L_constr_vec;
+%   % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
+%   ialm_hparam.B_vec = hparams.K_constr_vec;
+  
+%   % Run a benchmark test and print the summary.
+%   hparam_arr = {ialm_hparam};
+%   name_arr = {'iALM'};
+%   framework_arr = {@iALM};
+%   solver_arr = {@ECG};
+  
 %   % Run a benchmark test and print the summary.
 %   hparam_arr = {ipl_hparam, ipla_hparam};
 %   name_arr = {'IPL', 'IPL_A'};
 %   framework_arr = {@IAIPAL, @IAIPAL};
 %   solver_arr = {@ECG, @ECG};
   
+  % Run a benchmark test and print the summary.
   hparam_arr = {ipla_hparam};
   name_arr = {'IPL_A'};
   framework_arr = {@IAIPAL};
   solver_arr = {@ECG};
+  
+%   % Run a benchmark test and print the summary.
+%   hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
+%   name_arr = {'iALM', 'IPL', 'IPL_A'};
+%   framework_arr = {@iALM, @IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @ECG, @ECG};
   
   % Run the test.
   [summary_tables, ~] = ...
@@ -99,14 +149,18 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   opts.x0 = hparams.x0;
   opts.Lip0 = max([hparams.m, hparams.M]);
   opts.tol = rel_tol;
-  opts.maxit = 1000000;
+  opts.maxit = ncvx_qc_qp.iter_limit;
   opts.inc = 2;
   opts.dec= 2.5;
   opts.sig = 3;
-  opts.maxsubit = 1000000;
+  opts.maxsubit = ncvx_qc_qp.iter_limit;
+  opts.maxniter = ncvx_qc_qp.iter_limit;
   opts.rho = hparams.m; % Lower curvature.
   x_l_vec = ones(dimN, 1) * hparams.x_l;
   x_u_vec = ones(dimN, 1) * hparams.x_u;
+  
+  % EXTRA opts (for using the relaxed termination).
+  opts.termination_fn = term_wrap;
   
   % Run the HiAPeM code.
   tic;
@@ -121,7 +175,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   disp(['Function value is ', num2str(fval_hpm)])
   disp(['Feasibility is ', num2str(feasibility(x_hpm))]);
   
-  %Aggregate
+  % Aggregate
   o_tbl = agg_tbl(summary_tables, fval_hpm, iter_hpm, t_hpm);
   disp(o_tbl);
   
@@ -134,7 +188,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   function o_tbl = agg_tbl(summary_tbls, f_HiAPeM, iter_HiAPeM, t_HiAPeM)
     o_tbl = [...
-      table(dimN, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, ...
+      table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, ...
       table(f_HiAPeM), summary_tbls.iter, table(iter_HiAPeM), ...
       summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
   end

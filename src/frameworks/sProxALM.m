@@ -174,9 +174,16 @@ function [model, history] = sProxALM(~, oracle, params)
     end
     
     % Check for the termination of the method.
-    if ((params.norm_fn(w_hat) <= opt_tol) && ...
-        (params.norm_fn(q_hat) <= feas_tol))
-      break;
+    if isempty(params.termination_fn)
+      if ((params.norm_fn(w_hat) <= opt_tol) && ...
+          (params.norm_fn(q_hat) <= feas_tol))
+        break;
+      end
+    else
+      [tpred, w_hat, q_hat] = params.termination_fn(x, y);
+      if tpred
+        break;
+      end
     end
     
     % Update other iterates.
@@ -187,8 +194,8 @@ function [model, history] = sProxALM(~, oracle, params)
   
   % Get ready to output
   model.x = x;
-  model.v = v;
-  model.w = params.constr_fn(x);
+  model.v = w_hat;
+  model.w = q_hat;
   history.iter = iter;
   history.runtime = toc(t_start);
 
@@ -224,5 +231,8 @@ function params = set_default_params(params)
   if (~isfield(params, 'z0')) 
     params.z0 = params.x0; 
   end 
+  if (~isfield(params, 'termination_fn'))
+    params.termination_fn = [];
+  end
   
 end

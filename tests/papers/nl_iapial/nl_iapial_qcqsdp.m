@@ -65,8 +65,26 @@ end
 function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = ...
-    test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density);
+    test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
 
+  % Set up the termination function. The domain is 0 <= lam_i(X) <= r.
+  function proj = proj_dh(A, B)
+    % Projection of `B` onto the subdifferential of `h` at `A`.
+    proj = normal_eigenbox_proj(A, B, r); 
+  end
+  function proj = proj_NKt(A, B)
+    % Projection of `B` onto the normal cone of the dual cone of `K`=S_+^n at `A`.
+    proj = normal_eigenbox_proj(A, B, Inf);
+  end
+  o_at_x0 = copy(oracle);
+  o_at_x0.eval(hparams.x0);
+  g0 = hparams.constr_fn(hparams.x0);
+  rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
+  eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
+  alt_grad_constr_fn = @(x, p) hparams.grad_constr_fn(x, p);
+  term_wrap = @(x,p) ...
+    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
+  
   % Create the Model object and specify the solver.
   ncvx_qc_qsdp = ConstrCompModel(oracle);
   
@@ -80,7 +98,7 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   % Set the tolerances
   ncvx_qc_qsdp.opt_tol = global_tol;
   ncvx_qc_qsdp.feas_tol = global_tol;
-  ncvx_qc_qsdp.time_limit = 12000;
+  ncvx_qc_qsdp.time_limit = 6000;
   
   % Add linear constraints
   ncvx_qc_qsdp.constr_fn = hparams.constr_fn;
@@ -93,6 +111,8 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   
   % Create some basic hparams.
   base_hparam = struct();
+  base_hparam.termination_fn = term_wrap;
+  base_hparam.check_all_terminations = true;
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
@@ -102,6 +122,7 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;
+  ialm_hparam.proj_dh = @proj_dh;
   ialm_hparam.i_ineq_constr = true;
   ialm_hparam.rho0 = hparams.m;
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
@@ -115,6 +136,11 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   name_arr = {'iALM', 'IPL', 'IPL_A'};
   framework_arr = {@iALM, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @ECG, @ECG};
+  
+%   hparam_arr = {ipl_hparam, ipla_hparam};
+%   name_arr = {'IPL', 'IPL_A'};
+%   framework_arr = {@IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @ECG};
   
   % Run the test.
   % profile on;

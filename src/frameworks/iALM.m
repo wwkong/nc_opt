@@ -154,24 +154,35 @@ function [model, history] = iALM(~, oracle, params)
     outer_iter = outer_iter + ippm_history.outer_iter;
     
     % Update the multiplier.
-    c_at_x = params.constr_fn(x);
-    y = y0 + w0 * c_at_x;
+    q = params.constr_fn(x);
+    y = y0 + w0 * q;
     
     % Update w.
     if (stage == 1)
-      c_at_x1 = c_at_x;
+      c_at_x1 = q;
     end
     w = w0 * min(...
-      [1, params.gamma_fn(stage - 1, c_at_x1) / norm_fn(c_at_x)]);
+      [1, params.gamma_fn(stage - 1, c_at_x1) / norm_fn(q)]);
     
     % Check for termination.
-    if (isempty(params.termination_fn))
-      if (norm_fn(c_at_x) <= feas_tol)
+    if (isempty(params.termination_fn) || params.check_all_terminations)
+      if (norm_fn(q) <= feas_tol)
         break;
       end
-    else
-      orig_dim = length(x) - length(y);
-      if params.termination_fn(x(1:orig_dim), y)
+    end
+    if (~isempty(params.termination_fn) || params.check_all_terminations)
+      dims_x = size(x);
+      if dims_x(2) == 1 && params.i_ineq_constr
+        orig_dim = length(x) - length(y);
+        x_hat = x(1:orig_dim);
+      elseif dims_x(2) > 1
+        orig_dim = min(size(x));
+        x_hat = x(1:orig_dim, 1:orig_dim);
+      else
+        x_hat = x;
+      end
+      [tpred, v, q] = params.termination_fn(x_hat, y);
+      if tpred
         break;
       end
     end
@@ -188,7 +199,7 @@ function [model, history] = iALM(~, oracle, params)
   % Get ready to output
   model.x = x;
   model.v = v;
-  model.w = c_at_x;
+  model.w = q;
   history.acg_ratio = iter / outer_iter;
   history.iter = iter;
   history.outer_iter = outer_iter;
@@ -316,6 +327,7 @@ function [model, history] = APG(oracle, params)
   o_at_x0.eval(xm1_bar - o_at_x0_bar.grad_f_s() / L_g); 
   x0 = o_at_x0.prox_f_n(1 / L_g);
   x0_bar = x0;
+  x = x0;
   
   % Iterate.
   iter = 2; % Each call does at least two prox evaluations.
@@ -339,8 +351,27 @@ function [model, history] = APG(oracle, params)
     x_bar = x + (1 - alpha) / (1 + alpha) * (x - x0);
 
     % Check for termination.
-    if (norm_fn(x - x0_bar) <= tol / (2 * L_g))
-      break;
+    if isempty(params.proj_dh)
+      % Sufficient APG termination.
+      if (2 * L_g * norm_fn(x - x0_bar) <= tol)
+        break;
+      end
+    else
+      % Canonical APG termination.
+      grad_G_at_x = o_at_x.grad_f_s();
+      dims_x = size(x);
+      if dims_x(2) == 1  
+        proj_mG = params.proj_dh(x, -grad_G_at_x);
+      else
+        orig_length = min(size(x));
+        x_orig = x(1:orig_length, 1:orig_length);
+        grad_G_at_x_orig = grad_G_at_x(1:orig_length, 1:orig_length);
+        proj_mG_orig = params.proj_dh(x_orig, -grad_G_at_x_orig);
+        proj_mG = [proj_mG_orig; -grad_G_at_x(orig_length+1:end, 1:end)];
+      end
+      if (norm(-grad_G_at_x - proj_mG) <= tol)
+        break;
+      end
     end
     
     % Update iterates
@@ -351,8 +382,7 @@ function [model, history] = APG(oracle, params)
   end
   
   % Get ready to output
-  model.v = ...
-    L_g * (x0_bar - x) + o_at_x.grad_f_s() - o_at_x0_bar.grad_f_s();
+  model.v = L_g * (x0_bar - x) + o_at_x.grad_f_s() - o_at_x0_bar.grad_f_s();
   model.x = x;
   history.iter = iter;
   
@@ -385,7 +415,12 @@ function params = set_default_params(params)
   if (~isfield(params, 'termination_fn'))
     params.termination_fn = [];
   end
-  
+  if (~isfield(params, 'proj_dh'))
+    params.proj_dh = [];
+  end
+  if (~isfield(params, 'check_all_terminations'))
+    params.check_all_terminations = false;
+  end
 end
 
 function [oracle, params] = add_slack(oracle, params)
@@ -476,12 +511,7 @@ function [oracle, params] = add_slack(oracle, params)
   % decomposable).
   o_norm_fn = params.norm_fn;
   o_prod_fn = params.prod_fn;
-  params.norm_fn = @(xs) ...
-    sqrt(...
-      o_norm_fn(xs(x_ind{:})) ^ 2 + ...
-      norm(xs(c_ind{:}), 'fro') ^ 2);
-  params.prod_fn = @(as, bs) ...
-      o_prod_fn(as(x_ind{:}), bs(x_ind{:})) + ...
-      sum(dot(as(c_ind{:}), bs(c_ind{:})));
+  params.norm_fn = @(xs) sqrt(o_norm_fn(xs(x_ind{:})) ^ 2 + norm(xs(c_ind{:}), 'fro') ^ 2);
+  params.prod_fn = @(as, bs) o_prod_fn(as(x_ind{:}), bs(x_ind{:})) + sum(dot(as(c_ind{:}), bs(c_ind{:})));
   
 end

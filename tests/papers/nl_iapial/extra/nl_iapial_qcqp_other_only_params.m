@@ -1,69 +1,33 @@
 % Solve a multivariate nonconvex quadratically constrained quadratic programming  
 % problem constrained to a box using MULTIPLE SOLVERS.
-run('../../../init.m');
+run('../../../../init.m');
 format long
 
+% Comment out later.
+dimN = 1000;
+r = 15; 
+m = 1; 
+M = 1e6;
+
 % Run an instance via the command line.
-print_tbls(n);
+print_tbls(dimN, r, m, M);
 
 %% Utility functions
-function print_tbls(dimN) 
+function print_tbls(dimN, r, m, M) 
 
   % Initialize
   seed = 77777;
   dimM = 10;
   global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 15];
-  first_tbl = true;
-
-  % Variable M.
-  m = 1e0;
-  r = 1;
-  for M=M_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable m.
-  M = 1e6;
-  r = 1;
-  for m=m_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable r.
-  m = 1e0;
-  M = 1e6;
-  for r=r_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  disp(['Tables for dimN = ', num2str(dimN)]);
+  disp(table(dimN, r, m, M));
+  o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   disp(o_tbl);
   
 end
 function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
-  [oracle, hparams] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
+  [oracle, hparams] = ...
+    test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
   
   % Set up the termination function.
   function proj = proj_dh(a, b)
@@ -149,6 +113,11 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   name_arr = {'IPL', 'IPL_A'};
   framework_arr = {@IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @ECG};
+  
+%   hparam_arr = {ipla_hparam};
+%   name_arr = {'IPL_A'};
+%   framework_arr = {@IAIPAL};
+%   solver_arr = {@ECG};
   
 %   % Run a benchmark test and print the summary.
 %   hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};

@@ -41,25 +41,17 @@ comp_models:
 %}
 
 function [summary_tables, comp_models] = ...
-  run_CCM_benchmark(...
-    base_constr_comp_model, framework_arr, solver_arr, ...
-    framework_hparams_arr, name_arr)
+  run_CCM_benchmark(base_constr_comp_model, framework_arr, solver_arr, framework_hparams_arr, name_arr)
 
   % Check lengths.
   if (length(framework_arr) ~= length(solver_arr))
     error('The number of frameworks must equal the number of solvers!');
   end
-  if (~isempty(framework_hparams_arr) && ...
-      length(framework_arr) ~= length(framework_hparams_arr))
-    error(...
-      ['The number of frameworks must equal the number of ', ...
-       'hyperparameters when the latter is nonempty!']);
+  if (~isempty(framework_hparams_arr) && length(framework_arr) ~= length(framework_hparams_arr))
+    error('The number of frameworks must equal the number of hyperparameters when the latter is nonempty!');
   end
-  if (~isempty(name_arr) && ...
-      length(solver_arr) ~= length(name_arr))
-    error(...
-      ['The number of solvers must equal the number of ', ...
-       'names when the latter is nonempty!']);
+  if (~isempty(name_arr) && length(solver_arr) ~= length(name_arr))
+    error('The number of solvers must equal the number of names when the latter is nonempty!');
   end
 
   % Initialize.
@@ -88,42 +80,30 @@ function [summary_tables, comp_models] = ...
     end
     % Optimize.
     constr_comp_model.optimize;
-    % Record the results
+    % Record the results.
     comp_models.(framework_name) = constr_comp_model;
-    summary_tables.runtime = add_column(...
-      ['t_', framework_name], constr_comp_model.runtime, summary_tables.runtime);
-    summary_tables.iter = add_column(...
-      ['iter_', framework_name], constr_comp_model.iter, summary_tables.iter);
-    summary_tables.fval = add_column(...
-      ['fval_', framework_name], constr_comp_model.f_at_x, summary_tables.fval);
+    summary_tables.runtime = add_column(['t_', framework_name], constr_comp_model.runtime, summary_tables.runtime);
+    summary_tables.iter = add_column(['iter_', framework_name], constr_comp_model.iter, summary_tables.iter);
+    summary_tables.fval = add_column(['fval_', framework_name], constr_comp_model.f_at_x, summary_tables.fval);
+    % Auxiliary results.
+    if (isfield(constr_comp_model.history, 'outer_iter'))
+      summary_tables.mdata = add_column(['oiter_', framework_name], constr_comp_model.history.outer_iter, summary_tables.mdata);
+    end
   end
   
   % Add solver independent data.
-  summary_tables.pdata = ...
-    add_column('m', constr_comp_model.m, summary_tables.pdata);
-  summary_tables.pdata = ...
-    add_column('M', constr_comp_model.M, summary_tables.pdata);
-  summary_tables.pdata = ...
-    add_column('K_constr', constr_comp_model.K_constr, summary_tables.pdata);
-  summary_tables.pdata = ...
-    add_column('L_constr', constr_comp_model.L_constr, summary_tables.pdata);
-  summary_tables.mdata = ...
-    add_column('feas_tol', constr_comp_model.feas_tol, summary_tables.mdata);
-  summary_tables.mdata = ...
-    add_column(...
-      'feas_type', convertCharsToStrings(constr_comp_model.feas_type), ...
-      summary_tables.mdata);
-  summary_tables.mdata = ...
-    add_column('opt_tol', constr_comp_model.opt_tol, summary_tables.mdata);
-  summary_tables.mdata = ...
-    add_column(...
-      'opt_type', convertCharsToStrings(constr_comp_model.opt_type), ...
-      summary_tables.mdata);
+  summary_tables.pdata = add_column('m', constr_comp_model.m, summary_tables.pdata);
+  summary_tables.pdata = add_column('M', constr_comp_model.M, summary_tables.pdata);
+  summary_tables.pdata = add_column('K_constr', constr_comp_model.K_constr, summary_tables.pdata);
+  summary_tables.pdata = add_column('L_constr', constr_comp_model.L_constr, summary_tables.pdata);
+  summary_tables.mdata = add_column('feas_tol', constr_comp_model.feas_tol, summary_tables.mdata);
+  summary_tables.mdata = add_column('feas_type', convertCharsToStrings(constr_comp_model.feas_type), summary_tables.mdata);
+  summary_tables.mdata = add_column('opt_tol', constr_comp_model.opt_tol, summary_tables.mdata);
+  summary_tables.mdata = add_column('opt_type', convertCharsToStrings(constr_comp_model.opt_type), summary_tables.mdata);
 
   % Merge summary tables for easy reading
   summary_tables.all = ...
-    [summary_tables.pdata, summary_tables.fval, summary_tables.iter, ...
-     summary_tables.runtime, summary_tables.mdata];
+    [summary_tables.pdata, summary_tables.fval, summary_tables.iter, summary_tables.runtime, summary_tables.mdata];
 
 end
 

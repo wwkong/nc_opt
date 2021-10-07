@@ -9,8 +9,7 @@ Coders:
 
 %}
 
-function [oracle, params] = ...
-  test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density)
+function [oracle, params] = test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, dimN, density)
 % Generator of a test suite of unconstrained nonconvex quadratic SDP 
 % functions. Data matrices are sparse and their densities are calibrated
 % according to the input variable 'density'.
@@ -26,6 +25,7 @@ function [oracle, params] = ...
 %   - Function is -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
 %   - Gradient is -xi * B' * (D' * D) * B * Z + tau *  C' * (C * Z - d)
 %   - Constraint is A(Z) = b
+%   - Domain of composite function is the set of matrices with eigenvlaues between 0 and r/sqrt(n).
 %
 % Arguments:
 %  
@@ -82,8 +82,8 @@ function [oracle, params] = ...
   adj_op = @(Qt, y) sparse(tsr_mult(Qt, y, 'dual'));
   
   % Compute the b vector
-  E = diag(ones(dimN, 1)) / dimN;
-  b = lin_op(A_tsr, E) * r;
+  E = diag(rand(dimN, 1) * r);
+  b = lin_op(A_tsr, E);
   
   % Constraint map methods.
   params.constr_fn = @(Z) lin_op(A_tsr, Z) - b;
@@ -92,10 +92,9 @@ function [oracle, params] = ...
   params.K_constr = norm_A;
   
   % Basic output params.
-  A_map = @(Z) lin_op(A_tsr, Z);
   params.M = eigs(Dfn(xi, tau) * Z, 1, 'lr');
   params.m = -eigs(Dfn(xi, tau) * Z, 1, 'sr');
-  params.x0 = init_point(r, dimN, A_map, b, seed);
+  params.x0 = zeros(dimN);
   params.prod_fn = prod_fn;
   params.norm_fn = norm_fn;
   
@@ -108,31 +107,7 @@ function [oracle, params] = ...
   f_s = @(x) -xi / 2 * norm_fn(D * lin_op(B_tsr, x)) ^ 2 + tau / 2 * norm_fn(lin_op(C_tsr, x) - d) ^ 2;
   f_n = @(x) 0;
   grad_f_s = @(x) -xi * adj_op(Bt_tsr, (D' * D) * lin_op(B_tsr, x)) + tau * adj_op(Ct_tsr, lin_op(C_tsr, x) - d);
-  prox_f_n = @(x, lam) sm_mat_proj(x, r);
+  prox_f_n = @(x, lam) box_mat_proj(x, 0, r);  
   oracle = Oracle(f_s, f_n, grad_f_s, prox_f_n);
-
-end
-
-%% Generator of an initial point for some of the penalty problems
-function x0 = init_point(r, dimN, A_map, b, seed)
-
-  rng(seed);
-  feasible = true;
-  while (feasible)
-    nVec = 3;
-    vMat = rand(dimN, nVec);
-    wMat = zeros(dimN, nVec);
-    for j=1:nVec
-      wMat(:, j) = vMat(:, j) / norm(vMat(:, j));
-    end
-    lam_unnormed = rand(nVec, 1);
-    lam = lam_unnormed / sum(lam_unnormed);
-    x0 = zeros(dimN, dimN);
-    for j=1:nVec
-      x0 = x0 + lam(j) * wMat(:, j) * wMat(:, j)';
-    end
-    feasible = (norm(A_map(x0) - b, 'fro') <= 1e-6);
-  end
-  x0 = r * x0;
 
 end
