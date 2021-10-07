@@ -1,7 +1,9 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 % Solve a nonconvex robust regression problem on a specified dataset.
 
-% Use a problem instance generator to create the oracle factory and
-% hyperparameters.
+% Use a problem instance generator to create the oracle factory and hyperparameters.
 data_name = '../../data/heart_scale.txt';
 alpha = 10;
 [oracle_factory, hparams] = ...

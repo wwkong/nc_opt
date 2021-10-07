@@ -1,4 +1,7 @@
-%% Solve a blockwise spectral matrix completion instance.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a blockwise spectral matrix completion instance.
 
 % Set basic hyperparameters for generating the matrix array.
 seed = 777;

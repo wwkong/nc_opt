@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex
 
 % The function of interest is
 %
@@ -7,8 +9,7 @@
 %
 % with curvature pair (m, M). 
 
-% Use a problem instance generator to create the oracle and
-% hyperparameters.
+% Use a problem instance generator to create the oracle and hyperparameters.
 N = 1000;
 M = 1000;
 m = 10;

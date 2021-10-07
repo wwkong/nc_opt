@@ -1,5 +1,7 @@
-% Solve a multivariate minmax nonconvex quadratic programming problem 
-% constrained to the unit simplex
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate minmax nonconvex quadratic programming problem constrained to the unit simplex
 
 % The function of interest is
 %
@@ -10,8 +12,7 @@
 %
 % with curvature pairs {(m_i, M_i)}. 
 
-% Use a problem instance generator to create the oracle factory and
-% hyperparameters.
+% Use a problem instance generator to create the oracle factory and hyperparameters.
 N = 1000;
 M = 100;
 m = 1;

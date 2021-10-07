@@ -1,13 +1,13 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 % Solve a nonconvex support vector machine problem
 
 % The function of interest is
 %
-%  f(z) :=  
-%     (1 / k) * sum_{i=1,..,k} (1 - tanh(v_i * <u_i, z>)) + 
-%     (1 / 2*k) ||z|| ^ 2.
+%  f(z) := (1 / k) * sum_{i=1,..,k} (1 - tanh(v_i * <u_i, z>)) + (1 / 2*k) ||z|| ^ 2.
 
-% Use a problem instance generator to create the oracle and 
-% hyperparameters.
+% Use a problem instance generator to create the oracle and hyperparameters.
 n = 500;
 k = 250;
 r = 50;

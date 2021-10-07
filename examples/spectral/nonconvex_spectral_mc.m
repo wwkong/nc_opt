@@ -1,4 +1,7 @@
-% blockwise spectral matrix completion instance
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a spectral matrix completion instance.
 
 % Test generator
 data_name = 'jester_24938u_100j';

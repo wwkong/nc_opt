@@ -1,15 +1,15 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex
 
 % The function of interest is
 %
 %  f(Z) :=  -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
 %
-% with curvature pair (m, M) and the domain of f being dimN-by-dimN sized
-% matrices. 
+% with curvature pair (m, M) and the domain of f being dimN-by-dimN sized matrices. 
 
-% Use a problem instance generator to create the oracle and
-% hyperparameters.
+% Use a problem instance generator to create the oracle and hyperparameters.
 N = 100;
 M = 1000;
 m = 1;
