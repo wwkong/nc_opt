@@ -1,69 +1,50 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  March 10, 2021
-Coders: 
-  Weiwei Kong
-
-%}  
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = DA_ICG(spectral_oracle, params)
 % The doubly-accelerated inexact composite gradient (DA-ICG) method.
 %
 % See Also:
 %
-%   **src.solvers.IA_ICG**
+%   **src/solvers/IA_ICG.m**
 % 
 % Note:
 % 
 %   Based on the paper:
 %
-%     **[1]** Kong, W., & Monteiro, R. D. (2020). Accelerated Inexact 
-%     Composite Gradient Methods for Nonconvex Spectral Optimization Problems. 
-%     *arXiv preprint arXiv:2007.11772*.
+%     **[1]** Kong, W., & Monteiro, R. D. (2020). Accelerated Inexact Composite Gradient Methods for Nonconvex Spectral
+%     Optimization Problems. *arXiv preprint arXiv:2007.11772*.
 %
 % Arguments:
 % 
-%   spectral_oracle (SpectralOracle): The spectral oracle underlying the 
-%     optimization problem.
+%   spectral_oracle (SpectralOracle): The spectral oracle underlying the optimization problem.
 % 
-%   params.xi (double): Controls the amount of curvature that is initially
-%     redistributed from $f_1$ to $f_2$. Defaults to ``params.M1``.
+%   params.xi (double): Controls the amount of curvature that is initially redistributed from $f_1$ to $f_2$. Defaults to
+%     ``params.M1``.
 %
-%   params.lambda (double): The initial stepsize $\lambda$. Defaults to 
-%     ``1 / params.M1``.
+%   params.lambda (double): The initial stepsize $\lambda$. Defaults to ``1 / params.M1``.
 %
-%   params.steptype (character vector): Either ``'adaptive'`` or 
-%     ``'constant'``. If it is ``adaptive``, then the stepsize is chosen
-%     adaptively. If it is constant, then the stepsize is constant. Defaults
-%     to ``'adaptive'``.
+%   params.steptype (character vector): Either ``'adaptive'`` or ``'constant'``. If it is ``adaptive``, then the stepsize is chosen
+%     adaptively. If it is constant, then the stepsize is constant. Defaults to ``'adaptive'``.
 %
-%   params.sigma (double): Controls the accuracy of the inner subroutine.
-%     Defaults to ``(1 / 2 - max([params.lambda * (params.M1 - 
+%   params.sigma (double): Controls the accuracy of the inner subroutine. Defaults to ``(1 / 2 - max([params.lambda * (params.M1 - 
 %     params.xi), 0]))``.
 %
-%   params.acg_steptype (character vector): Is either "variable" or 
-%     "constant". If it is "variable", then the ACG call employs a line search 
-%     subroutine to look for the appropriate upper curvature, with a starting 
-%     estimate of $L_0 = \lambda (M / 100) + 1$. If "constant", then no 
-%     subroutine is employed and the upper curvature remains fixed at 
-%     $L_0 = \lambda M + 1$. Defaults to ``'variable'``. 
+%   params.acg_steptype (character vector): Is either "variable" or "constant". If it is "variable", then the ACG call employs a
+%     line search subroutine to look for the appropriate upper curvature, with a starting estimate of $L_0 = \lambda (M / 100) +
+%     1$. If "constant", then no subroutine is employed and the upper curvature remains fixed at $L_0 = \lambda M + 1$. Defaults
+%     to ``'variable'``. 
 %
-%   params.Omega_projection (function handle): A one argument function, which
-%     when evaluated at $x$, computes ${\rm Proj}_\Omega(x)$. For details
-%     see the definition of $\Omega$ in **[1]**. Defaults to ``@(X) X``.
+%   params.Omega_projection (function handle): A one argument function, which when evaluated at $x$, computes ${\rm Proj}_\Omega(x)$.
+%     For details see the definition of $\Omega$ in **[1]**. Defaults to ``@(X) X``.
 %
-%   params.is_monotone (bool): If ``true``, then the sequence of outer 
-%     iterates forms a monotonically nonincreasing sequence with respect to 
-%     the objective function. If ``false``, then no such property is
-%     guaranteed. Defaults to ``true``.
+%   params.is_monotone (bool): If ``true``, then the sequence of outer iterates forms a monotonically nonincreasing sequence with
+%     respect to the objective function. If ``false``, then no such property is guaranteed. Defaults to ``true``.
 %
 % Returns: 
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
   
   % Set global constants
@@ -72,9 +53,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   % Timer start
   t_start = tic;
                             
-  % -----------------------------------------------------------------------
   %% PRE-PROCESSING
-  % -----------------------------------------------------------------------
   
   % Main params
   Z_y0 = params.x0; % This is the initial point of the algorithm
@@ -132,9 +111,8 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   o_spectral_oracle = copy(spectral_oracle);
   spectral_oracle.redistribute_curvature(xi);
          
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
+
   while true
     
     % If time is up, pre-maturely exit.
@@ -152,9 +130,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     A = A0 + a0;
     Z_xTilde = (A0 * Z_y0 + a0 * Z_x0) / A;
     
-    % ---------------------------------------------------------------------
     %% ACG CALL AND POST-PROCESSING
-    % ---------------------------------------------------------------------    
     
     % Compute the factorization of the pertrubed point:
     %   X0 = Z_xTilde - lam * grad_f1_s(Z_xTilde)
@@ -201,24 +177,17 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     Z_y = P * spdiags(z_vec, 0, zR, zR) * Q';
     V_y = P * spdiags(v_vec, 0, zR, zR) * Q';
  
-    % ---------------------------------------------------------------------
     %% OTHER UPDATES
-    % ---------------------------------------------------------------------
     
-    % Check for failure of the descent inequality
-    % i.e., check Delta(Z_y0; Z_y, v) <= epsilon.
+    % Check for failure of the descent inequality, i.e. check Delta(Z_y0; Z_y, v) <= epsilon.
     spo_at_Z_y = copy(spectral_oracle.spectral_eval(Z_y, z_vec));   
-    [Delta_at_Z_y0, prox_at_Z_y0, prox_at_Z_xTilde] = Delta_mu_fn(...
-      params, 1, spo_at_Z_y0, spo_at_Z_y, spo_at_Z_xTilde, ...
-      Z_y0, Z_y, Z_xTilde, V_y);    
-    prox_base = ...
-      max([abs(prox_at_Z_y0), abs(prox_at_Z_xTilde), DELTA_TOL]);
+    [Delta_at_Z_y0, prox_at_Z_y0, prox_at_Z_xTilde] = Delta_mu_fn(params, 1, spo_at_Z_y0, spo_at_Z_y, spo_at_Z_xTilde, ...
+                                                                  Z_y0, Z_y, Z_xTilde, V_y);    
+    prox_base = max([abs(prox_at_Z_y0), abs(prox_at_Z_xTilde), DELTA_TOL]);
     rel_err = (Delta_at_Z_y0 - model_acg.eta) / prox_base;
     if (rel_err >= DELTA_TOL)
-      warning(['Descent condition failed with lhs = ', ...
-                num2str(Delta_at_Z_y0), ', and rhs = ', ...
-                num2str(model_acg.eta), ', and base = ', ...
-                num2str(prox_base)]);
+      warning(['Descent condition failed with lhs = ', num2str(Delta_at_Z_y0), ', and rhs = ', num2str(model_acg.eta), ...
+               ', and base = ', num2str(prox_base)]);
       xi = xi * 2;
       spectral_oracle = copy(o_spectral_oracle);
       spectral_oracle.redistribute_curvature(xi); 
@@ -230,26 +199,18 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     params.P = P;
     params.Q = Q;
     params.spo_Z0 = copy(spo_at_Z_xTilde);
-    model_refine = refine_ICG(...
-        spectral_oracle, params, M2 + xi, lambda, Z_xTilde, ...
-        z_xTilde_grad_step, z_vec, v_vec);
+    model_refine = refine_ICG(spectral_oracle, params, M2 + xi, lambda, Z_xTilde, z_xTilde_grad_step, z_vec, v_vec);
     
-    % Check failure of the refinement
-    % i.e., check Delta(Z_y_hat; Z_y, v) <= epsilon.
+    % Check failure of the refinement, i.e. check Delta(Z_y_hat; Z_y, v) <= epsilon.
     Z_yHat = model_refine.z_hat;
     spo_at_Z_yHat = copy(model_refine.spo_at_z_hat);
-    [Delta_at_Z_yHat, prox_at_Z_yHat, prox_at_Z_xTilde] = ...
-      Delta_mu_fn(...
-        params, 1, spo_at_Z_yHat, spo_at_Z_y, spo_at_Z_xTilde, ...
-        Z_yHat, Z_y, Z_xTilde, V_y);
-    prox_base = ...
-      max([abs(prox_at_Z_yHat), abs(prox_at_Z_xTilde), DELTA_TOL]);
+    [Delta_at_Z_yHat, prox_at_Z_yHat, prox_at_Z_xTilde] = Delta_mu_fn(params, 1, spo_at_Z_yHat, spo_at_Z_y, spo_at_Z_xTilde, ...
+                                                                      Z_yHat, Z_y, Z_xTilde, V_y);
+    prox_base = max([abs(prox_at_Z_yHat), abs(prox_at_Z_xTilde), DELTA_TOL]);
     rel_err = (Delta_at_Z_yHat - model_acg.eta) / prox_base;
     if (rel_err >= DELTA_TOL)
-      warning(['Refinement condition failed with lhs = ', ...
-                num2str(Delta_at_Z_yHat), ', and rhs = ', ...
-                num2str(model_acg.eta), ', and base = ', ...
-                num2str(prox_base)]);
+      warning(['Refinement condition failed with lhs = ', num2str(Delta_at_Z_yHat), ', and rhs = ', num2str(model_acg.eta), ...
+               ', and base = ', num2str(prox_base)]);
       xi = xi * 2;
       spectral_oracle = copy(o_spectral_oracle);
       spectral_oracle.redistribute_curvature(xi); 
@@ -275,9 +236,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
       
     % Adjust lambda using the refinement residuals
     elseif strcmp(steptype, 'adaptive')
-      v1_hat = model_refine.q_hat - ...
-        (lambda * (max([M2, 0]) + ...
-         2 * max([m2, 0])) + 1) * (Z_y - model_refine.z_hat);
+      v1_hat = model_refine.q_hat - (lambda * (max([M2, 0]) + 2 * max([m2, 0])) + 1) * (Z_y - model_refine.z_hat);
       norm_v1_hat = norm_fn(v1_hat);
       norm_v2_hat = norm_fn(model_refine.v_hat - v1_hat);
       ratio_v1_div_v2 = norm_v1_hat / norm_v2_hat;
@@ -292,8 +251,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     % Update history.
     if params.i_logging
       o_spectral_oracle.eval(x);
-      function_values(end + 1) = ...
-        o_spectral_oracle.f_s() + o_spectral_oracle.f_n();
+      function_values(end + 1) = o_spectral_oracle.f_s() + o_spectral_oracle.f_n();
       iteration_values(end + 1) = iter;
       time_values(end + 1) = toc(t_start);
       vnorm_values(end + 1) = norm_v;
@@ -303,8 +261,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
     if (is_monotone)
       % Monotonicty update (choose the 'best' y from {y, y^a})
       spo_at_Z_y_f1_only = copy(spectral_oracle.spectral_eval(Z_y, z_vec));
-      phi_at_Z_y = ...
-        spo_at_Z_y_f1_only.f1_s() + spo_at_Z_y.f2_s() + spo_at_Z_y.f_n();
+      phi_at_Z_y = spo_at_Z_y_f1_only.f1_s() + spo_at_Z_y.f2_s() + spo_at_Z_y.f_n();
       if (phi_at_Z_y < phi_at_Z_y0)
         Z_y0 = Z_y;
         spo_at_Z_y0 = copy(spo_at_Z_y);
@@ -321,9 +278,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
                    
   end % End Main loop
   
-  % -----------------------------------------------------------------------
   %% FINAL POST-PROCESSING
-  % -----------------------------------------------------------------------
   
   % Prepare the model and history
   model.x = x;
@@ -341,9 +296,7 @@ function [model, history] = DA_ICG(spectral_oracle, params)
   
 end % function end
 
-% ======================================================
-% --------------- Other Helper Functions ---------------  
-% ======================================================
+%% Helper functions
 
 % Fills in parameters that were not set as input
 function params = set_default_params(params)
@@ -371,8 +324,7 @@ function params = set_default_params(params)
   
   % sigma = sqrt(9 / 10 - max([lambda * (M1 - xi), 0])).
   if ~isfield(params, 'sigma')
-    incumb_sqr_sigma = ...
-      (1 / 2 - max([params.lambda * (params.M1 - params.xi), 0]));
+    incumb_sqr_sigma = (1 / 2 - max([params.lambda * (params.M1 - params.xi), 0]));
     if (incumb_sqr_sigma < 0)
       error('lambda is too large to set sigma!');
     end

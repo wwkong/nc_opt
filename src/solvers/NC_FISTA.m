@@ -1,43 +1,32 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 19, 2020
-Coders: 
-  Weiwei Kong, Jiaming Liang
-
-%}  
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = NC_FISTA(oracle, params)
 % The nonconvex fast iterative soft theresholding (ADAP-NC-FISTA) method. 
 % 
 % See Also:
 %
-% **src.solvers.ADAP_FISTA**
+% **src/solvers/ADAP_FISTA.m**
 % 
 % Note:
 % 
 %   Based on the paper (see the NC-FISTA method):
 %
-%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated 
-%   gradient algorithm for solving smooth nonconvex composite optimization 
-%   problems. *arXiv preprint arXiv:1905.07010*.
+%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated gradient algorithm for solving smooth nonconvex
+%   composite optimization problems. *arXiv preprint arXiv:1905.07010*.
 %
 % Arguments:
 %
 %   oracle (Oracle): The oracle underlying the optimization problem. 
 %
-%   params.lambda (double): The first stepsize used by the method (see 
-%     $\lambda$ from the original paper). Defaults to ``0.99 / L``.
+%   params.lambda (double): The first stepsize used by the method (see $\lambda$ from the original paper). Defaults to ``0.99 / L``.
 %
-%   params.xi (double): Determines $A_0$ from the original paper (see $\xi$
-%     from the original paper). Defaults to ``1.05 * m``.
+%   params.xi (double): Determines $A_0$ from the original paper (see $\xi$ from the original paper). Defaults to ``1.05 * m``.
 %
 % Returns: 
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %    
 
   % Timer start

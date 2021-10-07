@@ -1,41 +1,30 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 19, 2020
-Coders: 
-  Weiwei Kong, Jiaming Liang
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = ADAP_FISTA(oracle, params)
-% The adaptive nonconvex fast iterative soft theresholding (ADAP-NC-FISTA)
-% method. 
+% The adaptive nonconvex fast iterative soft theresholding (ADAP-NC-FISTA) method. 
 % 
 % See Also:
 % 
-%   **src.solvers.NC_FISTA**
+%   **src/solvers/NC_FISTA.m**
 %
 % Note:
 % 
 %   Based on the paper (see the ADAP-NC-FISTA method):
 %
-%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated 
-%   gradient algorithm for solving smooth nonconvex composite optimization 
-%   problems. *arXiv preprint arXiv:1905.07010*.
+%   Liang, J., Monteiro, R. D., & Sim, C. K. (2019). A FISTA-type accelerated gradient algorithm for solving smooth nonconvex
+%   composite optimization problems. *arXiv preprint arXiv:1905.07010*.
 %
 % Arguments:
 %
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
-%   params.theta (double): Controls how the stepsize is updated (see $\theta$ 
-%     from the original paper). Defaults to ``1.25``.
+%   params.theta (double): Controls how the stepsize is updated (see $\theta$ from the original paper). Defaults to ``1.25``.
 %
 % Returns: 
 %
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
 
   % Timer start.
@@ -80,18 +69,13 @@ function [model, history] = ADAP_FISTA(oracle, params)
   m = params.m;
   M = params.M;
     
-  % -----------------------------------------------------------------------
   %% LOCAL FUNCTIONS
-  % -----------------------------------------------------------------------
-  function [yNext, MNext, lam, xi, count] = ...
-    SUB(tx, lam, xi, theta, mNext, a, count)
+  function [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, count)
 
     stepsize = lam*a/(a+2*lam*xi);
     yNext = prox_f_n(tx - stepsize * grad_f_s(tx), stepsize);
     count = count + 1;
-    MNext = ...
-      2*(f_s(yNext)-f_s(tx)-prod_fn(grad_f_s(tx),yNext-tx)) / ...
-      norm_fn(yNext-tx)^2;
+    MNext =  2*(f_s(yNext)-f_s(tx)-prod_fn(grad_f_s(tx),yNext-tx)) / norm_fn(yNext-tx)^2;
     lamk = lam;
 
     while (lam*MNext > 0.9) || (xi*(lamk - lam/a) < mNext*lam/2)
@@ -103,9 +87,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
         end
         stepsize = lam*a/(a+2*lam*xi);
         yNext = prox_f_n(tx- stepsize * grad_f_s(tx), stepsize);
-        MNext = ...
-          2*(f_s(yNext)-f_s(tx)-prod_fn(grad_f_s(tx),yNext-tx)) / ...
-          norm_fn(yNext-tx)^2;
+        MNext = 2*(f_s(yNext)-f_s(tx)-prod_fn(grad_f_s(tx),yNext-tx)) / norm_fn(yNext-tx)^2;
         count = count + 1;
     end
   end % End SUB.
@@ -117,9 +99,9 @@ function [model, history] = ADAP_FISTA(oracle, params)
     C = 0;
     scale = 100; % could play around with this parameter
     
-    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     % NOTE: x0 CANNOT BE ZERO SINCE x0 = 2 * x0.
-    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if (norm_fn(x0) == 0)
       error('x0 cannot be the zero vector!')
     end
@@ -140,9 +122,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
   % Use Jiaming's subroutine for choosing (lambda, xi).
   [lam, xi] = CURV(z0);
 
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
   while true
     
     % If time is up, pre-maturely exit.
@@ -166,8 +146,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
         mNext = max(2*(ell_f(ty,tx)-f(ty))/norm_fn(ty-tx)^2,0);
     end
         
-    [yNext, MNext, lam, xi, count] = ...
-      SUB(tx, lam, xi, theta, mNext, a, count);
+    [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, count);
     xNext = (a+xi*lam)/(xi*lam+1)*yNext - (a-1)/(xi*lam+1)*y;
     v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);
 
@@ -195,9 +174,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
    
   end
   
-  % -----------------------------------------------------------------------
   %% POST-PROCESSING
-  % -----------------------------------------------------------------------  
   model.A = A;
   model.x = x;
   model.y = y;

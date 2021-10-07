@@ -1,29 +1,19 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  March 10, 2021
-Coders:
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = AG(oracle, params)
 % The accelerated gradient (AG) method. 
 %
 % See Also: 
 %
-%   **src.solvers.UPFAG**
+%   **src/solvers/UPFAG.m**
 % 
 % Note:
 % 
-%   A variant of Algorithm 2 (with the upper curvature $M$ replacing the 
-%   Lipschitz constant $L_f$) from the paper:
+%   A variant of Algorithm 2 (with the upper curvature $M$ replacing the Lipschitz constant $L_f$) from the paper:
 %
-%   Ghadimi, S., & Lan, G. (2016). Accelerated gradient methods for nonconvex 
-%   nonlinear and stochastic programming. *Mathematical Programming, 
-%   156*\(1-2), 59-99.
+%   Ghadimi, S., & Lan, G. (2016). Accelerated gradient methods for nonconvex nonlinear and stochastic programming. *Mathematical
+%   Programming, 156*\(1-2), 59-99.
 %
 % Arguments:
 %
@@ -33,8 +23,8 @@ function [model, history] = AG(oracle, params)
 %
 % Returns:
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
 
   % Timer start
@@ -68,9 +58,7 @@ function [model, history] = AG(oracle, params)
   time_limit = params.time_limit;
   iter_limit = params.iter_limit;
      
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
   while true
     
     % If time is up, pre-maturely exit.

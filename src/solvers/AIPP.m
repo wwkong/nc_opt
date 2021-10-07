@@ -1,38 +1,25 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = AIPP(oracle, params)
 % Variants of the accelerated inexact proximal point (AIPP) method
-% 
+%
 % See Also:
-%   
-%   **src.solvers.ACG**
-% 
+%
+%   **src/solvers/ACG.m**
+%
 % Note:
-% 
+%
 %   Based on the papers:
 %
-%   **[1]** Kong, W., Melo, J. G., & Monteiro, R. D. (2019). Complexity of a
-%   quadratic penalty accelerated inexact proximal point method for solving 
-%   linearly constrained nonconvex composite programs. *SIAM Journal on 
-%   Optimization, 29*\(4), 2566-2593.
+%   **[1]** Kong, W., Melo, J. G., & Monteiro, R. D. (2019). Complexity of a quadratic penalty accelerated inexact proximal point
+%   method for solving linearly constrained nonconvex composite programs. *SIAM Journal on Optimization, 29*\(4), 2566-2593.
 %
-%   **[2]** Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient 
-%   adaptive accelerated inexact proximal point method for solving linearly 
-%   constrained nonconvex composite problems. *Computational Optimization and 
-%   Applications, 76*\(2), 305-346. 
+%   **[2]** Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient adaptive accelerated inexact proximal point method for
+%   solving linearly constrained nonconvex composite problems. *Computational Optimization and Applications, 76*\(2), 305-346. 
 %
-%   **[3]** Kong, W., & Monteiro, R. D. (2019). An accelerated inexact 
-%   proximal point method for solving nonconvex-concave min-max problems. 
-%   *arXiv preprint arXiv:1905.13433*.
+%   **[3]** Kong, W., & Monteiro, R. D. (2019). An accelerated inexact proximal point method for solving nonconvex-concave min-max
+%   problems. *arXiv preprint arXiv:1905.13433*.
 %
 %   In particular, $\tau$ is updated using the rule in [3].
 %
@@ -40,55 +27,43 @@ function [model, history] = AIPP(oracle, params)
 %
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
-%   params.aipp_type (character vector): Specifies which AIPP variant to use.
-%     More specifically, 'aipp' is the AIPP method from [1], while 'aipp_c', 
-%     'aipp_v1', and 'aipp_v2' are the R-AIPPc, R-AIPPv1, and R-AIPPv2 methods
-%     from [2]. Defaults to ``'aipp_v2'``.
+%   params.aipp_type (character vector): Specifies which AIPP variant to use. More specifically, 'aipp' is the AIPP method from
+%     [1], while 'aipp_c', 'aipp_v1', and 'aipp_v2' are the R-AIPPc, R-AIPPv1, and R-AIPPv2 methods from [2]. Defaults to
+%     ``'aipp_v2'``.
 %
-%   params.sigma (double): Determines the accuracy of the inner ACG call (see 
-%     $\sigma$ from [1]). Defaults to ``0.3``.
+%   params.sigma (double): Determines the accuracy of the inner ACG call (see $\sigma$ from [1]). Defaults to ``0.3``.
 %
-%   params.theta (double): Determines the accuracy of the inner R-ACG call 
-%     (see $\theta$ from [2]). Defaults to ``4``.
+%   params.theta (double): Determines the accuracy of the inner R-ACG call (see $\theta$ from [2]). Defaults to ``4``.
 %
-%   params.acg_steptype (character vector): Is either "variable" or 
-%     "constant". If it is "variable", then the ACG call employs a line search 
-%     subroutine to look for the appropriate upper curvature, with a starting 
-%     estimate of $L_0 = \lambda (M / 100) + 1$. If "constant", then no 
-%     subroutine is employed and the upper curvature remains fixed at 
-%     $L_0 = \lambda M + 1$. Defaults to ``'variable'``. 
+%   params.acg_steptype (character vector): Is either "variable" or "constant". If it is "variable", then the ACG call employs a
+%     line search subroutine to look for the appropriate upper curvature, with a starting estimate of $L_0 = \lambda (M / 100) +
+%     1$. If "constant", then no subroutine is employed and the upper curvature remains fixed at $L_0 = \lambda M + 1$. Defaults
+%     to ``'variable'``. 
 %
-%   params.acg_ls_multiplier (double): Determines how quickly the line search 
-%     subroutine of the ACG call (multiplicatively) increases its estimate. 
-%     Defaults to ``1.25``.
+%   params.acg_ls_multiplier (double): Determines how quickly the line search subroutine of the ACG call (multiplicatively)
+%     increases its estimate. Defaults to ``1.25``.
 %
-%   params.lambda (double): The initial stepsize (see $\lambda$ from [2]). 
-%     Defaults to ``1 / m``.
+%   params.lambda (double): The initial stepsize (see $\lambda$ from [2]). Defaults to ``1 / m``.
 %
-%   params.mu_fn (function handle): Determines the strong convexity parameter 
-%     $\mu$ given to the ACG call as a function of lambda, the stepsize.
-%     Defaults to ``@(lambda) 1``.
+%   params.mu_fn (function handle): Determines the strong convexity parameter $\mu$ given to the ACG call as a function of lambda,
+%     the stepsize. Defaults to ``@(lambda) 1``.
 %
-%   params.tau_mult (double): An auxiliary parameter constant used to 
-%     determine the first value of $\tau$. Defaults to ``10``.
+%   params.tau_mult (double): An auxiliary parameter constant used to determine the first value of $\tau$. Defaults to ``10``.
 %
-%   params.tau (double): A parameter constant that determines the accuracy of 
-%     the inner ACG call (see $\tau$ from [2, 3]). Defaults to ``tau_mult * 
-%     (lambda M + 1)`` where ``lambda`` is the initial stepsize and 
-%     ``tau_mult`` is the constant in ``params.tau_mult``.
+%   params.tau (double): A parameter constant that determines the accuracy of the inner ACG call (see $\tau$ from [2, 3]).
+%     Defaults to ``tau_mult * (lambda M + 1)`` where ``lambda`` is the initial stepsize and ``tau_mult`` is the constant in
+%     ``params.tau_mult``.
 %
 % Returns:
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
   
   % Start the timer.
   t_start = tic;
   
-  % -----------------------------------------------------------------------
   %% PRE-PROCESSING
-  % -----------------------------------------------------------------------
   
   % Set REQUIRED input params.
   z0 = params.x0; 
@@ -148,14 +123,11 @@ function [model, history] = AIPP(oracle, params)
   elseif (strcmp(aipp_type, 'aipp'))
     params_acg.termination_type = 'aipp';
   else
-    error(...
-      ['Incorrect AIPP type specified! Valid types are: ', ...
-       '{aipp, aipp_c, aipp_v1, aipp_v2}'])
+    error('Incorrect AIPP type specified! Valid types are: {aipp, aipp_c, aipp_v1, aipp_v2}')
   end
      
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
+
   while true
        
     % If time is up, pre-maturely exit.
@@ -168,13 +140,9 @@ function [model, history] = AIPP(oracle, params)
       break;
     end
     
-    % ---------------------------------------------------------------------
     %% ACG CALL AND POST-PROCESSING
-    % ---------------------------------------------------------------------
     
     % Set up the ACG oracle. 
-    % NOTE: We need to explicitly call copy() because the 'Oracle' class
-    % inherits from the 'handle' class
     oracle_acg = copy(oracle);
     oracle_acg.proxify(lambda, z0);
     
@@ -197,8 +165,7 @@ function [model, history] = AIPP(oracle, params)
     
     % Refine if the ACG has a solution.
     if (isfield(model_acg, 'y') && isfield(model_acg, 'u'))
-      model_refine = refine_IPP(...
-        oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
+      model_refine = refine_IPP(oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
       x = model_refine.z_hat;
       v = model_refine.v_hat;
       i_early_stop = true;
@@ -228,14 +195,11 @@ function [model, history] = AIPP(oracle, params)
       continue;
     end
     
-    % ---------------------------------------------------------------------
     %% OTHER UPDATES
-    % ---------------------------------------------------------------------
-    
+
     % Update tau if necessary.
     if (i_variable_tau)
-      residual_ratio = ...
-        model_refine.residual_v_hat / model_refine.residual_1;
+      residual_ratio = model_refine.residual_v_hat / model_refine.residual_1;
       high_ratio = 1.5;
       low_ratio = 1.2;
       if (residual_ratio > high_ratio)
@@ -250,8 +214,7 @@ function [model, history] = AIPP(oracle, params)
             
       % Restart if we have Delta > sigma / 2 * |v + z0 - z| ^ 2.
       if (params_acg.termination_type == "gd")
-        if (2 * model_refine.Delta > tau / (lambda * M + 1) * ...
-            norm_fn(model_acg.u + z0 - model_acg.y) ^ 2)
+        if (2 * model_refine.Delta > tau / (lambda * M + 1) * norm_fn(model_acg.u + z0 - model_acg.y) ^ 2)
           i_increase_lambda = false;
           lambda = lambda / 2;
           continue;
@@ -266,9 +229,8 @@ function [model, history] = AIPP(oracle, params)
       end 
     end
     
-    % ---------------------------------------------------------------------
     %% ORIGINAL AIPP'S PHASE II CHECK
-    % ---------------------------------------------------------------------
+
     if strcmp(aipp_type, 'aipp')
       % Phase I termination check.
       if (norm_fn(model_acg.u + z0 - model_acg.y) <= lambda * opt_tol / 5)
@@ -300,9 +262,7 @@ function [model, history] = AIPP(oracle, params)
                    
   end % main loop end
   
-  % -----------------------------------------------------------------------
   %% FINAL POST-PROCESSING
-  % -----------------------------------------------------------------------
   
   % Prepare the model and history
   model.x = x;
@@ -322,9 +282,7 @@ function [model, history] = AIPP(oracle, params)
 
 end % function end
  
-% ======================================================
-% --------------- Other Helper Functions ---------------  
-% ======================================================
+%% Helper Functions
 
 % Fills in parameters that were not set as input
 function params = set_default_params(params)

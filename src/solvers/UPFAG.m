@@ -1,33 +1,20 @@
-%{
-
-NOTES
------
-* This is a version of the file provided by Ghadimi, Lan, and Zhang, which 
-  was heavily edited to conform with the CompModel framework.
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Saeed Ghadimi, Guanghui Lan, Hongchao Zhang, Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = UPFAG(oracle, params)
 % The unified problem-parameter free accelerated gradient (UPFAG) method.
 % 
 % See Also:
 %
-%   **src.solvers.AG**
+%   **src/solvers/AG.m**
 % 
 % Note:
 % 
+%   A version of the file provided by Ghadimi, Lan, and Zhang, which was heavily edited to conform with the CompModel framework.
 %   Based on the paper (see the UPFAG-fullBB method):
 %
-%   Ghadimi, S., Lan, G., & Zhang, H. (2019). Generalized uniformly optimal 
-%   methods for nonlinear programming. *Journal of Scientific Computing, 
-%   79*\(3), 1854-1881.
+%   Ghadimi, S., Lan, G., & Zhang, H. (2019). Generalized uniformly optimal methods for nonlinear programming. *Journal of
+%   Scientific Computing, 79*\(3), 1854-1881.
 %
 % Arguments:
 %
@@ -37,8 +24,8 @@ function [model, history] = UPFAG(oracle, params)
 %
 % Returns: 
 %
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
  
   % Timer start
@@ -106,7 +93,7 @@ function [model, history] = UPFAG(oracle, params)
     line_search_cvx = 0;
     itr_cvx = 0; % tau_1_k
     if k == 0
-      lambda_bb = max(lambda0, sigma) ;        
+      lambda_bb = max(lambda0, sigma);        
     else
       sk = x_ag_tilde - x_md;
       yk = grad_f_s(x_ag_tilde) - grad_f_s(x_md);
@@ -122,16 +109,13 @@ function [model, history] = UPFAG(oracle, params)
     while line_search_cvx == 0
       % partial line search
       eta_k= lambda_bb * gamma_1 ^ itr_cvx;
-      lambda_k = ...
-        eta_k * (1 + sqrt(1 + 4 * sum_lambda_k / eta_k)) / 2; % (2.2)
+      lambda_k = eta_k * (1 + sqrt(1 + 4 * sum_lambda_k / eta_k)) / 2; % (2.2)
       alpha_k = lambda_k / (lambda_k + sum_lambda_k);                
       x_md = (1 - alpha_k) * x_ag + alpha_k * x_k; % (2.3)
       x_k = prox_f_n(x_k - grad_f_s(x_md) * lambda_k, lambda_k); % (2.4)
       x_ag_tilde = (1 - alpha_k) * x_ag + alpha_k * x_k; % (2.5)
-      if (f(x_ag_tilde) <= ...
-          f(x_md) + prod_fn(grad_f_s(x_md), x_ag_tilde - x_md) + ...
-          norm_fn(x_ag_tilde - x_md) ^ 2 / (2 * alpha_k * lambda_k) + ...
-          delta * alpha_k) % (2.6)
+      if (f(x_ag_tilde) <= f(x_md) + prod_fn(grad_f_s(x_md), x_ag_tilde - x_md) + ...
+                           norm_fn(x_ag_tilde - x_md) ^ 2 / (2 * alpha_k * lambda_k) + delta * alpha_k) % (2.6)
         line_search_cvx = 1;
       end
       itr_cvx = itr_cvx + 1;
@@ -160,11 +144,8 @@ function [model, history] = UPFAG(oracle, params)
     while line_search_nocvx == 0
       % partial line search
       beta_k = beta_bb * gamma_2 ^ itr_nocvx; % (2.8)
-      x_ag_bar = ...
-        prox_f_n(x_ag - grad_f_s(x_ag) * beta_k, beta_k); % (2.10)
-      if (f(x_ag_bar) <= ...
-          f(x_ag) - norm_fn(x_ag_bar - x_ag) ^ 2 / (2 * beta_k) + ...
-            1 / (k + 1)) % gamma_3 = 1 % (2.9)
+      x_ag_bar = prox_f_n(x_ag - grad_f_s(x_ag) * beta_k, beta_k); % (2.10)
+      if (f(x_ag_bar) <= f(x_ag) - norm_fn(x_ag_bar - x_ag) ^ 2 / (2 * beta_k) + 1 / (k + 1)) % gamma_3 = 1 % (2.9)
         line_search_nocvx = 1;
       end
       itr_nocvx = itr_nocvx + 1;
