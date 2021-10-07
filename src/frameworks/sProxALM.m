@@ -1,30 +1,18 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  May 31, 2021
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = sProxALM(~, oracle, params)
-% A smoothed proximal augmented Lagrangian method (sProxALM) for solving a 
-% nonconvex composite optimization model with linear constraints, where
-% the composite term is the indicator of a polyhedron
+% A smoothed proximal augmented Lagrangian method (s-Prox-ALM) for solving a nonconvex composite optimization model with linear
+% constraints, where the composite term is the indicator of a polyhedron.
 % 
 % Note:
 % 
 %   Based on the paper:
 %
-%   Zhang, J., & Luo, Z. (2020). A global dual error bound and its 
-%   application to the analysis of linearly constrained nonconvex 
+%   Zhang, J., & Luo, Z. (2020). A global dual error bound and its application to the analysis of linearly constrained nonconvex 
 %   optimization. *arXiv preprint arXiv:2006.16440*\.
 %
 % Arguments:
-% 
-%   ~ : The first argument is ignored
 % 
 %   oracle (Oracle): The oracle underlying the optimization problem.
 % 
@@ -32,8 +20,8 @@ function [model, history] = sProxALM(~, oracle, params)
 % 
 % Returns:
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
   
   % Timer start.
@@ -65,19 +53,15 @@ function [model, history] = sProxALM(~, oracle, params)
   % Gradient of the constraint function
   function grad_c_at_x_op_y = grad_constr_fn(x, y)
     grad_constr_fn = params.grad_constr_fn;
-    %  If the gradient function has a single argument, assume that the
-    %  gradient at a point is a constant tensor.
+    %  If the gradient function has a single argument, assume that the gradient at a point is a constant tensor.
     if nargin(grad_constr_fn) == 1
       grad_c_at_x_op_y = tsr_mult(grad_constr_fn(x), y, 'dual');
-    % Else, assume that the gradient is a bifunction; the first argument is
-    % the point of evaluation, and the second one is what the gradient
-    % operator acts on.
+    % Else, assume that the gradient is a bifunction; the first argument is the point of evaluation, and the second one is what
+    % the gradient operator acts on.
     elseif nargin(grad_constr_fn) == 2
       grad_c_at_x_op_y = grad_constr_fn(x, y);
     else
-      error(...
-        ['Unknown function prototype for the gradient of the ', ...
-         'constraint function']);
+      error('Unknown function prototype for the gradient of the constraint function');
     end
   end
   
@@ -86,12 +70,10 @@ function [model, history] = sProxALM(~, oracle, params)
   alp_n = @(x) 0;
   alp_prox = @(x, lam) x;
   % Value of the AL function: 
-  %  Q_beta(x, y) = <y, c(x)> + (beta / 2) * |c(x)| ^ 2,
-  %  where K is the primal cone.
+  %   Q_beta(x, y) = <y, c(x)> + (beta / 2) * |c(x)| ^ 2,
+  % where K is the primal cone.
   function alp_val = alp_fn(x, y, beta)
-    alp_val = ...
-      prod_fn(y, params.constr_fn(x)) + ...
-      (beta / 2) * norm_fn(params.constr_fn(x)) ^ 2;
+    alp_val = prod_fn(y, params.constr_fn(x)) + (beta / 2) * norm_fn(params.constr_fn(x)) ^ 2;
   end
   % Gradient of the function Q_beta(x, y) with respect to x.
   function grad_alp_val = grad_alp_fn(x, y, beta)
@@ -148,8 +130,7 @@ function [model, history] = sProxALM(~, oracle, params)
     grad_K = ippm_oracle.grad_f_s() + p * (x - z);
     
     % Compute v.
-    v = grad_K - grad_K0 - (1 / c) * (x - x0) - ...
-      Gamma * grad_constr_fn(x, params.constr_fn(x)) - p * (x - z0);
+    v = grad_K - grad_K0 - (1 / c) * (x - x0) - Gamma * grad_constr_fn(x, params.constr_fn(x)) - p * (x - z0);
     
     % Update the model and history.
     iter = iter + 1;
@@ -161,22 +142,16 @@ function [model, history] = sProxALM(~, oracle, params)
     % Log some numbers if necessary.
     if params.i_logging
       logging_oracle.eval(x);
-      history.function_values = ...
-        [history.function_values; logging_oracle.f_s() + logging_oracle.f_n()];
-      history.norm_w_hat_values = ...
-        [history.norm_w_hat_values; norm_fn(w_hat)];
-      history.norm_q_hat_values = ...
-        [history.norm_q_hat_values; norm_fn(q_hat)];
-      history.iteration_values = ...
-        [history.iteration_values; iter];
-      history.time_values = ...
-        [history.time_values; toc(t_start)];
+      history.function_values = [history.function_values; logging_oracle.f_s() + logging_oracle.f_n()];
+      history.norm_w_hat_values = [history.norm_w_hat_values; norm_fn(w_hat)];
+      history.norm_q_hat_values = [history.norm_q_hat_values; norm_fn(q_hat)];
+      history.iteration_values = [history.iteration_values; iter];
+      history.time_values = [history.time_values; toc(t_start)];
     end
     
     % Check for the termination of the method.
     if isempty(params.termination_fn)
-      if ((params.norm_fn(w_hat) <= opt_tol) && ...
-          (params.norm_fn(q_hat) <= feas_tol))
+      if ((params.norm_fn(w_hat) <= opt_tol) && (params.norm_fn(q_hat) <= feas_tol))
         break;
       end
     else

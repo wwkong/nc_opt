@@ -2,48 +2,48 @@
 % Copyright © 2021 Weiwei "William" Kong
 
 classdef ConstrCompModel < CompModel
-  % An abstract model class for constrained composite optimization.
-  %
-  % Note:
-  % 
-  %   The following (non-inherited) properties are necessary before the ``optimize()`` method can be called to solve the model:
-  %   ``framework``, ``constr_fn``, ``grad_constr_fn``, ``set_projector``, and ``K_constr``.
-  % 
-  % Key Attributes:
-  %
-  %   framework (function handle): A **required** function handle to a framework that solves constrained composite optimization
-  %     problems (see src/frameworks). Defaults to ``None``.
-  %
-  %   constr_fn (function handle): A **required** one argument function that, when evaluated at a point $x$, returns the constraint
-  %     function at that point, i.e. $g(x)$. Defaults to ``@(x) 0``.
-  %
-  %   grad_constr_fn (function handle): A **required** function that represents the gradient of the constraint function. Has two
-  %     possible prototypes: (i) a one argument function that, when evaluated at a point $x$, returns $\nabla g(x)$; and (ii) a
-  %     two argument function that, when evaluated at $\{x, \delta\}$, returns $\nabla g(x) \delta$. Defaults to ``@(x)
-  %     zeros(size(x))``.
-  %
-  %   set_projector (function handle): A one argument function that, when evaluated at a point $x$, returns the projection of $x$
-  %     onto the set $S$. Defaults to ``@(x) zeros(size(x))``.
-  %
-  %   primal_cone_project (function handle): A one argument function that, that, when evaluated at a point $x$, returns the
-  %     projection of $x$ onto the cone K. Defaults to ``@(x) zeros(size(x))``.
-  %
-  %   dual_cone_projector (function handle): A one argument function that, when evaluated at a point $x$, returns the projection
-  %     of $x$ onto the dual cone K^{*}. Defaults to ``@(x) x``.
-  %
-  %   B_constr: A bound on the norm of the constraint function over the domain of $f_n$. Defaults to 0.0.
-  %
-  %   K_constr: A **required** Lipschitz constant of the constraint function. Defaults to ``None``.
-  %
-  %   L_constr: A Lipschitz constant of the gradient of the constraint function. Defaults to 0.0.
-  %
-  %   feas_tol (double): The tolerance for feasibility, i.e. $\eta=\text{feas_tol}$. Defaults to ``1e-6``.
-  %
-  %   feas_type (character vector): Is either 'relative' or 'absolute'. If it is 'absolute', then the optimality condition is
-  %     $\|w\|\leq \text{opt_tol}$. If it is 'relative', then the optimality condition is $\|w\|/(1 + {\cal F}) \leq\text{opt_tol}$
-  %     where ${\cal F} = \|g(x_0) - {\rm Proj}_S(g(x_0))\|$. Defaults to ``'absolute'``.
-  %
-  %   w (double vector): The feasibility residual returned by the solver. Defaults to ``None``. Cannot be set by the user.
+% An abstract model class for constrained composite optimization.
+%
+% Note:
+% 
+%   The following (non-inherited) properties are necessary before the ``optimize()`` method can be called to solve the model:
+%   ``framework``, ``constr_fn``, ``grad_constr_fn``, ``set_projector``, and ``K_constr``.
+% 
+% Key Attributes:
+%
+%   framework (function handle): A **required** function handle to a framework that solves constrained composite optimization
+%     problems (see src/frameworks). Defaults to ``None``.
+%
+%   constr_fn (function handle): A **required** one argument function that, when evaluated at a point $x$, returns the constraint
+%     function at that point, i.e. $g(x)$. Defaults to ``@(x) 0``.
+%
+%   grad_constr_fn (function handle): A **required** function that represents the gradient of the constraint function. Has two
+%     possible prototypes: (i) a one argument function that, when evaluated at a point $x$, returns $\nabla g(x)$; and (ii) a
+%     two argument function that, when evaluated at $\{x, \delta\}$, returns $\nabla g(x) \delta$. Defaults to ``@(x)
+%     zeros(size(x))``.
+%
+%   set_projector (function handle): A one argument function that, when evaluated at a point $x$, returns the projection of $x$
+%     onto the set $S$. Defaults to ``@(x) zeros(size(x))``.
+%
+%   primal_cone_project (function handle): A one argument function that, that, when evaluated at a point $x$, returns the
+%     projection of $x$ onto the cone K. Defaults to ``@(x) zeros(size(x))``.
+%
+%   dual_cone_projector (function handle): A one argument function that, when evaluated at a point $x$, returns the projection
+%     of $x$ onto the dual cone K^{*}. Defaults to ``@(x) x``.
+%
+%   B_constr: A bound on the norm of the constraint function over the domain of $f_n$. Defaults to 0.0.
+%
+%   K_constr: A **required** Lipschitz constant of the constraint function. Defaults to ``None``.
+%
+%   L_constr: A Lipschitz constant of the gradient of the constraint function. Defaults to 0.0.
+%
+%   feas_tol (double): The tolerance for feasibility, i.e. $\eta=\text{feas_tol}$. Defaults to ``1e-6``.
+%
+%   feas_type (character vector): Is either 'relative' or 'absolute'. If it is 'absolute', then the optimality condition is
+%     $\|w\|\leq \text{opt_tol}$. If it is 'relative', then the optimality condition is $\|w\|/(1 + {\cal F}) \leq\text{opt_tol}$
+%     where ${\cal F} = \|g(x_0) - {\rm Proj}_S(g(x_0))\|$. Defaults to ``'absolute'``.
+%
+%   w (double vector): The feasibility residual returned by the solver. Defaults to ``None``. Cannot be set by the user.
 
   %% GLOBAL PROPERTIES
   properties (SetAccess = public)

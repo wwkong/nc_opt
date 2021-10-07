@@ -1,30 +1,18 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  May 31, 2021
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = iALM(~, oracle, params)
-% An inexact augmented Lagrangian method (iALM) for solving a nonconvex 
-% composite optimization model with nonlinear equality constraints, 
-% i.e., g(x) = 0.
+% An inexact augmented Lagrangian method (iALM) for solving a nonconvex composite optimization model with nonlinear equality
+% constraints, i.e. g(x) = 0.
 % 
 % Note:
 % 
 %   Based on the paper:
 %
-%   Li, Z., Chen, P. Y., Liu, S., Lu, S., & Xu, Y. (2020). Rate-improved 
-%   inexact augmented Lagrangian method for constrained nonconvex 
-%   optimization. *arXiv preprint arXiv:2007.01284*\.
+%   Li, Z., Chen, P. Y., Liu, S., Lu, S., & Xu, Y. (2020). Rate-improved inexact augmented Lagrangian method for constrained
+%   nonconvex optimization. *arXiv preprint arXiv:2007.01284*\.
 %
 % Arguments:
-% 
-%   ~ : The first argument is ignored
 % 
 %   oracle (Oracle): The oracle underlying the optimization problem.
 % 
@@ -32,9 +20,8 @@ function [model, history] = iALM(~, oracle, params)
 % 
 % Returns:
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
-%
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 
   % Timer start.
   t_start = tic;
@@ -63,31 +50,24 @@ function [model, history] = iALM(~, oracle, params)
   % Initialize the augmented Lagrangian penalty (ALP) functions.
   alp_n = @(x) 0;
   alp_prox = @(x, lam) x;
-  % Value of the AL function: 
-  %  Q_beta(x, y) = <y, c(x)> + (beta / 2) * |c(x)| ^ 2,
+  % Value of the AL function:
+  %   Q_beta(x, y) := <y, c(x)> + (beta / 2) * |c(x)| ^ 2,
   function alp_val = alp_fn(x, y, beta)
-    alp_val = ...
-      prod_fn(y, params.constr_fn(x)) + ...
-      (beta / 2) * norm_fn(params.constr_fn(x)) ^ 2;
+    alp_val = prod_fn(y, params.constr_fn(x)) + (beta / 2) * norm_fn(params.constr_fn(x)) ^ 2;
   end
   % Gradient of the function Q_beta(x, y) with respect to x.
   function grad_alp_val = grad_alp_fn(x, y, beta)
     prox_ctr = y + beta * params.constr_fn(x);
     grad_constr_fn = params.grad_constr_fn;
-    %  If the gradient function has a single argument, assume that the
-    %  gradient at a point is a constant tensor.
+    %  If the gradient function has a single argument, assume that the gradient at a point is a constant tensor.
     if nargin(grad_constr_fn) == 1
-      grad_alp_val = ...
-        tsr_mult(grad_constr_fn(x), prox_ctr, 'dual');
-    % Else, assume that the gradient is a bifunction; the first argument is
-    % the point of evaluation, and the second one is what the gradient
-    % operator acts on.
+      grad_alp_val = tsr_mult(grad_constr_fn(x), prox_ctr, 'dual');
+    % Else, assume that the gradient is a bifunction; the first argument is the point of evaluation, and the second one is what
+    % the gradient operator acts on.
     elseif nargin(grad_constr_fn) == 2
       grad_alp_val = grad_constr_fn(x, prox_ctr);
     else
-      error(...
-        ['Unknown function prototype for the gradient of the ', ...
-         'constraint function']);
+      error('Unknown function prototype for the gradient of the constraint function');
     end
   end
   
@@ -161,8 +141,7 @@ function [model, history] = iALM(~, oracle, params)
     if (stage == 1)
       c_at_x1 = q;
     end
-    w = w0 * min(...
-      [1, params.gamma_fn(stage - 1, c_at_x1) / norm_fn(q)]);
+    w = w0 * min([1, params.gamma_fn(stage - 1, c_at_x1) / norm_fn(q)]);
     
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
@@ -212,8 +191,7 @@ function [model, history] = iALM(~, oracle, params)
 
   % Add special logic for inequality constraints
   if (params.i_ineq_constr)
-    % Create a helper string for indexing the eventual tensor
-    % representation.
+    % Create a helper string for indexing the eventual tensor representation.
     x_sz = size(o_params.x0);
     x_ind = cell(2, 1);
     x_ind{1} = 1:x_sz(1);
@@ -405,8 +383,7 @@ function params = set_default_params(params)
     params.w0 = 1;
   end
   if (~isfield(params, 'gamma_fn')) 
-    params.gamma_fn = @(k, c_at_x1) ...
-      (log(2)) ^ 2 * params.norm_fn(c_at_x1) / (k + 1) * (log(k + 2)) ^ 2;
+    params.gamma_fn = @(k, c_at_x1) (log(2)) ^ 2 * params.norm_fn(c_at_x1) / (k + 1) * (log(k + 2)) ^ 2;
   end
   % Indicator for if the constraint is a conic inequality constraint.
   if (~isfield(params, 'i_ineq_constr')) 
@@ -424,12 +401,11 @@ function params = set_default_params(params)
 end
 
 function [oracle, params] = add_slack(oracle, params)
-% Modify the problem with the constraint c(x) <= 0 to an equivalent one
-% with the expanded constraints c(x) + s = 0, s >= 0.
+% Modify the problem with the constraint c(x) <= 0 to an equivalent one with the expanded constraints c(x) + s = 0, s >= 0.
 
-  % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   % NOTE: Only 1D or 2D inputs are currently supported!
-  % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   % Create a helper string for indexing the eventual tensor
   % representation.
@@ -473,8 +449,7 @@ function [oracle, params] = add_slack(oracle, params)
   % Modify the constraint function.
   o_constr_fn = params.constr_fn;
   o_grad_constr_fn = params.grad_constr_fn;
-  slack_constr_fn = @(xs) ...
-    o_constr_fn(xs(x_ind{:})) + xs(c_ind{:});
+  slack_constr_fn = @(xs) o_constr_fn(xs(x_ind{:})) + xs(c_ind{:});
   function out_tsr = slack_grad_constr_fn1(xs, grad_fn)
     if (length(x_sz) > 1)
       error('Only vector functions are supported for gradients of this type!');
@@ -491,18 +466,14 @@ function [oracle, params] = add_slack(oracle, params)
   %  If the gradient function has a single argument, assume that the
   %  gradient at a point is a constant tensor.
   if nargin(o_grad_constr_fn) == 1
-    slack_grad_constr_fn = ...
-      @(xs) slack_grad_constr_fn1(xs, o_grad_constr_fn);
+    slack_grad_constr_fn = @(xs) slack_grad_constr_fn1(xs, o_grad_constr_fn);
   % Else, assume that the gradient is a bifunction; the first argument is
   % the point of evaluation, and the second one is what the gradient
   % operator acts on.
   elseif nargin(o_grad_constr_fn) == 2
-    slack_grad_constr_fn = ...
-      @(xs, DeltaS) slack_grad_constr_fn2(xs, DeltaS, o_grad_constr_fn);
+    slack_grad_constr_fn = @(xs, DeltaS) slack_grad_constr_fn2(xs, DeltaS, o_grad_constr_fn);
   else
-    error(...
-      ['Unknown function prototype for the gradient of the ', ...
-       'constraint function']);
+    error('Unknown function prototype for the gradient of the constraint function');
   end
   params.constr_fn = slack_constr_fn;
   params.grad_constr_fn = slack_grad_constr_fn;

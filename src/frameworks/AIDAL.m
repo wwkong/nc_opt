@@ -1,41 +1,29 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 5, 2020
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = AIDAL(~, oracle, params)
-% An accelerated inexact dampened augmeneted Lagrangian (AIDAL) framework 
-% for solving a nonconvex composite optimization problem with linear
-% constraints
-% 
-% Note:
-% 
-%   Based on the paper:
-%
-%     ?????
-%
-% Arguments:
-% 
-%   solver (function handle): A solver for unconstrained composite
-%     optimization.
-% 
-%   oracle (Oracle): The oracle underlying the optimization problem.
-% 
-%   params (struct): Contains instructions on how to call the framework.
-%   
-%   ??? add defaults here ???
-% 
-% Returns:
-%   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
-%
+  % An accelerated inexact dampened augmeneted Lagrangian (AIDAL) framework for solving a nonconvex composite optimization problem
+  % with linear constraints
+  % 
+  % Note:
+  % 
+  %   Based on the paper:
+  %
+  %     ?????
+  %
+  % Arguments:
+  % 
+  %   oracle (Oracle): The oracle underlying the optimization problem.
+  % 
+  %   params (struct): Contains instructions on how to call the framework.
+  %   
+  %   ??? add defaults here ???
+  % 
+  % Returns:
+  %   
+  %   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+  %   parameters.
+  %
 
   % Global constants.
   MIN_PENALTY_CONST = 1;
@@ -69,8 +57,7 @@ function [model, history] = AIDAL(~, oracle, params)
   function alp_val = alp_fn(x, p, c, theta)
     p_step = (1 - theta) * p + c * params.constr_fn(x);
     dist_val = norm_fn((-p_step) - pc_fn(-p_step));
-    alp_val = ...
-      1 / (2 * c) * (dist_val ^ 2 - (1 - theta) ^ 2 * norm_fn(p) ^ 2);
+    alp_val = 1 / (2 * c) * (dist_val ^ 2 - (1 - theta) ^ 2 * norm_fn(p) ^ 2);
   end
   % Computes the point
   %   Proj_{K^*}((1 - theta) * p + c * const_fn(x)).
@@ -84,17 +71,14 @@ function [model, history] = AIDAL(~, oracle, params)
     %  If the gradient function has a single argument, assume that the
     %  gradient at a point is a constant tensor.
     if nargin(grad_constr_fn) == 1
-      grad_alp_val = ...
-        tsr_mult(grad_constr_fn(x), p_step, 'dual');
+      grad_alp_val = tsr_mult(grad_constr_fn(x), p_step, 'dual');
     % Else, assume that the gradient is a bifunction; the first argument is
     % the point of evaluation, and the second one is what the gradient
     % operator acts on.
     elseif nargin(grad_constr_fn) == 2
       grad_alp_val = grad_constr_fn(x, p_step);
     else
-      error(...
-        ['Unknown function prototype for the gradient of the ', ...
-         'constraint function']);
+      error('Unknown function prototype for the gradient of the constraint function');
     end
   end
 
@@ -156,8 +140,7 @@ function [model, history] = AIDAL(~, oracle, params)
     oracle_acg.proxify(lambda, z0);
     
     % Create the ACG params.
-    L_psi = lambda * (L + L_constr * norm_fn(p0) + ...
-      c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    L_psi = lambda * (L + L_constr * norm_fn(p0) + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
     if (strcmp(sigma_type, 'constant'))
       sigma = sigma_min;
     elseif (strcmp(sigma_type, 'variable'))
@@ -178,8 +161,7 @@ function [model, history] = AIDAL(~, oracle, params)
     iter = iter + history_acg.iter;
     
     % Apply the refinement.
-    model_refine = ...
-      refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
+    model_refine = refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
     
     % Check for termination.
     z_hat = model_refine.z_hat;
@@ -194,20 +176,11 @@ function [model, history] = AIDAL(~, oracle, params)
     
     % Check if we need to double c. 
     if strcmp(params.incr_cond, "default")
-      i_incr = ...
-        ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) ...
-          <= feas_tol / 2) && ...
-         (norm_q_hat > feas_tol));
+      i_incr = ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) <= feas_tol / 2) && (norm_q_hat > feas_tol));
     elseif strcmp(params.incr_cond, "feas_alt1")
-      i_incr = ...
-        ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && ...
-         (norm_q_hat > feas_tol));
+      i_incr = ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && (norm_q_hat > feas_tol));
     elseif strcmp(params.incr_cond, "opt_alt1")
-      i_incr = ...
-        ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) ...
-          <= feas_tol / 2) && ...
-         (norm_q_hat > feas_tol) && ...
-         norm_w_hat <= opt_tol);
+      i_incr = ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) <= feas_tol / 2) && (norm_q_hat > feas_tol) && (norm_w_hat <= opt_tol));
     else
       error("Unknown incr_cond parameter!")
     end

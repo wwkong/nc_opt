@@ -2,74 +2,74 @@
 % Copyright © 2021 Weiwei "William" Kong
 
 classdef CompModel < matlab.mixin.Copyable
-  % An abstract model class for composite optimization.
-  %
-  % Note:
-  % 
-  %   The following properties are necessary before the ``optimize()`` method can be called to solve the model: either {``f_s``,
-  %   ``grad_f_s``} or ``oracle``, ``L``, ``x0``, and ``solver``. 
-  %
-  % Key Attributes:
-  %
-  %   f_s (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_s(x)$. Defaults to ``None``.
-  %
-  %   grad_f_s (function handle): A one argument function that, when evaluated at a point $x$, outputs $\nabla f_s(x)$. Defaults
-  %     to ``None``.
-  %
-  %   f_n (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_n(x)$. Defaults to ``@(x)
-  %     zeros(size(x))``.
-  %
-  %   prox_f_n (function handle): A two argument function that, when evaluated at $\{x,\lambda\}$, outputs $${\rm prox}_{\lambda
-  %     f_n}(x) := {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$ Defaults to ``@(x, lam) x``.
-  %
-  %   L (double): A **required** Lipschitz constant of $\nabla f_s$. Defaults to ``None``.
-  %
-  %   M (double): An **optional** upper curvature constant of $\nabla f_s$, i.e., a constant satisfying $$f_s(z) - f_s(u) - \langle
-  %     \nabla f_s(u), z - u \rangle \leq \frac{M}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ Defaults to ``None``.
-  %
-  %   m (double): An **optional** lower curvature constant of $\nabla f_s$, i.e. a constant satisfying $$f_s(z) - f_s(u) - \langle
-  %     \nabla f_s(u), z - u \rangle \geq -\frac{m}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ Defaults to ``None``.
-  %
-  %   x0 (double vector): A **required** starting point of the solver. Defaults to ``None``.
-  %
-  %   oracle (Oracle): An **optional** oracle that may be given to the model, which will be passed to the solver if the flag
-  %     i_update_oracle is False. Defaults to ``None``.
-  %
-  %   solver (function handle): A **required** function handle to a solver that solves unconstrained composite optimization
-  %     problems (see src/solvers). Defaults to ``None``.
-  %
-  %   model (struct): The model struct output by the solver. Defaults to ``None``.
-  %
-  %   history (struct): The history struct output by the solver. Defaults to ``None``.
-  %
-  %   solver_hparams (struct): Contains additional hyperparameters that will be given to the solver when it is called. Defaults
-  %     to ``None``.
-  %
-  %   iter_limit (int): An upper bound on the total number of gradient/function/proximal evaluations done by the solver. Defaults
-  %     to ``Inf``.
-  %
-  %   time_limit (double): An upper bound on the total time used by the solver. Defaults is ``Inf``.
-  %
-  %   opt_tol (double): The tolerance for optimality, i.e. $\rho=\text{opt_tol}$. Defaults to ``1e-6``.
-  %
-  %   opt_type (character vector): Is either 'relative' or 'absolute'. If it is 'absolute', then the optimality condition is
-  %     $\|v\|\leq\text{opt_tol}$. If it is 'relative', then the optimality condition is $\|v\|/[1+\|\nabla f_s(x_0)\|] \leq
-  %     \text{opt_tol}$. Defaults to ``'absolute'``.
-  %
-  %   prod_fn (function handle): A two argument function that, when evaluated at $\{a, b\}$, outputs the inner product $\langle
-  %     a,b \rangle$. Defaults to the Euclidean inner product, i.e. ``@(a,b) sum(dot(a, b))``.
-  %
-  %   norm_fn (function handle): A one function that, when evaluated at a point $a$, outputs $\|a\|$. Defaults to the Frobenius
-  %     norm, i.e. ``norm(a, 'fro')``.
-  %
-  %   iter (int): The number of gradient/function/proximal evaluations done by the solver. Defaults to ``0``. Cannot be set by
-  %     the user.
-  %
-  %   runtime (double): The total runtime used by the solver. Defaults to ``0.0``. Cannot be set by the user.
-  %
-  %   x (double vector): The stationary point returned by the solver. Defaults to ``None``. Cannot be set by the user.
-  %
-  %   v (double vector): The stationary residual returned by the solver. Defaults to ``None``. Cannot be set by the user.
+% An abstract model class for composite optimization.
+%
+% Note:
+% 
+%   The following properties are necessary before the ``optimize()`` method can be called to solve the model: either {``f_s``,
+%   ``grad_f_s``} or ``oracle``, ``L``, ``x0``, and ``solver``. 
+%
+% Key Attributes:
+%
+%   f_s (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_s(x)$. Defaults to ``None``.
+%
+%   grad_f_s (function handle): A one argument function that, when evaluated at a point $x$, outputs $\nabla f_s(x)$. Defaults
+%     to ``None``.
+%
+%   f_n (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_n(x)$. Defaults to ``@(x)
+%     zeros(size(x))``.
+%
+%   prox_f_n (function handle): A two argument function that, when evaluated at $\{x,\lambda\}$, outputs $${\rm prox}_{\lambda
+%     f_n}(x) := {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$ Defaults to ``@(x, lam) x``.
+%
+%   L (double): A **required** Lipschitz constant of $\nabla f_s$. Defaults to ``None``.
+%
+%   M (double): An **optional** upper curvature constant of $\nabla f_s$, i.e., a constant satisfying $$f_s(z) - f_s(u) - \langle
+%     \nabla f_s(u), z - u \rangle \leq \frac{M}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ Defaults to ``None``.
+%
+%   m (double): An **optional** lower curvature constant of $\nabla f_s$, i.e. a constant satisfying $$f_s(z) - f_s(u) - \langle
+%     \nabla f_s(u), z - u \rangle \geq -\frac{m}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ Defaults to ``None``.
+%
+%   x0 (double vector): A **required** starting point of the solver. Defaults to ``None``.
+%
+%   oracle (Oracle): An **optional** oracle that may be given to the model, which will be passed to the solver if the flag
+%     i_update_oracle is False. Defaults to ``None``.
+%
+%   solver (function handle): A **required** function handle to a solver that solves unconstrained composite optimization
+%     problems (see src/solvers). Defaults to ``None``.
+%
+%   model (struct): The model struct output by the solver. Defaults to ``None``.
+%
+%   history (struct): The history struct output by the solver. Defaults to ``None``.
+%
+%   solver_hparams (struct): Contains additional hyperparameters that will be given to the solver when it is called. Defaults
+%     to ``None``.
+%
+%   iter_limit (int): An upper bound on the total number of gradient/function/proximal evaluations done by the solver. Defaults
+%     to ``Inf``.
+%
+%   time_limit (double): An upper bound on the total time used by the solver. Defaults is ``Inf``.
+%
+%   opt_tol (double): The tolerance for optimality, i.e. $\rho=\text{opt_tol}$. Defaults to ``1e-6``.
+%
+%   opt_type (character vector): Is either 'relative' or 'absolute'. If it is 'absolute', then the optimality condition is
+%     $\|v\|\leq\text{opt_tol}$. If it is 'relative', then the optimality condition is $\|v\|/[1+\|\nabla f_s(x_0)\|] \leq
+%     \text{opt_tol}$. Defaults to ``'absolute'``.
+%
+%   prod_fn (function handle): A two argument function that, when evaluated at $\{a, b\}$, outputs the inner product $\langle
+%     a,b \rangle$. Defaults to the Euclidean inner product, i.e. ``@(a,b) sum(dot(a, b))``.
+%
+%   norm_fn (function handle): A one function that, when evaluated at a point $a$, outputs $\|a\|$. Defaults to the Frobenius
+%     norm, i.e. ``norm(a, 'fro')``.
+%
+%   iter (int): The number of gradient/function/proximal evaluations done by the solver. Defaults to ``0``. Cannot be set by
+%     the user.
+%
+%   runtime (double): The total runtime used by the solver. Defaults to ``0.0``. Cannot be set by the user.
+%
+%   x (double vector): The stationary point returned by the solver. Defaults to ``None``. Cannot be set by the user.
+%
+%   v (double vector): The stationary residual returned by the solver. Defaults to ``None``. Cannot be set by the user.
 
   %% CONSTRUCTORS
   methods
