@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex.
 
 % The function of interest is
 %
@@ -30,6 +32,5 @@ ncvx_qp.opt_type = 'relative';
 
 % Run a benchmark test and print the summary.
 solver_arr = {@AIPP, @ECG, @AG};
-[summary_tables, comp_models] = ...
-  run_CM_benchmark(ncvx_qp, solver_arr, [], []);
+[summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, [], []);
 disp(summary_tables.all);

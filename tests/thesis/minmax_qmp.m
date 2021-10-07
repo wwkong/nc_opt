@@ -1,5 +1,7 @@
-% Solve a multivariate minmax nonconvex quadratic programming problem 
-% constrained to the unit simplex using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate minmax nonconvex quadratic programming problem constrained to the unit simplex.
 
 % The function of interest is
 %
@@ -44,10 +46,8 @@ M_vec = [1e1, 1e2, 1e3, 1e3];
 for i = 1:length(M_vec)
   M = M_vec(i);
   m = 1e1;
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
-  [oracle_factory, hparams] = ...
-    test_fn_mm_unconstr_01(k, N, M, m, seed, dimM, dimN, density);
+  % Use a problem instance generator to create the oracle and hyperparameters.
+  [oracle_factory, hparams] = test_fn_mm_unconstr_01(k, N, M, m, seed, dimM, dimN, density);
   hparams.rho_y = rho_y;
   [xi, M_v1] = compute_smoothed_parameters(hparams, 'AIPP-S');
   [~,  M_v2] = compute_smoothed_parameters(hparams, 'PGSF');
@@ -75,8 +75,7 @@ for i = 1:length(M_vec)
   solver_arr = {@ECG, @AG, @AIPP};
   hparam_arr = {base_hparam, base_hparam, aipp_hparam};
   name_arr = {'PGSF', 'AG', 'R_AIPP'};
-  [summary_tables, comp_models] = ...
-    run_CM_benchmark(mm_qmp, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CM_benchmark(mm_qmp, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
   % Set up the final table.

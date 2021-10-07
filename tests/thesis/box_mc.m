@@ -1,3 +1,6 @@
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 % Solve a box-constrained matrix completion problem using MULTIPLE SOLVERS.
 
 % Set up paths.
@@ -30,11 +33,9 @@ disp('========')
 % Loop over the upper curvature M.
 beta_vec = [1/2, 1, 2];
 for i = 1:length(beta_vec)
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
+  % Use a problem instance generator to create the oracle and hyperparameters.
   beta = beta_vec(i);
-  [oracle, hparams] = ...
-    test_fn_bmc_01(data_name, beta, theta, mu, seed);
+  [oracle, hparams] = test_fn_bmc_01(data_name, beta, theta, mu, seed);
 
   % Create the Model object and specify the solver.
   ncvx_box_mc = ConstrCompModel(oracle);
@@ -61,9 +62,7 @@ for i = 1:length(beta_vec)
   name_arr = {'AIP_QP', 'AG_QP'};
   framework_arr = {@penalty, @penalty};
   solver_arr = {@AIPP, @AG};
-  [summary_tables, comp_models] = ...
-    run_CCM_benchmark(...
-      ncvx_box_mc, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CCM_benchmark(ncvx_box_mc, framework_arr, solver_arr, hparam_arr, name_arr);
   
   % Set up the final table.
   sub_table = summary_tables.all;

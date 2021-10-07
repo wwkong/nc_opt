@@ -1,4 +1,7 @@
-% Solve a nonconvex power control problem using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a nonconvex power control problem.
 
 % Set up paths.
 run('../../init.m');
@@ -31,10 +34,8 @@ K_vec = [5, 10, 25, 50];
 for i = 1:length(N_vec)
   dim_N = N_vec(i);
   dim_K = K_vec(i);
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
-  [oracle_factory, hparams] = ...
-    test_fn_power_control_01(dim_K, dim_N, sigma, seed);
+  % Use a problem instance generator to create the oracle and hyperparameters.
+  [oracle_factory, hparams] = test_fn_power_control_01(dim_K, dim_N, sigma, seed);
   hparams.rho_y = rho_y;
   [xi, M_v1] = compute_smoothed_parameters(hparams, 'AIPP-S');
   [~,  M_v2] = compute_smoothed_parameters(hparams, 'PGSF');
@@ -62,8 +63,7 @@ for i = 1:length(N_vec)
   solver_arr = {@ECG, @AG, @AIPP};
   hparam_arr = {base_hparam, base_hparam, aipp_hparam};
   name_arr = {'PGSF', 'AG', 'R_AIPP'};
-  [summary_tables, comp_models] = ...
-    run_CM_benchmark(ncvx_power_control, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CM_benchmark(ncvx_power_control, solver_arr, hparam_arr, name_arr);
   
   % Set up the final table.
   sub_table = summary_tables.all;

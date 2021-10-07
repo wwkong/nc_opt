@@ -1,3 +1,6 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 run('../../init.m');
 testCase = oracle_unit_tests;
 results = testCase.run;

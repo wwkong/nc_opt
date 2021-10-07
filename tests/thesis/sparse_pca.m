@@ -1,4 +1,7 @@
-% Solve a sparse PCA problem using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a sparse PCA problem.
 
 % Set up paths.
 run('../../init.m');
@@ -32,11 +35,9 @@ disp('========')
 % Loop over the upper curvature M.
 s_vec = [5, 10, 15];
 for i = 1:length(s_vec)
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
+  % Use a problem instance generator to create the oracle and hyperparameters.
   s = s_vec(i);
-  [oracle, hparams] = ...
-    test_fn_spca_01(b, nu, p, n, s, k, seed);
+  [oracle, hparams] = test_fn_spca_01(b, nu, p, n, s, k, seed);
 
   % Create the Model object and specify the solver.
   spca = ConstrCompModel(oracle);
@@ -63,9 +64,7 @@ for i = 1:length(s_vec)
   name_arr = {'AIP_QP', 'AG_QP'};
   framework_arr = {@penalty, @penalty};
   solver_arr = {@AIPP, @AG};
-  [summary_tables, comp_models] = ...
-    run_CCM_benchmark(...
-      spca, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CCM_benchmark(spca, framework_arr, solver_arr, hparam_arr, name_arr);
   
    % Set up the final table.
   sub_table = summary_tables.all;

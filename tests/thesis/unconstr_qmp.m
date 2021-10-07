@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex.
 
 % The function of interest is
 %
@@ -41,8 +43,7 @@ for i = 1:length(M_vec)
   % hyperparameters.
   M = M_vec(i);
   m = 1e1;
-  [oracle, hparams] = ...
-    test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density);
+  [oracle, hparams] = test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_qp = CompModel(oracle);
@@ -58,13 +59,10 @@ for i = 1:length(M_vec)
   ncvx_qp.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  solver_arr = ...
-    {@UPFAG, @NC_FISTA, @AG, @AIPP};
-  hparam_arr = ...
-    {base_hparam, base_hparam, base_hparam, aipp_hparam};
+  solver_arr = {@UPFAG, @NC_FISTA, @AG, @AIPP};
+  hparam_arr = {base_hparam, base_hparam, base_hparam, aipp_hparam};
   name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'R_AIPP'};
-  [summary_tables, comp_models] = ...
-    run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
   % Set up the final table.

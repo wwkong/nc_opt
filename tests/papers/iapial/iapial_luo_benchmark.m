@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex using MULTIPLE SOLVERS.
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex.
 
 % The function of interest is
 %
@@ -7,8 +9,7 @@
 %
 % with curvature pair (m, M). 
 
-% NOTE: the purpose of this experiment is to benchmark IAPIAL with Tom
-% Luo's proximal method.
+% NOTE: the purpose of this experiment is to benchmark IAPIAL with Tom Luo's proximal method.
 
 %% Initialization
 
@@ -39,8 +40,7 @@ globals.feas_tol = 1e-6;
 time_limit = 600;
 i_first_row = true;
 for i=1:size(mM_mat, 1)
-  [~, out_models] = ...
-    run_experiment(mM_mat(i, 1), mM_mat(i, 2), time_limit, globals);
+  [~, out_models] = run_experiment(mM_mat(i, 1), mM_mat(i, 2), time_limit, globals);
   tbl_row = parse_models(out_models);
   disp(tbl_row);
   if i_first_row
@@ -193,9 +193,7 @@ end
 function [out_tbl, out_models] = run_experiment(m, M, time_limit, params) 
 
   % Gather the oracle and hparam instance.
-  [oracle, hparams] = ...
-    test_fn_lin_cone_constr_01(...
-      params.N, M, m, params.seed, params.dimM, params.dimN);
+  [oracle, hparams] = test_fn_lin_cone_constr_01(params.N, M, m, params.seed, params.dimM, params.dimN);
 
   % Create the Model object and specify the limits (if any).
   ncvx_lc_qp = ConstrCompModel(oracle);
@@ -237,14 +235,12 @@ function [out_tbl, out_models] = run_experiment(m, M, time_limit, params)
   qpa_hparam.aipp_type = 'aipp';
   
   % Run a benchmark test and print the summary.
-  hparam_arr = ...
-    {qpa_hparam, rqp_hparam, ipla_hparam, spa1_hparam, spa2_hparam, spa3_hparam};
+  hparam_arr = {qpa_hparam, rqp_hparam, ipla_hparam, spa1_hparam, spa2_hparam, spa3_hparam};
   name_arr = {'QP_A', 'RQP', 'IPL_A', 'SPA1', 'SPA2', 'SPA3'};
   framework_arr = {@penalty, @penalty, @IAIPAL, @sProxALM, @sProxALM, @sProxALM};
   solver_arr = {@AIPP, @AIPP, @ECG, @ECG, @ECG, @ECG};
   
   % Run the test.
-  [out_tbl, out_models] = run_CCM_benchmark(...
-    ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [out_tbl, out_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   
 end
