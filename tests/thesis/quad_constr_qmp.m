@@ -1,6 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex intersected with an quadratic manifold 
-% using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex intersected with a quadratic manifold 
 
 % The function of interest is
 %
@@ -38,12 +39,10 @@ disp('========')
 % Loop over the upper curvature M.
 M_vec = [1e2, 1e3, 1e4, 1e5];
 for i = 1:length(M_vec)
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
+  % Use a problem instance generator to create the oracle and hyperparameters.
   M = M_vec(i);
   m = 1e1;
-  [oracle, hparams] = ...
-    test_fn_quad_cone_constr_02(N, M, m, seed, dimM, dimN, density);
+  [oracle, hparams] = test_fn_quad_cone_constr_02(N, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_qc_qp = ConstrCompModel(oracle);
@@ -82,9 +81,7 @@ for i = 1:length(M_vec)
   name_arr = {'iALM', 'AIP_AL'};
   framework_arr = {@iALM, @IAIPAL};
   solver_arr = {@ECG, @ECG};
-  [summary_tables, comp_models] = ...
-    run_CCM_benchmark(...
-      ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CCM_benchmark(ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
   % Set up the final table.

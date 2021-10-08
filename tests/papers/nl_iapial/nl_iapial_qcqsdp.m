@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratically constrained quadratic programming  
-% problem constrained to an ellitope.
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratically constrained quadratic programming problem constrained to an ellitope.
 run('../../../init.m');
 
 % Run an instance via the command line.
@@ -64,8 +66,7 @@ function print_tbls(dimN)
 end
 function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
-  [oracle, hparams] = ...
-    test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
+  [oracle, hparams] = test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
 
   % Set up the termination function. The domain is 0 <= lam_i(X) <= r.
   function proj = proj_dh(A, B)
@@ -82,8 +83,7 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
   alt_grad_constr_fn = @(x, p) hparams.grad_constr_fn(x, p);
-  term_wrap = @(x,p) ...
-    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
+  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
   
   % Create the Model object and specify the solver.
   ncvx_qc_qsdp = ConstrCompModel(oracle);
@@ -144,9 +144,7 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   
   % Run the test.
   % profile on;
-  [summary_tables, ~] = ...
-    run_CCM_benchmark(...
-    ncvx_qc_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = run_CCM_benchmark(ncvx_qc_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
   o_tbl = [table(dimN, r), summary_tables.all];
   disp(o_tbl);
   

@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex linear constrained quadratic semidefinite programming  
-% problem constrained to the unit simplex using MULTIPLE SOLVERS.
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex linear constrained quadratic semidefinite programming problem constrained to an eigenbqx.
 run('../../../init.m');
 
 % Run an instance via the command line.
@@ -64,8 +66,7 @@ function print_tbls(dimN)
 end
 function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
-  [oracle, hparams] = ...
-    test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, dimN, density);
+  [oracle, hparams] = test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, dimN, density);
   
   % Set up the termination function. The domain is 0 <= lam_i(X) <= r.
   function proj = proj_dh(A, B)
@@ -82,8 +83,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
   alt_grad_constr_fn = @(x, p) tsr_mult(hparams.grad_constr_fn(x), p, 'dual');
-  term_wrap = @(x,p) ...
-    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
+  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
   
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -137,8 +137,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   ialm_hparam.B_vec = hparams.K_constr_vec;
   
   % Run a benchmark test and print the summary.
-  hparam_arr = ...
-    {ialm_hparam, qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
+  hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
   name_arr = {'iALM', 'QP', 'QP_A', 'IPL', 'IPL_A'};
   framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
@@ -154,9 +153,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
 %   solver_arr = {@AIPP};
   
   % Run the test.
-  [summary_tables, ~] = ...
-    run_CCM_benchmark(...
-    ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
   o_tbl = [table(dimN, r), summary_tables.all];
   disp(o_tbl);
   

@@ -1,14 +1,5 @@
-%{
-
-
-FILE DATA
----------
-Last Modified: 
-  March 10, 2021
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = ECG(oracle, params)
 % The well-known exact composite gradient (ECG) method with constant stepsize.
@@ -17,8 +8,7 @@ function [model, history] = ECG(oracle, params)
 % 
 %   For reference, see the paper:
 %
-%   Nesterov, Y. (2013). Gradient methods for minimizing composite functions. 
-%   *Mathematical Programming, 140*\(1), 125-161.
+%   Nesterov, Y. (2013). Gradient methods for minimizing composite functions. *Mathematical Programming, 140*\(1), 125-161.
 %
 % Arguments:
 %
@@ -27,8 +17,8 @@ function [model, history] = ECG(oracle, params)
 % 	params (struct): Contains instructions on how to call the algorithm.
 %
 % Returns:
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
 
   % Timer start.
@@ -74,9 +64,8 @@ function [model, history] = ECG(oracle, params)
     error('Unknown steptype!')
   end
   
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
+
   while true
     
     % If time is up, pre-maturely exit.
@@ -104,11 +93,7 @@ function [model, history] = ECG(oracle, params)
     
     % Update L based on Nesterov's suggested scheme.
     if strcmp(params.steptype, 'adaptive')
-      while (o_xBar.f_s() - ...
-             (o_xPrev.f_s() + ...
-                prod_fn(grad_f_s_at_x_prev, x_bar - x_prev)) > ...
-             L * norm_fn(x_bar - x_prev) ^ 2 / 2 && ...
-             L < Lf)
+      while (o_xBar.f_s() - (o_xPrev.f_s() + prod_fn(grad_f_s_at_x_prev, x_bar - x_prev)) > L * norm_fn(x_bar - x_prev) ^ 2 / 2 && L < Lf)
         L = L * gamma_u;
         iter = iter + 1;
         % Update oracles

@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratically constrained quadratic programming  
-% problem constrained to a box using MULTIPLE SOLVERS.
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratically constrained quadratic programming problem constrained to a box.
 run('../../../init.m');
 format long
 
@@ -83,9 +85,8 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   g0 = hparams.constr_fn(hparams.x0);
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
-  term_wrap = @(x,p) ...
-    termination_check(x, p, o_at_x0, hparams.constr_fn, hparams.grad_constr_fn, ...
-                      @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
+  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, hparams.grad_constr_fn, @proj_dh, @proj_NKt, ...
+                                       hparams.norm_fn, rho, eta);
 
   % Create the Model object and specify the solver.
   ncvx_qc_qp = ConstrCompModel(oracle);
@@ -157,17 +158,13 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 %   solver_arr = {@ECG, @ECG, @ECG};
   
   % Run the test.
-  [summary_tables, ~] = ...
-    run_CCM_benchmark(...
-      ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = run_CCM_benchmark(ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   
   % Set up HiAPeM options.
   o_at_x0 = copy(oracle);
   o_at_x0.eval(hparams.x0);
   feas_at_x0 = feasibility(hparams.x0);
-  rel_tol = min([...
-    global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s())), ...
-    global_tol * (1 + feas_at_x0)]);
+  rel_tol = min([global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s())), global_tol * (1 + feas_at_x0)]);
   opts = struct();
   opts.x0 = hparams.x0;
   opts.Lip0 = max([hparams.m, hparams.M]);
@@ -187,8 +184,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   % Run the HiAPeM code.
   tic;
-  [x_hpm, ~, out_hpm] = HiAPeM_qcqp(...
-    hparams.Q, hparams.c, hparams.d, dimM, x_l_vec, x_u_vec, opts);
+  [x_hpm, ~, out_hpm] = HiAPeM_qcqp(hparams.Q, hparams.c, hparams.d, dimM, x_l_vec, x_u_vec, opts);
   t_hpm = toc;
   o_at_x_hpm = copy(oracle);
   o_at_x_hpm.eval(x_hpm);
@@ -210,10 +206,8 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   end
 
   function o_tbl = agg_tbl(summary_tbls, f_HiAPeM, iter_HiAPeM, t_HiAPeM)
-    o_tbl = [...
-      table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, ...
-      table(f_HiAPeM), summary_tbls.iter, table(iter_HiAPeM), ...
-      summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
+    o_tbl = [table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, table(f_HiAPeM), summary_tbls.iter,
+             table(iter_HiAPeM), summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
   end
 
 end

@@ -1,3 +1,6 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 % Solve a nonconvex power control problem using MULTIPLE SOLVERS.
 
 % Set up paths.
@@ -24,18 +27,13 @@ time_limit = 4000;
 disp('========')
 disp('TABLE 1');
 disp('========')
-data_name_arr = ...
-  {'../../data/heart_scale.txt', ...
-   '../../data/diabetes_scale.txt', ...
-   '../../data/ionosphere_scale.txt', ...
-   '../../data/sonar_scale.txt'};    
+data_name_arr = {'../../data/heart_scale.txt', '../../data/diabetes_scale.txt', '../../data/ionosphere_scale.txt', ...
+                 '../../data/sonar_scale.txt'};    
 % Loop over the upper curvature M.
 for i = 1:length(data_name_arr)
   data_name = data_name_arr{i};
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
-  [oracle_factory, hparams] = ...
-    test_fn_robust_regression_01(data_name, alpha);
+  % Use a problem instance generator to create the oracle and hyperparameters.
+  [oracle_factory, hparams] = test_fn_robust_regression_01(data_name, alpha);
   hparams.rho_y = rho_y;
   [xi, M_v1] = compute_smoothed_parameters(hparams, 'AIPP-S');
   [~,  M_v2] = compute_smoothed_parameters(hparams, 'PGSF');
@@ -63,8 +61,7 @@ for i = 1:length(data_name_arr)
   solver_arr = {@ECG, @AG, @AIPP};
   hparam_arr = {base_hparam, base_hparam, aipp_hparam};
   name_arr = {'PGSF', 'AG', 'R_AIPP'};
-  [summary_tables, comp_models] = ...
-    run_CM_benchmark(ncvx_rr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CM_benchmark(ncvx_rr, solver_arr, hparam_arr, name_arr);
   
   % Set up the final table.
   sub_table = summary_tables.all;

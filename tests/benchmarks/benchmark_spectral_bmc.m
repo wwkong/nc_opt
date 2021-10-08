@@ -1,4 +1,7 @@
-% Spectral matrix completion instance
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a spectral matrix completion instance.
 
 % Set up paths.
 run('../../init.m');
@@ -6,10 +9,7 @@ run('../../init.m');
 % % Instance parameters (will be set via the command line).
 % distribution_type = 'truncated_normal';
 % theta = 0.1;
-fprintf(...
-  ['Running test instance with: \n', ...
-   'theta = ', num2str(theta), '\n' ...
-   'distribution_type = ', distribution_type, '\n']);
+fprintf(['Running test instance with: \n','theta = ', num2str(theta), '\ndistribution_type = ', distribution_type, '\n']);
 
 % Parameters for the matrix array.
 seed = 777;
@@ -49,8 +49,7 @@ end
 alpha = 10;
 beta = 20;
 mu = 2;
-[spectral_oracle, hparams] = ...
-  test_fn_spectral_bmc_01(matrix_arr, alpha, beta, theta, mu, seed);
+[spectral_oracle, hparams] = test_fn_spectral_bmc_01(matrix_arr, alpha, beta, theta, mu, seed);
 
 % Create the Model object and specify the solver.
 ncvx_sbmc = CompModel(spectral_oracle);
@@ -70,13 +69,11 @@ ncvx_sbmc.x0 = hparams.x0;
 
 % Run a benchmark test and print the summary.
 solver_arr = {@ECG, @AIPP, @AG, @UPFAG, @NC_FISTA, @IA_ICG, @DA_ICG};
-[summary_tables, comp_models] = ...
-  run_CM_benchmark(ncvx_sbmc, solver_arr, [], []);
+[summary_tables, comp_models] = run_CM_benchmark(ncvx_sbmc, solver_arr, [], []);
 disp(summary_tables.all);
 
 %% Save
-fname = ...
-  [distribution_type, '_theta', num2str(theta, '%1.s'), '_history.mat'];
+fname = [distribution_type, '_theta', num2str(theta, '%1.s'), '_history.mat'];
 comp_history = get_mdl_history(comp_models);
 save(fname, 'comp_history');
 

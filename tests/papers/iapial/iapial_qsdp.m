@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex.
 
 % The function of interest is
 %
@@ -52,9 +54,7 @@ disp(tbl);
 function out_tbl = run_experiment(m, M, params) 
 
   % Gather the oracle and hparam instance.
-  [oracle, hparams] = ...
-    test_fn_lin_cone_constr_02(...
-      params.N, M, m, params.seed, params.dimM, params.dimN, params.density);
+  [oracle, hparams] = test_fn_lin_cone_constr_02(params.N, M, m, params.seed, params.dimM, params.dimN, params.density);
 
   % Create the Model object and specify the limits (if any).
   ncvx_lc_qp = ConstrCompModel(oracle);
@@ -99,20 +99,16 @@ function out_tbl = run_experiment(m, M, params)
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
   ialm_hparam.rho_vec = hparams.m_constr_vec;
   ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the spectraplex.
   ialm_hparam.B_vec = hparams.K_constr_vec;
   ialm_hparam.sigma = 2;
   
   % Run a benchmark test and print the summary.
-  hparam_arr = ...
-    {ialm_hparam, qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
+  hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
   name_arr = {'iALM', 'QP', 'QP_A', 'RQP', 'IPL', 'IPL_A'};
   framework_arr = {@iALM, @penalty, @penalty, @penalty, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AIPP, @AIPP, @ECG, @ECG};
   
   % Run the test.
-  [summary_tables, ~] = ...
-    run_CCM_benchmark(...
-    ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   out_tbl = summary_tables.all;
 end

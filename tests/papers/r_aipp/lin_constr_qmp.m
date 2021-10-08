@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex intersected with an affine manifold 
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit spectraplex intersected with an affine manifold.
 % using MULTIPLE SOLVERS.
 
 % The function of interest is
@@ -50,8 +52,7 @@ for i = 1:nrows
   % hyperparameters.
   m = mM_vec(i, 1);
   M = mM_vec(i, 2);
-  [oracle, hparams] = ...
-    test_fn_lin_cone_constr_02(N, M, m, seed, dimM, dimN, density);
+  [oracle, hparams] = test_fn_lin_cone_constr_02(N, M, m, seed, dimM, dimN, density);
 
   % Create the Model object and specify the solver.
   ncvx_lc_qp = ConstrCompModel(oracle);
@@ -83,18 +84,11 @@ for i = 1:nrows
   ialm_hparam.B_vec = hparams.K_constr_vec;
 
   % Run a benchmark test and print the summary.
-  solver_arr = ...
-    {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
-  hparam_arr = ...
-    {base_hparam, base_hparam, base_hparam, aipp_c_hparam, ...
-     aipp_v1_hparam, aipp_v2_hparam};
-  name_arr = ...
-    {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
-  framework_arr = ...
-    {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty}; 
-  [summary_tables, comp_models] = ...
-    run_CCM_benchmark(...
-      ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  solver_arr = {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
+  hparam_arr = {base_hparam, base_hparam, base_hparam, aipp_c_hparam, aipp_v1_hparam, aipp_v2_hparam};
+  name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
+  framework_arr = {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty}; 
+  [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
   % Set up the final table.

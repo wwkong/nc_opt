@@ -1,3 +1,6 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 % Unit tests for the Oracle class.
 
 %% Oracle constructors.

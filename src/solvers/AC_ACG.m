@@ -1,13 +1,5 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong, Jiaming Liang
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = AC_ACG(oracle, params)
 % The average curvature accelerated composite gradient (AC-ACG) method. 
@@ -16,24 +8,23 @@ function [model, history] = AC_ACG(oracle, params)
 %
 %   Based on the paper: 
 %
-%   Liang, J., & Monteiro, R. D. (2019). An average curvature accelerated 
-%   composite gradient method for nonconvex smooth composite optimization 
-%   problems. *arXiv preprint arXiv:1909.04248*.
+%   Liang, J., & Monteiro, R. D. (2019). An average curvature accelerated composite gradient method for nonconvex smooth composite
+%   optimization problems. *arXiv preprint arXiv:1909.04248*.
 %
 % Arguments:
 %
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
-%   params.alpha (double): Controls the rate at which the upper curvature is 
-%     updated (see $\alpha$ from the original paper). Defaults to ``0.5``.
+%   params.alpha (double): Controls the rate at which the upper curvature is updated (see $\alpha$ from the original paper).
+%     Defaults to ``0.5``.
 %
-%   params.gamma (double): Controls the rate at which the upper curvature is 
-%     updated (see $\gamma$ from the original paper). Defaults to ``0.01``.
+%   params.gamma (double): Controls the rate at which the upper curvature is updated (see $\gamma$ from the original paper).
+%     Defaults to ``0.01``.
 %
 % Returns: 
 %
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
    
   % Timer start.
@@ -109,8 +100,7 @@ function [model, history] = AC_ACG(oracle, params)
     % Main updates.
     v = M*(tx-yNext)+grad_yNext-grad_tx;    
     vnorm = norm_fn(v);
-    C1 = 2*(f_s_yNext - f_tx - prod_fn(grad_tx,yNext-tx)) / ...
-      norm_fn(yNext-tx)^2;
+    C1 = 2*(f_s_yNext - f_tx - prod_fn(grad_tx,yNext-tx)) / norm_fn(yNext-tx)^2;
     C = max(real(C1),0);
     if C>0.9*M
         yNext = (A*y+a*xNext)/ANext;

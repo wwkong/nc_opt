@@ -1,128 +1,83 @@
 classdef SpectralOracle < Oracle
-  % An abstact spectral oracle class for unconstrained spectral composite
-  % optimization.
-  % 
-  % Note:
-  %
-  %   This oracle is specialized for solving nonconvex composite optimization
-  %   problems in which $f_s = f_{1,s} + f_{2,s}^{\cal V} \circ \sigma$   
-  %   and $f_n = f_{n}^{\cal V} \circ \sigma$ for absolutely 
-  %   symmetric functions $f_{2,s}^{\cal V}$ and $f_{n}^{\cal V}$. Here,
-  %   $\sigma()$ denotes operator that maps matrices to some form of type of 
-  %   spectral vector, e.g., a singular value vector.
-  %   
-  %   Unlike the the usual ``Oracle`` object, this one has an additional
-  %   method named ``spectral_eval()`` that takes two arguments, 
-  %   ``{X, x}``, and updates $(f_s, f_n)$ with ``X`` and 
-  %   $(f_{2,s}^{\cal V}, f_n^{\cal V})$ with ``x`` separately. This
-  %   can be helpful when the spectral vector $\sigma(X)$ has already been
-  %   computed. If ``x=[]``, the expected behavior is that ``x``
-  %   is computed from $\sigma()$.
-  %
-  %
-  % See Also:
-  %
-  %   Kong, W., & Monteiro, R. D. (2020). Accelerated Inexact Composite 
-  %   Gradient Methods for Nonconvex Spectral Optimization Problems. 
-  %   *arXiv preprint arXiv:2007.11772*.
-  %
-  % Attributes:
-  %
-  %   spectral_grad_f2_s (function handle): A zero argument function that, 
-  %     when evaluated, outputs $\nabla f_{2,s}^{\cal V}(x)$. Defaults to 
-  %     ``@() zeros(size(x))``.
-  %
-  %   spectral_prox_f_n (function handle): A one argument function that, when
-  %     evaluated at $\lambda$, outputs 
-  %     $${\rm prox}_{\lambda f_{n}^{\cal V}}(x) := {\rm argmin}_u 
-  %     \left\{\lambda f_n^{\cal V}(u) + 
-  %     \frac{1}{2}\|u-x\|^2\right\}.$$ Defaults to 
-  %     ``@(lam) x``.
-  %
-  %   f1_s (function handle): A zero argument function that, when evaluated, 
-  %     outputs $f_{1,s}(X)$. Defaults to ``@() 0``.
-  %
-  %   f2_s (function handle): A zero argument function that, when evaluated, 
-  %     outputs $f_{2,s}(X)$. Defaults to ``@() 0``.
-  %
-  %   grad_f1_s (function handle): A zero argument function that, when 
-  %     evaluated, outputs $\nabla f_{1,s}(X)$. Defaults to 
-  %     ``@() zeros(size(X))``.
-  %
-  %   grad_f2_s (function handle): A zero argument function that, when 
-  %     evaluated, outputs $\nabla f_{2,s}(X)$. Defaults to 
-  %     ``@() zeros(size(X))``.
-  %
-  %   decomp_fn (function handle): A one argument function that, when 
-  %     evaluated at $X$, outputs three arguments ``{P, D, Q}`` where
-  %     ``D`` is a diagonal matrix, ``P`` and ``Q`` are orthogonal matrices,
-  %     and $X=PDQ^*$. Defaults to ``@(X) svd(X, 'econ')``.
-  %
+% An abstact spectral oracle class for unconstrained spectral composite optimization.
+% 
+% Note:
+%
+%   This oracle is specialized for solving nonconvex composite optimization problems in which $f_s = f_{1,s} + f_{2,s}^{\cal V}
+%   \circ \sigma$ and $f_n = f_{n}^{\cal V} \circ \sigma$ for absolutely symmetric functions $f_{2,s}^{\cal V}$ and
+%   $f_{n}^{\cal V}$. Here, $\sigma()$ denotes operator that maps matrices to some form of type of spectral vector, e.g. a
+%   singular value vector.
+%   
+%   Unlike the the usual ``Oracle`` object, this one has an additional method named ``spectral_eval()`` that takes two arguments, 
+%   ``{X, x}``, and updates $(f_s, f_n)$ with ``X`` and $(f_{2,s}^{\cal V}, f_n^{\cal V})$ with ``x`` separately. This can be
+%   helpful when the spectral vector $\sigma(X)$ has already been computed. If ``x=[]``, the expected behavior is that ``x`` is
+%   computed from $\sigma()$.
+%
+%
+% See Also:
+%
+%   Kong, W., & Monteiro, R. D. (2020). Accelerated Inexact Composite Gradient Methods for Nonconvex Spectral Optimization
+%   Problems. *arXiv preprint arXiv:2007.11772*.
+%
+% Attributes:
+%
+%   spectral_grad_f2_s (function handle): A zero argument function that, when evaluated, outputs $\nabla f_{2,s}^{\cal V}(x)$.
+%     Defaults to ``@() zeros(size(x))``.
+%
+%   spectral_prox_f_n (function handle): A one argument function that, when evaluated at $\lambda$, outputs $${\rm prox}_{\lambda
+%     f_{n}^{\cal V}}(x) := {\rm argmin}_u \left\{\lambda f_n^{\cal V}(u) + \frac{1}{2}\|u-x\|^2\right\}.$$ Defaults to
+%     ``@(lam) x``.
+%
+%   f1_s (function handle): A zero argument function that, when evaluated, outputs $f_{1,s}(X)$. Defaults to ``@() 0``.
+%
+%   f2_s (function handle): A zero argument function that, when evaluated, outputs $f_{2,s}(X)$. Defaults to ``@() 0``.
+%
+%   grad_f1_s (function handle): A zero argument function that, when evaluated, outputs $\nabla f_{1,s}(X)$. Defaults to 
+%     ``@() zeros(size(X))``.
+%
+%   grad_f2_s (function handle): A zero argument function that, when evaluated, outputs $\nabla f_{2,s}(X)$. Defaults to 
+%     ``@() zeros(size(X))``.
+%
+%   decomp_fn (function handle): A one argument function that, when evaluated at $X$, outputs three arguments ``{P, D, Q}`` where
+%     ``D`` is a diagonal matrix, ``P`` and ``Q`` are orthogonal matrices, and $X=PDQ^*$. Defaults to ``@(X) svd(X, 'econ')``.
   
-  % -----------------------------------------------------------------------
   %% CONSTRUCTORS
-  % -----------------------------------------------------------------------
-  
   methods
-    
     function obj = SpectralOracle(varargin)
-      % The constructor for the SpectralOracle class. It has three ways to 
-      % initialize: 
-      %   
-      %   - ``Oracle`` creates an oracle that represents the zero function, 
-      %     i.e., $f_s = f_n \equiv 0$.
-      %   - ``Oracle(f_s, f_n, grad_f_s, prox_f_n)`` creates an 
-      %     Oracle object with the properties ``f_s``, ``f_n``, ``grad_f_s``,
-      %     and ``prox_f_n`` filled by the corresponding inputs.
-      %   - ``Oracle(spectral_eval_fn)`` creates an Oracle object which, when 
-      %     spectrally evaluated at a pair ``{X, x}``, updates the
-      %     properties related to ``f_s``, ``f_n``, ``grad_f_s``, and 
-      %     ``prox_f_n`` as follows:
-      %
-      %     .. code-block:: matlab
-      %       
-      %       % Update the suboracles
-      %       f_s = spectral_eval_fn(X, x).f_s;
-      %       f_n = spectral_eval_fn(X, x).f_n;
-      %       grad_f_s = spectral_eval_fn(X, x).grad_f_s;
-      %       prox_f_n = spectral_eval_fn(X, x).prox_f_n;
-      %       spectral_grad_f2_s = ...
-      %         spectral_eval_fn(X, x).spectral_grad_f2_s;
-      %       spectral_prox_f_n = ...
-      %         spectral_eval_fn(X, x).spectral_grad_f2_s;
-      %
-      %     Similar updates are made for ``f_s_at_prox_f_n``, 
-      %     ``f_n_at_prox_f_n``, and ``grad_f_s_at_prox_f_n``, if these are 
-      %     generated by ``eval_fn()``.
-      %
-      if (nargin == 0) % default constructor 
-        obj.eval_proxy_fn = @(X, x) struct(...
-          'f_s', @() 0, ...
-          'f_n', @() 0, ...
-          'grad_f_s', @() zeros(size(X)), ...
-          'prox_f_n', @(lam) X, ...
-          'spectral_grad_f2_s', @() zeros(size(x)), ...
-          'spectral_prox_f_n', @(lam) x, ...
-          'f1_s', @() 0, ...
-          'f2_s', @() 0, ...
-          'grad_f1_s', @() zeros(size(x)), ...
-          'grad_f2_s', @() zeros(size(x)), ...
-          'decomp_fn', @(Z) svd(Z, 'econ'));
-      elseif (nargin == 1) % eval constructor
+    % The constructor for the SpectralOracle class. It has three ways to initialize: 
+    %   
+    %   - ``Oracle()`` creates an oracle that represents the zero function, i.e. $f_s = f_n \equiv 0$.
+    %   - ``Oracle(f_s, f_n, grad_f_s, prox_f_n)`` creates an Oracle object with the properties ``f_s``, ``f_n``, ``grad_f_s``,
+    %     and ``prox_f_n`` filled by the corresponding inputs.
+    %   - ``Oracle(spectral_eval_fn)`` creates an Oracle object which, when spectrally evaluated at a pair ``{X, x}``, updates the
+    %     properties related to ``f_s``, ``f_n``, ``grad_f_s``, and ``prox_f_n`` as follows:
+    %
+    %     .. code-block:: matlab
+    %       
+    %       % Update the suboracles
+    %       f_s = spectral_eval_fn(X, x).f_s;
+    %       f_n = spectral_eval_fn(X, x).f_n;
+    %       grad_f_s = spectral_eval_fn(X, x).grad_f_s;
+    %       prox_f_n = spectral_eval_fn(X, x).prox_f_n;
+    %       spectral_grad_f2_s = spectral_eval_fn(X, x).spectral_grad_f2_s;
+    %       spectral_prox_f_n = spectral_eval_fn(X, x).spectral_grad_f2_s;
+    %
+    %     Similar updates are made for ``f_s_at_prox_f_n``, ``f_n_at_prox_f_n``, and ``grad_f_s_at_prox_f_n``, if these are 
+    %     generated by the underlying evaluator.
+    %
+      if (nargin == 0)  
+        obj.eval_proxy_fn = @(X, x) struct('f_s', @() 0, 'f_n', @() 0, 'grad_f_s', @() zeros(size(X)), 'prox_f_n', @(lam) X, ...
+                                           'spectral_grad_f2_s', @() zeros(size(x)), 'spectral_prox_f_n', @(lam) x, 'f1_s', @() 0, ...
+                                           'f2_s', @() 0, 'grad_f1_s', @() zeros(size(x)), 'grad_f2_s', @() zeros(size(x)), ...
+                                           'decomp_fn', @(Z) svd(Z, 'econ'));
+      elseif (nargin == 4) 
+        obj.eval_proxy_fn = @(X, x) struct('f_s', @() feval(varargin{1}, X), 'f_n', @() feval(varargin{2}, X), ...
+                                           'grad_f_s', @() feval(varargin{3}, X), 'prox_f_n', @(lam) feval(varargin{4}, X, lam), ...
+                                           'spectral_grad_f2_s', @() zeros(size(x)), 'spectral_prox_f_n', @(lam) zeros(size(x)), ...
+                                           'f1_s', @() 0, 'f2_s', @() 0, 'grad_f1_s', @() zeros(size(x)),
+                                           'grad_f2_s', @() zeros(size(x)), 'decomp_fn', @(Z) svd(Z, 'econ'));
+      elseif (nargin == 1) 
         obj.eval_proxy_fn = varargin{1};
-      elseif (nargin == 4) % basic oracle constructor
-        obj.eval_proxy_fn = @(X, x) struct(...
-          'f_s', @() feval(varargin{1}, X), ...
-          'f_n', @() feval(varargin{2}, X), ...
-          'grad_f_s', @() feval(varargin{3}, X), ...
-          'prox_f_n', @(lam) feval(varargin{4}, X, lam), ...
-          'spectral_grad_f2_s', @() zeros(size(x)), ...
-          'spectral_prox_f_n', @(lam) zeros(size(x)), ...
-          'f1_s', @() 0, ...
-          'f2_s', @() 0, ...
-          'grad_f1_s', @() zeros(size(x)), ...
-          'grad_f2_s', @() zeros(size(x)), ...
-          'decomp_fn', @(Z) svd(Z, 'econ'));
       else
         error(['Incorrect number of arguments: ', num2str(nargin)]);
       end
@@ -130,10 +85,7 @@ classdef SpectralOracle < Oracle
     
   end
   
-  % -----------------------------------------------------------------------
   %% ORACLES
-  % -----------------------------------------------------------------------
-  
   properties (SetAccess = public)
     spectral_grad_f2_s
     spectral_prox_f_n
@@ -143,27 +95,19 @@ classdef SpectralOracle < Oracle
     grad_f2_s
     decomp_fn
   end
-  
   properties (SetAccess = private, Hidden = true)
     orig_f2_s
     orig_f_n
   end
   
-  % -----------------------------------------------------------------------
   %% METHODS
-  % -----------------------------------------------------------------------
-    
-  % Primary methods.
   methods
-    
     function obj = eval(obj, X)
-      % An alias for ``obj.spectral_eval(X, [])``.
+    % An alias for ``obj.spectral_eval(X, [])``.
       obj.spectral_eval(X, []);
     end
-    
     function obj = spectral_eval(obj, X, x)
-      % Evaluates the spectral oracle at a pair ``{X, x}`` and updates all
-      % of the relevant properties at this pair. 
+    % Evaluates the spectral oracle at a pair ``{X, x}`` and updates all of the relevant properties at this pair. 
       oracle_outputs = obj.eval_proxy_fn(X, x);
       obj.f_s = @() oracle_outputs.f_s();
       obj.f_n = @() oracle_outputs.f_n();
@@ -184,18 +128,16 @@ classdef SpectralOracle < Oracle
     end
     
     function proxify(obj, alpha, X_hat)
-      % Modify the suboracles by multiplying by a positive constant 
-      % ``alpha`` and then adding a prox term at a point ``x_hat``. 
-      % That is, the properties ``f_s``, ``f_n``, ``grad_f_s``, and 
-      % ``prox_f_n`` are updated as follows:
-      %
-      % .. code-block:: matlab
-      %
-      %   f_s() = alpha * f_s() + (1 / 2) * norm_fn(x - x_hat) ^ 2;
-      %   f_n() = alpha * f_n();
-      %   grad_f_s() = alpha * grad_f_s() + (x - x_hat);
-      %   prox_f_n(lambda) = prox_f_n(alpha * lambda);
-      %
+    % Modify the suboracles by multiplying by a positive constant ``alpha`` and then adding a prox term at a point ``x_hat``. 
+    % That is, the properties ``f_s``, ``f_n``, ``grad_f_s``, and ``prox_f_n`` are updated as follows:
+    %
+    % .. code-block:: matlab
+    %
+    %   f_s() = alpha * f_s() + (1 / 2) * norm_fn(x - x_hat) ^ 2;
+    %   f_n() = alpha * f_n();
+    %   grad_f_s() = alpha * grad_f_s() + (x - x_hat);
+    %   prox_f_n(lambda) = prox_f_n(alpha * lambda);
+    %
       eval_proxy_fn_cpy = obj.eval_proxy_fn;
       function combined_struct = proxify_eval(X)
         out_struct = eval_proxy_fn_cpy(X, []);
@@ -206,21 +148,18 @@ classdef SpectralOracle < Oracle
     end
     
     function vector_linear_proxify(obj, alpha, x_hat)
-      % Denoting $\alpha = {\rm alpha}$ and $\hat{x} = {\rm x\_hat}$, 
-      % calling this method changes the underlying function of the oracle as 
-      % follows:
-      %
-      % .. math::
-      %
-      %   f_{s}(x) & \gets\alpha f_{2,s}^{\cal V}(x)-\left\langle 
-      %   x,\hat{x}\right\rangle +\frac{1}{2}\|x\|^{2},\\
-      %   f_{n}(x) & \gets\alpha f_{n}^{\cal V}(x).
-      %
-      % This method is primarily used to convert the oracle from one that acts 
-      % on a matrix space to one that acts on a vector space. It also makes
-      % sure that the ``eval()`` method is properly adjusted to take in 
-      % vector inputs rather than matrix inputs.
-      %
+    % Denoting $\alpha = {\rm alpha}$ and $\hat{x} = {\rm x\_hat}$, calling this method changes the underlying function of the
+    % oracle as follows:
+    %
+    % .. math::
+    %
+    %   f_{s}(x) & \gets\alpha f_{2,s}^{\cal V}(x)-\left\langle 
+    %   x,\hat{x}\right\rangle +\frac{1}{2}\|x\|^{2},\\
+    %   f_{n}(x) & \gets\alpha f_{n}^{\cal V}(x).
+    %
+    % This method is primarily used to convert the oracle from one that acts on a matrix space to one that acts on a vector space.
+    % It also makes sure that the ``eval()`` method is properly adjusted to take in vector inputs rather than matrix inputs.
+    %
       eval_proxy_fn_cpy = obj.eval_proxy_fn;      
       function combined_struct = vlp_eval(x)
         dim_n = length(x);
@@ -229,23 +168,17 @@ classdef SpectralOracle < Oracle
         combined_struct = base_struct;
         combined_struct.orig_f2_s = @() base_struct.f2_s();
         combined_struct.orig_f_n = @() base_struct.f_n();
-        combined_struct.f_s = @() ...
-          alpha * base_struct.f2_s() - ...
-          obj.prod_fn(x, x_hat) + obj.norm_fn(x) ^ 2 / 2;
-        combined_struct.f_n = ...
-          @() alpha * base_struct.f_n();
-        combined_struct.grad_f_s = @() ...
-          alpha * base_struct.spectral_grad_f2_s() + (x - x_hat);
-        combined_struct.prox_f_n = ...
-          @(lam) base_struct.spectral_prox_f_n(lam * alpha);
+        combined_struct.f_s = @() alpha * base_struct.f2_s() - obj.prod_fn(x, x_hat) + obj.norm_fn(x) ^ 2 / 2;
+        combined_struct.f_n = @() alpha * base_struct.f_n();
+        combined_struct.grad_f_s = @() alpha * base_struct.spectral_grad_f2_s() + (x - x_hat);
+        combined_struct.prox_f_n = @(lam) base_struct.spectral_prox_f_n(lam * alpha);
       end
       % Curry the eval_proxy_fn operator.
       obj.eval_proxy_fn = @(x, x_dummy) vlp_eval(x);
     end
     
     function redistribute_curvature(obj, alpha)
-      % Denoting $\alpha = {\rm alpha}$, calling this method changes the 
-      % underlying function of the oracle as follows:
+      % Denoting $\alpha = {\rm alpha}$, calling this method changes the underlying function of the oracle as follows:
       %
       % .. math::
       %
@@ -258,16 +191,11 @@ classdef SpectralOracle < Oracle
       function combined_struct = redist_eval(X, x)
         base_struct = eval_proxy_fn_cpy(X, x);
         combined_struct = base_struct;
-        combined_struct.f1_s = ...
-          @() base_struct.f1_s() - alpha * obj.norm_fn(X) ^ 2 / 2;
-        combined_struct.f2_s = ...
-          @() base_struct.f2_s() + alpha * obj.norm_fn(X) ^ 2 / 2;
-        combined_struct.grad_f1_s = ...
-          @() base_struct.grad_f1_s() - alpha * X;
-        combined_struct.grad_f2_s = ...
-          @() base_struct.grad_f2_s() + alpha * X;
-        combined_struct.spectral_grad_f2_s = ...
-          @() base_struct.spectral_grad_f2_s() + alpha * x;
+        combined_struct.f1_s = @() base_struct.f1_s() - alpha * obj.norm_fn(X) ^ 2 / 2;
+        combined_struct.f2_s = @() base_struct.f2_s() + alpha * obj.norm_fn(X) ^ 2 / 2;
+        combined_struct.grad_f1_s = @() base_struct.grad_f1_s() - alpha * X;
+        combined_struct.grad_f2_s = @() base_struct.grad_f2_s() + alpha * X;
+        combined_struct.spectral_grad_f2_s = @() base_struct.spectral_grad_f2_s() + alpha * x;
       end
       obj.eval_proxy_fn = @(X, x) redist_eval(X, x);
     end

@@ -1,6 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex intersected with an affine manifold 
-% using MULTIPLE SOLVERS.
+%% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex intersected with an affine manifold. 
 
 % The function of interest is
 %
@@ -75,8 +76,7 @@ for i = 1:length(M_vec)
   % hyperparameters.
   M = M_vec(i);
   m = 1e1;
-  [oracle, hparams] = ...
-    test_fn_lin_cone_constr_01(N, M, m, seed, dimM, dimN);
+  [oracle, hparams] = test_fn_lin_cone_constr_01(N, M, m, seed, dimM, dimN);
 
   % Create the Model object and specify the solver.
   ncvx_lc_qp = ConstrCompModel(oracle);
@@ -108,18 +108,11 @@ for i = 1:length(M_vec)
   ialm_hparam.B_vec = hparams.K_constr_vec;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = ...
-    {aidal0_hparam, aidal1_hparam, aidal2_hparam, ...
-     ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
-  name_arr = {...
-    'ADL0', 'ADL1', 'ADL2', 'iALM', 'IPL', 'QP', 'RQP'};
-  framework_arr = {...
-    @AIDAL, @AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
-  solver_arr = {...
-    @ECG, @ECG, @ECG, @ECG, @ECG, @AIPP, @AIPP};
-  [summary_tables, comp_models] = ...
-    run_CCM_benchmark(...
-      ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  hparam_arr = {aidal0_hparam, aidal1_hparam, aidal2_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
+  name_arr = {'ADL0', 'ADL1', 'ADL2', 'iALM', 'IPL', 'QP', 'RQP'};
+  framework_arr = {@AIDAL, @AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
+  solver_arr = {@ECG, @ECG, @ECG, @ECG, @ECG, @AIPP, @AIPP};
+  [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
   % Set up the final table.

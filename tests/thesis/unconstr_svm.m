@@ -1,4 +1,7 @@
-% Solve a sigmoidal SVM problem using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a sigmoidal SVM problem.
 
 % The function of interest is
 %
@@ -36,12 +39,10 @@ disp('========')
 n_vec = [1000, 2000, 4000, 8000];
 k_vec = [500,  1000, 2000, 4000];
 for i = 1:length(n_vec)
-  % Use a problem instance generator to create the oracle and
-  % hyperparameters.
+  % Use a problem instance generator to create the oracle and hyperparameters.
   n = n_vec(i);
   k = k_vec(i);
-  [oracle, hparams] = ...
-    test_fn_svm_01(n, k, seed, density, r);
+  [oracle, hparams] = test_fn_svm_01(n, k, seed, density, r);
 
   % Create the Model object and specify the solver.
   ncvx_svm = CompModel(oracle);
@@ -57,13 +58,10 @@ for i = 1:length(n_vec)
   ncvx_svm.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  solver_arr = ...
-    {@UPFAG, @NC_FISTA, @AG, @AIPP};
-  hparam_arr = ...
-    {base_hparam, base_hparam, base_hparam, aipp_hparam};
+  solver_arr = {@UPFAG, @NC_FISTA, @AG, @AIPP};
+  hparam_arr = {base_hparam, base_hparam, base_hparam, aipp_hparam};
   name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'R_AIPP'};
-  [summary_tables, comp_models] = ...
-    run_CM_benchmark(ncvx_svm, solver_arr, hparam_arr, name_arr);
+  [summary_tables, comp_models] = run_CM_benchmark(ncvx_svm, solver_arr, hparam_arr, name_arr);
   
   % Set up the final table.
   sub_table = summary_tables.all;

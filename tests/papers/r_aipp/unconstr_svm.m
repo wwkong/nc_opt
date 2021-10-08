@@ -1,10 +1,11 @@
-% Solve a sigmoidal SVM problem using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a sigmoidal SVM problem.
 
 % The function of interest is
 %
-%  f(z) :=  
-%     (1 / k) * sum_{i=1,..,k} (1 - tanh(v_i * <u_i, z>)) + 
-%     (1 / 2*k) ||z|| ^ 2.
+%  f(z) :=  (1 / k) * sum_{i=1,..,k} (1 - tanh(v_i * <u_i, z>)) + (1 / 2*k) ||z|| ^ 2.
 
 % Set up paths.
 run('../../../init.m');
@@ -47,8 +48,7 @@ for i = 1:nrows
   % hyperparameters.
   n = nk_vec(i, 1);
   k = nk_vec(i, 2);
-  [oracle, hparams] = ...
-    test_fn_svm_01(n, k, seed, density, r);
+  [oracle, hparams] = test_fn_svm_01(n, k, seed, density, r);
 
   % Create the Model object and specify the solver.
   ncvx_svm = CompModel(oracle);
@@ -64,15 +64,10 @@ for i = 1:nrows
   ncvx_svm.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  solver_arr = ...
-    {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
-  hparam_arr = ...
-    {base_hparam, base_hparam, base_hparam, aipp_c_hparam, ...
-     aipp_v1_hparam, aipp_v2_hparam};
-  name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', ...
-    'AIPP_v1', 'AIPP_v2'};
-  [summary_tables, comp_models] = ...
-    run_CM_benchmark(ncvx_svm, solver_arr, hparam_arr, name_arr);
+  solver_arr = {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
+  hparam_arr = {base_hparam, base_hparam, base_hparam, aipp_c_hparam, aipp_v1_hparam, aipp_v2_hparam};
+  name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
+  [summary_tables, comp_models] = run_CM_benchmark(ncvx_svm, solver_arr, hparam_arr, name_arr);
   
   % Set up the final table.
   sub_table = summary_tables.all;

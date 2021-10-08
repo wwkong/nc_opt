@@ -1,4 +1,7 @@
-% Solve a sparse PCA problem using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a sparse PCA problem.
 
 % Set up paths.
 run('../../../init.m');
@@ -42,8 +45,7 @@ for i = 1:nrows
   % hyperparameters.
   s = sk_vec(i, 1);
   k = sk_vec(i, 2);
-  [oracle, hparams] = ...
-    test_fn_spca_01(b, nu, p, n, s, k, seed);
+  [oracle, hparams] = test_fn_spca_01(b, nu, p, n, s, k, seed);
 
   % Create the Model object and specify the solver.
   spca = ConstrCompModel(oracle);
@@ -66,18 +68,11 @@ for i = 1:nrows
   spca.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  solver_arr = ...
-    {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
-  hparam_arr = ...
-    {base_hparam, base_hparam, base_hparam, aipp_c_hparam, ...
-     aipp_v1_hparam, aipp_v2_hparam};
-  name_arr = ...
-    {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
-  framework_arr = ...
-    {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty}; 
-  [summary_tables, comp_models] = ...
-    run_CCM_benchmark(...
-      spca, framework_arr, solver_arr, hparam_arr, name_arr);
+  solver_arr = {@UPFAG, @NC_FISTA, @AG, @AIPP, @AIPP, @AIPP};
+  hparam_arr = {base_hparam, base_hparam, base_hparam, aipp_c_hparam, aipp_v1_hparam, aipp_v2_hparam};
+  name_arr = {'UPFAG', 'NC_FISTA', 'AG', 'AIPP_c', 'AIPP_v1', 'AIPP_v2'};
+  framework_arr = {@penalty, @penalty, @penalty, @penalty, @penalty, @penalty}; 
+  [summary_tables, comp_models] = run_CCM_benchmark(spca, framework_arr, solver_arr, hparam_arr, name_arr);
   
    % Set up the final table.
   sub_table = summary_tables.all;

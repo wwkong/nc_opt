@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex and a linear constraint A * x = b.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit simplex and a linear constraint A * x = b.
 
 % The function of interest is
 %

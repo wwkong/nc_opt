@@ -1,14 +1,5 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  June 19, 2021
-Coders: 
-  Weiwei Kong
-
-%}
-
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = AdapAPG(oracle, params)
 % Adaptive Accelerated Proximal Gradient (APG) Method used in the iALM.
@@ -17,22 +8,20 @@ function [model, history] = AdapAPG(oracle, params)
 % 
 %   Its iterates are generated according the paper:
 %
-%   Lin, Q., & Xiao, L. (2014, January). An adaptive accelerated proximal 
-%   gradient method and its homotopy continuation for sparse optimization. In
-%   *International Conference on Machine Learning* (pp. 73-81). PMLR.
+%   Lin, Q., & Xiao, L. (2014, January). An adaptive accelerated proximal gradient method and its homotopy continuation for sparse
+%   optimization. In *International Conference on Machine Learning* (pp. 73-81). PMLR.
 %
 % Arguments:
 %
 %   oracle (Oracle): The oracle underlying the optimization problem.
 %
-%   params (struct): Contains instructions on how to call the algorithm. This 
-%     should ideally  be customized from by caller of this algoirthm, rather 
-%     than the user.
+%   params (struct): Contains instructions on how to call the algorithm. This should ideally  be customized from by caller of this
+%     algoirthm, rather than the user.
 %
 % Returns: 
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 %
 
   % Global constants.
@@ -102,9 +91,7 @@ function [model, history] = AdapAPG(oracle, params)
     if strcmp(params.acg_steptype, 'variable')
       % Check termination (in a relative sense).
       o_at_x_m1.eval(x_m1);
-      if (o_at_x_m1.f_s() <= o_at_x_m2.f_s() + ...
-          prod_fn(o_at_x_m2.grad_f_s(), x_m1 - x_m2) + ...
-          (L0 / 2) * norm_fn(x_m1 - x_m2) ^ 2 + INEQ_TOL)
+      if (o_at_x_m1.f_s() <= o_at_x_m2.f_s() + prod_fn(o_at_x_m2.grad_f_s(), x_m1 - x_m2) + (L0 / 2) * norm_fn(x_m1 - x_m2) ^ 2 + INEQ_TOL)
         break;
       end
     elseif strcmp(params.acg_steptype, 'constant')
@@ -160,10 +147,8 @@ function [model, history] = AdapAPG(oracle, params)
       if params.is_box
         % Here, |v| = dist(0, ∂F(x)).
         grad_at_x_p1 = o_at_x_p1.grad_f_s();
-        v = ...
-          (x_p1 == params.box_upper) .* max(0, grad_at_x_p1) + ...
-          (x_p1 == params.box_lower) .* min(0, grad_at_x_p1) + ...
-          (x_p1 < params.box_upper & x_p1 > params.box_lower) .* grad_at_x_p1;
+        v = (x_p1 == params.box_upper) .* max(0, grad_at_x_p1) + (x_p1 == params.box_lower) .* min(0, grad_at_x_p1) + ...
+            (x_p1 < params.box_upper & x_p1 > params.box_lower) .* grad_at_x_p1;
       else
         % Here, |v| is an upper bound of dist(0, ∂F(x)).
         v = L_prev * (tx - x_p1) + o_at_x_p1.grad_f_s() - o_at_tx.grad_f_s();
@@ -233,9 +218,7 @@ function [model, history] = AccelLineSearch(oracle, params)
     x_p1 = o_at_tx_next.prox_f_n(1 / M);    
     o_at_x_p1.eval(x_p1);
     % Check the descent condition in a relative sense. 
-    if (o_at_x_p1.f_s() < o_at_tx.f_s() + ...
-        prod_fn(o_at_tx.grad_f_s(), x_p1 - tx) + ...
-        M / 2 * norm_fn(x_p1 - tx) ^ 2 + INEQ_TOL)
+    if (o_at_x_p1.f_s() < o_at_tx.f_s() + prod_fn(o_at_tx.grad_f_s(), x_p1 - tx) + M / 2 * norm_fn(x_p1 - tx) ^ 2 + INEQ_TOL)
       break;
     end
     % Safety check.
@@ -255,9 +238,7 @@ function [model, history] = AccelLineSearch(oracle, params)
   history.iter = iter;
 end
 
-% -------------------------------------------------------------------------
 %% HELPER FUNCTIONS
-% -------------------------------------------------------------------------
 
 % Fills in parameters that were not set as input.
 function params = set_default_params(params)
@@ -289,13 +270,3 @@ function params = set_default_params(params)
   end
 
 end
-
-%     % DEBUG
-%     v_upper = L * (tx - x_p1) + o_at_x_p1.grad_f_s() - o_at_tx.grad_f_s();
-%     nrm_v = norm_fn(v);
-%     nrm_v_upper = norm_fn(v_upper);
-%     mu = params.mu;
-%     del1 = norm_fn(tx - x_p1);
-%     del2 = norm_fn(x0 - x_p1);
-%     disp(table(nrm_v, nrm_v_upper, del1, del2, M, L, mu, iter, alpha, eps));
-%     disp(table(x0, tx, x_p1));

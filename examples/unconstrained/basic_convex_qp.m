@@ -1,3 +1,6 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 % Solve a basic univariate convex quadratic programming problem.
 
 % The function of interest is

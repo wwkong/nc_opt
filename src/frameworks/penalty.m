@@ -1,32 +1,20 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 5, 2020
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = penalty(solver, oracle, params)
-% A quadratic penalty-based framework for solving a nonconvex composite 
-% optimization model with linear set constraints, i.e., $g(x)=Ax$ where $A$ is
-% a linear operator.
+% A quadratic penalty-based framework for solving a nonconvex composite optimization model with linear set constraints, i.e.
+% $g(x)=Ax$ where $A$ is a linear operator.
 % 
 % Note:
 % 
 %   Based on the paper:
 %
-%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient adaptive 
-%   accelerated inexact proximal point method for solving linearly constrained 
-%   nonconvex composite problems. *Computational Optimization and 
-%   Applications, 76*\(2), 305-346. 
+%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). An efficient adaptive accelerated inexact proximal point method for solving
+%   linearly constrained nonconvex composite problems. *Computational Optimization and Applications, 76*\(2), 305-346. 
 %
 % Arguments:
 % 
-%   solver (function handle): A solver for unconstrained composite
-%     optimization.
+%   solver (function handle): A solver for unconstrained composite optimization.
 % 
 %   oracle (Oracle): The oracle underlying the optimization problem.
 % 
@@ -34,9 +22,8 @@ function [model, history] = penalty(solver, oracle, params)
 % 
 % Returns:
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
-%
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 
   % Global constants.
   MIN_PENALTY_CONST = 1;
@@ -54,11 +41,10 @@ function [model, history] = penalty(solver, oracle, params)
   penalty_n = @(x) 0;
   penalty_prox = @(x, lam) x;
   % Value of the feasibility function: 
-  % feas(x) = |constr_fn(x) - set_projector(constr_fn(x))|. 
+  %   feas(x) = |constr_fn(x) - set_projector(constr_fn(x))|. 
   function [feas, feas_vec] = feas_fn(x)
     constr_fn_vec = params.constr_fn(x);
-    feas_vec = ...
-      constr_fn_vec - params.set_projector(constr_fn_vec);
+    feas_vec = constr_fn_vec - params.set_projector(constr_fn_vec);
     feas = params.norm_fn(feas_vec);
   end
   % Value of the function (1 / 2) * feas(x) ^ 2.
@@ -69,20 +55,15 @@ function [model, history] = penalty(solver, oracle, params)
   function grad_sqr_feas = grad_sqr_feas_fn(x)
     [~, feas_vec] = feas_fn(x);
     grad_constr_fn = params.grad_constr_fn;
-    %  If the gradient function has a single argument, assume that the
-    %  gradient at a point is a constant tensor.
+    % If the gradient function has a single argument, assume that the gradient at a point is a constant tensor.
     if nargin(grad_constr_fn) == 1
-      grad_sqr_feas = ...
-        tsr_mult(grad_constr_fn(x), feas_vec, 'dual');
-    % Else, assume that the gradient is a bifunction; the first argument is
-    % the point of evaluation, and the second one is what the gradient
-    % operator acts on.
+      grad_sqr_feas = tsr_mult(grad_constr_fn(x), feas_vec, 'dual');
+    % Else, assume that the gradient is a bifunction; the first argument is the point of evaluation, and the second one is what
+    % the gradient operator acts on.
     elseif nargin(grad_constr_fn) == 2
       grad_sqr_feas = grad_constr_fn(x, feas_vec);
     else
-      error(...
-        ['Unknown function prototype for the gradient of the ', ...
-         'constraint function']);
+      error('Unknown function prototype for the gradient of the constraint function');
     end
   end
 
@@ -103,9 +84,7 @@ function [model, history] = penalty(solver, oracle, params)
   i_reset_prox_center = params.i_reset_prox_center;
   c = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
 
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
   while true
     
     % If time is up, pre-maturely exit.
@@ -121,12 +100,7 @@ function [model, history] = penalty(solver, oracle, params)
     % Create the penalty oracle object.
     penalty_s = @(x) c * sqr_feas_fn(x);
     grad_penalty = @(x) c * grad_sqr_feas_fn(x);
-    penalty_oracle = ...
-      Oracle(penalty_s, penalty_n, grad_penalty, penalty_prox);
-    
-    % Create the main oracle and update the model.
-    % NOTE: We need to explicitly call copy() because the 'Oracle' class
-    % inherits from the 'handle' class.
+    penalty_oracle = Oracle(penalty_s, penalty_n, grad_penalty, penalty_prox);
     solver_oracle = copy(o_oracle);
     solver_oracle.add_smooth_oracle(penalty_oracle)
     
@@ -135,8 +109,7 @@ function [model, history] = penalty(solver, oracle, params)
       solver_params.termination_fn = @(x) wrap_termination(params, x, c);
     end
     
-    % Update curvatures and time limit, call the solver, and update 
-    % iteration count.
+    % Update curvatures and time limit, call the solver, and update iteration count.
     solver_params.time_limit = max([0, time_limit - toc(t_start)]);
     solver_params.M = params.M + c * params.K_constr ^ 2;
     [solver_model, solver_history] = solver(solver_oracle, solver_params);
@@ -145,22 +118,17 @@ function [model, history] = penalty(solver, oracle, params)
     % Update history.
     if params.i_logging
       if isfield(solver_history, 'function_values')
-        history.function_values = ...
-          [history.function_values, solver_history.function_values];
+        history.function_values = [history.function_values, solver_history.function_values];
       end
       if isfield(solver_history, 'iteration_values')
         if isempty(history.iteration_values)
           history.iteration_values = solver_history.iteration_values;
         else
-          history.iteration_values = ...
-            [history.iteration_values, ...
-             history.iteration_values(end) + ...
-                1 + solver_history.iteration_values];
+          history.iteration_values = [history.iteration_values, history.iteration_values(end) + 1 + solver_history.iteration_values];
         end
       end
       if isfield(solver_history, 'time_values')
-        history.time_values = ...
-          [history.time_values, solver_history.time_values];
+        history.time_values = [history.time_values, solver_history.time_values];
       end
     end
     
@@ -206,7 +174,6 @@ end
 
 % Fills in parameters that were not set as input.
 function params = set_default_params(params)
-
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;

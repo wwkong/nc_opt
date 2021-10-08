@@ -1,5 +1,7 @@
-% Solve a multivariate nonconvex quadratic programming problem 
-% constrained to the unit simplex using MULTIPLE SOLVERS.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
+% Solve a multivariate nonconvex quadratic programming problem constrained to the unit spectraplex.
 
 % The function of interest is
 %
@@ -21,8 +23,7 @@ seed = 777;
 dimM = 10;
 dimN = 50;
 density = 0.01;
-[oracle, hparams] = ...
-  test_fn_lin_cone_constr_02(N, M, m, seed, dimM, dimN, density);
+[oracle, hparams] = test_fn_lin_cone_constr_02(N, M, m, seed, dimM, dimN, density);
 
 % Create the Model object and specify the limits (if any).
 ncvx_lc_qp = ConstrCompModel(oracle);
@@ -57,7 +58,6 @@ ialm_hparam.rho0 = hparams.m;
 ialm_hparam.L0 = max([hparams.m, hparams.M]);
 ialm_hparam.rho_vec = hparams.m_constr_vec;
 ialm_hparam.L_vec = hparams.L_constr_vec;
-% Note that we are using the fact that |X|_F <= 1 over the spectraplex.
 ialm_hparam.B_vec = hparams.K_constr_vec;
 
 % Run a benchmark test and print the summary.
@@ -67,9 +67,7 @@ framework_arr = {@iALM, @penalty, @IAIPAL};
 solver_arr = {@ECG, @AIPP, @ECG};
 
 % Run the test.
-[summary_tables, comp_models] = ...
-  run_CCM_benchmark(...
-    ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+[summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
 disp(summary_tables.all);
 
 %% Print the history for additional diagnostics.

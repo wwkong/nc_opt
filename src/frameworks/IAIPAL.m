@@ -1,31 +1,18 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 5, 2020
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = IAIPAL(~, oracle, params)
-% An inexact accelerated proximal augmeneted Lagrangian (IAPIAL) framework 
-% for solving a nonconvex composite optimization problem with 
-% convex cone constraints.
+% An inexact accelerated proximal augmeneted Lagrangian (IAPIAL) framework for solving a nonconvex composite optimization problem
+% with convex cone constraints.
 % 
 % Note:
 % 
 %   Based on the paper:
 %
-%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). Iteration-complexity of 
-%   a proximal augmented Lagrangian method for solving nonconvex composite 
-%   optimization problems with nonlinear convex constraints. *arXiv preprint 
-%   arXiv:2008.07080*\.
+%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). Iteration-complexity of a proximal augmented Lagrangian method for solving
+%   nonconvex composite optimization problems with nonlinear convex constraints. *arXiv preprint arXiv:2008.07080*\.
 %
 % Arguments:
-% 
-%   ~ : The first argument is ignored
 % 
 %   oracle (Oracle): The oracle underlying the optimization problem.
 % 
@@ -33,9 +20,8 @@ function [model, history] = IAIPAL(~, oracle, params)
 % 
 % Returns:
 %   
-%   A pair of structs containing model and history related outputs of the 
-%   solved problem associated with the oracle and input parameters.
-%
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
 
   % Timer start.
   t_start = tic;
@@ -68,8 +54,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   
   % Function that creates the augmented Lagrangian oracle for the function
   %
-  %   L_c(x; p) := 
-  %     phi(x) + 1 / (2 * c) * [dist(p + c * constr_fn(x), -K) - |p| ^ 2],
+  %   L_c(x; p) := phi(x) + 1 / (2 * c) * [dist(p + c * constr_fn(x), -K) - |p| ^ 2],
   %
   % where K is the primal cone.
   function al_oracle = create_al_oracle(p, c)
@@ -86,13 +71,11 @@ function [model, history] = IAIPAL(~, oracle, params)
       function val = wrap_grad_f_s(x)
         [dual_proj_proint, ~]= cone_proj(x, p, c);
         grad_constr_fn = params.grad_constr_fn;
-        %  If the gradient function has a single argument, assume that the
-        %  gradient at a point is a constant tensor.
+        %  If the gradient function has a single argument, assume that the gradient at a point is a constant tensor.
         if nargin(grad_constr_fn) == 1
           val = tsr_mult(grad_constr_fn(x), dual_proj_proint, 'dual');
-          % Else, assume that the gradient is a bifunction; the first argument is
-          % the point of evaluation, and the second one is what the gradient
-          % operator acts on.
+          % Else, assume that the gradient is a bifunction; the first argument is the point of evaluation, and the second one is
+          % what the gradient operator acts on.
         elseif nargin(grad_constr_fn) == 2
           val = grad_constr_fn(x, dual_proj_proint);
         else
@@ -168,9 +151,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
   
-  % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
-  % -----------------------------------------------------------------------
   while true
     
     % If time is up, pre-maturely exit.
