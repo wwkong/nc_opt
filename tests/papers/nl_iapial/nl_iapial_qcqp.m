@@ -206,7 +206,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   end
 
   function o_tbl = agg_tbl(summary_tbls, f_HiAPeM, iter_HiAPeM, t_HiAPeM)
-    o_tbl = [table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, table(f_HiAPeM), summary_tbls.iter,
+    o_tbl = [table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, table(f_HiAPeM), summary_tbls.iter, ...
              table(iter_HiAPeM), summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
   end
 

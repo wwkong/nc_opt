@@ -83,7 +83,8 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
   alt_grad_constr_fn = @(x, p) hparams.grad_constr_fn(x, p);
-  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
+  term_wrap = @(x,p) ...
+    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
   
   % Create the Model object and specify the solver.
   ncvx_qc_qsdp = ConstrCompModel(oracle);
@@ -98,7 +99,7 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   % Set the tolerances
   ncvx_qc_qsdp.opt_tol = global_tol;
   ncvx_qc_qsdp.feas_tol = global_tol;
-  ncvx_qc_qsdp.time_limit = 6000;
+  ncvx_qc_qsdp.time_limit = 12000;
   
   % Add linear constraints
   ncvx_qc_qsdp.constr_fn = hparams.constr_fn;
@@ -136,11 +137,6 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   name_arr = {'iALM', 'IPL', 'IPL_A'};
   framework_arr = {@iALM, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @ECG, @ECG};
-  
-%   hparam_arr = {ipl_hparam, ipla_hparam};
-%   name_arr = {'IPL', 'IPL_A'};
-%   framework_arr = {@IAIPAL, @IAIPAL};
-%   solver_arr = {@ECG, @ECG};
   
   % Run the test.
   % profile on;

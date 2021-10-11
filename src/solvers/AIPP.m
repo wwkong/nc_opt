@@ -125,6 +125,13 @@ function [model, history] = AIPP(oracle, params)
   else
     error('Incorrect AIPP type specified! Valid types are: {aipp, aipp_c, aipp_v1, aipp_v2}')
   end
+  
+  % DEBUG ONLY
+  if params.i_debug
+    history.inner_iter = [];
+    history.L_est = [];
+    history.norm_v = [];
+  end
      
   %% MAIN ALGORITHM
 
@@ -156,12 +163,12 @@ function [model, history] = AIPP(oracle, params)
     params_acg.L_grad_f_s_est = L_prox_fn(lambda, L_grad_f_s_est);
     params_acg.time_limit = max([0, time_limit - toc(t_start)]);
         
-    % Call the ACG.
+    % Call the ACG.    
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     
     % Parse ACG outputs that are invariant of output status.
     iter = iter + history_acg.iter;
-    M_est = (model_acg.L_est - 1) / lambda;
+    M_est = (model_acg.L_est - 1) / lambda;   
     
     % Refine if the ACG has a solution.
     if (isfield(model_acg, 'y') && isfield(model_acg, 'u'))
@@ -171,6 +178,14 @@ function [model, history] = AIPP(oracle, params)
       i_early_stop = true;
       norm_v = norm_fn(v);
       history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+      
+      % DEBUG ONLY
+      if params.i_debug
+        history.inner_iter = [history.inner_iter; history_acg.iter];
+        history.L_est = [history.L_est; L_prox_fn(lambda, M_est)];
+        history.norm_v = [history.norm_v; norm_v];
+      end      
+      
       % Check for termination.
       if (~isempty(params.termination_fn))
         if params.termination_fn(model_refine.z_hat)

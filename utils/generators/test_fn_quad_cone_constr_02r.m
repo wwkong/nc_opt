@@ -9,8 +9,7 @@ Coders:
 
 %}
 
-function [oracle, params] = ...
-  test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density)
+function [oracle, params] = test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density)
 % Generator of a test suite of unconstrained nonconvex quadratically 
 % constrained quadratic SDP functions. Data matrices are sparse and 
 % their densities are calibrated according to the input variable 'density'.
@@ -54,7 +53,7 @@ function [oracle, params] = ...
   D = sparse(1:dimN, 1:dimN, randi([1, N], 1, dimN), dimN, dimN);
   C = sprand(dimM, dimN * dimN, density);
   B = sprand(dimN, dimN * dimN, density);
-  P = sqrt(log(M / m) / log(1000000)) * rand(dimN, dimN) / sqrt(dimN);
+  P = log(M / m) * rand(dimN, dimN) / sqrt(100 * dimN * r);
   Q = rand(dimN, dimN) / dimN;
   d = rand([dimM, 1]);
   
@@ -70,8 +69,6 @@ function [oracle, params] = ...
   norm_fn = @(a) norm(a, 'fro');
   
   % Computing auxiliary constants of P and Q.
-  fro_P = norm(P, 'fro');
-  fro_Q = norm(Q, 'fro');
   PtP_vec = reshape(PtP, dimN * dimN, 1);
   QtQ_vec = reshape(QtQ, dimN * dimN, 1);
   
@@ -84,20 +81,14 @@ function [oracle, params] = ...
   adj_op = @(Mt, y) sparse(tsr_mult(Mt, y, 'dual'));
   
   % Constraint map methods.
-  params.constr_fn = @(Z) ...
-    (1 / 2) * Z' * PtP * Z + ...
-    (1 / 2) * (QtQ * Z + Z' * QtQ) - ...
-    (1 / (dimN ^ 2)) * eye(dimN);
+  params.constr_fn = @(Z) (1 / 2) * Z' * PtP * Z + (1 / 2) * (QtQ * Z + Z' * QtQ) - (1 / (dimN ^ 2)) * eye(dimN);
+%   params.constr_fn = @(Z) (1 / 2) * Z' * PtP * Z + (1 / 2) * (QtQ * Z + Z' * QtQ) - eye(dimN);
   
   % MONTEIRO (gradient).
-  params.grad_constr_fn = @(Z, Delta) ...
-    (1 / 2) * (PtP * Z * Delta + Delta' * Z' * PtP') + ...
-    (1 / 2) * (QtQ * Delta + Delta' * QtQ');
+  params.grad_constr_fn = @(Z, Delta) (1 / 2) * (PtP * Z * Delta + Delta' * Z' * PtP') + (1 / 2) * (QtQ * Delta + Delta' * QtQ');
   
 %   % KONG (gradient).
-%   params.grad_constr_fn = @(Z, Delta) ...
-%     (1 / 2) * PtP * Z * (Delta + Delta') + ...
-%     (1 / 2) * QtQ * (Delta + Delta');
+%   params.grad_constr_fn = @(Z, Delta) + (1 / 2) * PtP * Z * (Delta + Delta') + (1 / 2) * QtQ * (Delta + Delta');
   
   % Basic output params.
   params.M = eigs(Dfn(xi, tau) * Z, 1, 'lr');
@@ -106,8 +97,10 @@ function [oracle, params] = ...
   params.prod_fn = prod_fn;
   params.norm_fn = norm_fn;
   
+  % Note that |Z| <= r * |ones(dimN,1)| when 0 <= Z <= r * I
+  
   % Special params for individual constraints.
-  params.K_constr_vec = abs(PtP_vec) / 2 + abs(QtQ_vec);
+  params.K_constr_vec = abs(PtP_vec) / 2 * norm(ones(dimN, 1) * r) + abs(QtQ_vec);
   params.L_constr_vec = abs(PtP_vec);
   params.m_constr_vec = zeros(dimN * dimN, 1);
   

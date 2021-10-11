@@ -76,6 +76,13 @@ function [model, history] = penalty(solver, oracle, params)
     history.iteration_values = [];
     history.time_values = [];
   end
+  
+  % DEBUG ONLY
+  if params.i_debug
+    history.inner_iter = [];
+    history.L_est = [];
+    history.norm_v = [];
+  end
 
   % Initialize solver parameters.
   iter = 0; % Set to 0 because it calls an inner subroutine.
@@ -130,6 +137,12 @@ function [model, history] = penalty(solver, oracle, params)
       if isfield(solver_history, 'time_values')
         history.time_values = [history.time_values, solver_history.time_values];
       end
+    end
+    
+    if params.i_debug      
+      history.inner_iter = [history.inner_iter; solver_history.inner_iter];
+      history.L_est = [history.L_est; solver_history.L_est];
+      history.norm_v = [history.norm_v; solver_history.norm_v];
     end
     
     % Check for termination.

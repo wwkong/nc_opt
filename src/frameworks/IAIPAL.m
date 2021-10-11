@@ -126,7 +126,9 @@ function [model, history] = IAIPAL(~, oracle, params)
     history.c = [];
     history.sigma = [];
     history.L_est = [];
+    history.norm_p0 = [];
     history.norm_p_hat = [];
+    history.norm_v = [];
   end
 
   % Initialize framework parameters.
@@ -169,17 +171,18 @@ function [model, history] = IAIPAL(~, oracle, params)
        
     % Create the ACG oracle.
     oracle_acg = copy(oracle_al0);
-    oracle_acg.proxify(lambda, z0);
+    oracle_acg.proxify(lambda, z0);    
     
     % Create the ACG params.
-    L_psi = lambda * (M + L_constr * norm_fn(p0) + c0 * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    L_psi = M + L_constr * norm_fn(p0) + c0 * (B_constr * L_constr + K_constr ^ 2);
+    M_s = lambda * L_psi + 1;    
     if (outer_iter == 1)
-      first_L_psi = L_psi;
+      first_L_psi = M_s;
     end
     if (strcmp(sigma_type, 'constant'))
       sigma = sigma_min;
     elseif (strcmp(sigma_type, 'variable'))
-      sigma = min([nu / sqrt(L_psi), sigma_min]);
+      sigma = min([nu / sqrt(M_s), sigma_min]);
     else 
       error('Unknown sigma type!');
     end    
@@ -188,9 +191,9 @@ function [model, history] = IAIPAL(~, oracle, params)
     params_acg.sigma = sigma;
     params_acg.t_start = t_start;
     
-    % Stepsize selection
-    if strcmp(params.acg_steptype, 'constant') 
-      params_acg.L_est = L_psi;
+    % Set the correct stepsizes.
+    if strcmp(params.acg_steptype, 'constant')
+      params_acg.L_est = M_s;
     elseif strcmp(params.acg_steptype, 'variable') 
       if (i_first_acg_run)
         o_z0 = copy(oracle);
@@ -215,12 +218,13 @@ function [model, history] = IAIPAL(~, oracle, params)
     else
       error('Unknown ACG steptype!');
     end
+    params_acg.L = M_s;
     
     % Call the ACG algorithm and update parameters.
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
     i_first_acg_run = false;
-    
+       
     % If time is up, pre-maturely exit.
     if (toc(t_start) > time_limit)
       break;
@@ -250,6 +254,24 @@ function [model, history] = IAIPAL(~, oracle, params)
       history.time_values = [history.time_values; toc(t_start)];
     end
     
+    % DEBUG ONLY.
+    if params.i_debug
+      if isempty(history.theta1)
+        history.theta1 = 1;
+        history.theta2 = 1;
+      else
+        history.theta1 = [history.theta1; norm_fn(w_hat) / norm_fn(model_refine.v_hat)];
+        history.theta2 = [history.theta2; norm_fn(q_hat) / norm_fn((1 / c0) * (p0 - p_hat))];
+      end
+      history.inner_iter = [history.inner_iter; history_acg.iter];
+      history.c = [history.c; c0];
+      history.sigma = [history.sigma; sigma];
+      history.L_est = [history.L_est; params_acg.L_est];
+      history.norm_p0 = [history.norm_p0; norm_fn(p0)];
+      history.norm_p_hat = [history.norm_p_hat; norm_fn(p_hat)];
+      history.norm_v = [history.norm_v; norm_fn(w_hat)];
+    end
+    
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
       if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
@@ -261,17 +283,6 @@ function [model, history] = IAIPAL(~, oracle, params)
       if tpred
         break;
       end
-    end
-    
-    % DEBUG ONLY.
-    if params.i_debug
-      history.theta1 = [history.theta1; norm_fn(w_hat) / norm_fn(model_refine.v_hat)];
-      history.theta2 = [history.theta2; norm_fn(q_hat) / norm_fn((1 / c0) * (p0 - p_hat))];
-      history.inner_iter = [history.inner_iter; history_acg.iter];
-      history.c = [history.c; c0];
-      history.sigma = [history.sigma; sigma];
-      history.L_est = [history.L_est; params_acg.L_est];
-      history.norm_p_hat = [history.norm_p_hat; norm_fn(p_hat)];
     end
     
     % Apply the dual update and create a new ALP oracle.
@@ -322,7 +333,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   history.outer_iter = outer_iter;
   history.stage = stage;
   history.first_L_psi = first_L_psi;
-  history.last_L_psi = L_psi;
+  history.last_L_psi = M_s;
   history.last_sigma = sigma;
   history.first_c0 = first_c0;
   history.last_c0 = c0;

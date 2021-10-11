@@ -6,7 +6,7 @@ n = 100;
 r = 1;
 m = 1e4;
 M = 1e6;
-global_tol = 1e-3;
+global_tol = 1e-2;
 
 % Run an instance via the command line.
 print_tbls(n, r, m, M, global_tol);
@@ -71,16 +71,17 @@ function run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
   base_hparam.check_all_terminations = true;
   
   % Create the IAPIAL hparams.
+  qp_hparam = base_hparam;
+  qp_hparam.acg_steptype = 'constant';
+  qp_hparam.aipp_type = 'aipp';
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
-  ipla_hparam = base_hparam;
-  ipla_hparam.acg_steptype = 'variable';
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {ipl_hparam, ipla_hparam};
-  name_arr = {'IPL', 'IPL_A'};
-  framework_arr = {@IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG};
+  hparam_arr = {qp_hparam, ipl_hparam};
+  name_arr = {'QP','IPL'};
+  framework_arr = {@penalty, @IAIPAL};
+  solver_arr = {@AIPP, @ECG};
   
   % Run the test.
   [~, summary_mdls] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
@@ -88,9 +89,8 @@ function run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
     disp(['Algorithm = ', s{1}]);
     disp(table(dimN, m, M, r));
     hist = summary_mdls.(s{1}).history;
-    tbl = table(hist.theta1, hist.theta2, hist.inner_iter, hist.sigma, hist.c, hist.L_est, hist.norm_p_hat);
-    tbl.Properties.VariableNames = ...
-      {'theta1', 'theta2', 'inner_iter', 'sigma', 'penalty_param', 'L_est', 'norm_p_hat'};
+    tbl = table(hist.inner_iter, hist.L_est, hist.norm_v);
+    tbl.Properties.VariableNames = {'inner_iter', 'L_est', 'norm_v'};
     disp(tbl);
   end
   

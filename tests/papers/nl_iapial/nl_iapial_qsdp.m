@@ -97,7 +97,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 6000;
+  ncvx_qsdp.time_limit = 12000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -141,16 +141,6 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   name_arr = {'iALM', 'QP', 'QP_A', 'IPL', 'IPL_A'};
   framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
-  
-%   hparam_arr = {ipl_hparam, ipla_hparam};
-%   name_arr = {'IPL', 'IPL_A'};
-%   framework_arr = {@IAIPAL, @IAIPAL};
-%   solver_arr = {@ECG, @ECG};
-
-%   hparam_arr = {qpa_hparam};
-%   name_arr = {'QP_A'};
-%   framework_arr = {@penalty};
-%   solver_arr = {@AIPP};
   
   % Run the test.
   [summary_tables, ~] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
