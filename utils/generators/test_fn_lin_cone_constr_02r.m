@@ -1,31 +1,9 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  August 17, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [oracle, params] = ...
-  test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density)
-% Generator of a test suite of unconstrained nonconvex quadratic SDP 
-% functions. Data matrices are sparse and their densities are calibrated
-% according to the input variable 'density'.
-% 
-% Note:
-% 
-%   - xi and tau are chosen so that the curvature pair is (M, m)
-%   - Entries of A, B, and C are drawn randomly from a U(0,1) distribution
-%   - A and C are dimM-by-dimN-by-dimN sized matrices
-%   - b is defined as b = A * (E / dimN) where E = diag(e) and e is a vector 
-%     of all ones
-%   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
-%   - Gradient is -xi * B' * (D' * D) * B * Z + tau *  C' * (C * Z - d)
-%   - Constraint is A(Z) = b
+function [oracle, params] = test_fn_lin_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density)
+% Generator of a test suite of unconstrained nonconvex quadratic SDP functions. Data matrices are sparse and their densities are 
+% calibrated according to the input variable 'density'.
 %
 % Arguments:
 %  
@@ -45,9 +23,8 @@ function [oracle, params] = ...
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
  
   % Initialize.

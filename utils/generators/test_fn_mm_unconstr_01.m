@@ -1,22 +1,12 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  August 21, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [oracle_factory, params] = ...
-  test_fn_mm_unconstr_01(k, N, M, m, seed, dimM, dimN, density)
-% Generator of a test suite of minimax unconstrained nonconvex QP 
-% functions.
+function [oracle_factory, params] = test_fn_mm_unconstr_01(k, N, M, m, seed, dimM, dimN, density)
+% Generator of a test suite of minimax unconstrained nonconvex QP functions.
 %
 % See Also:
 %
-%   utils.generators.test_fn_unconstr_01
+%   utils/generators/test_fn_unconstr_01
 %
 % Arguments:
 %
@@ -36,10 +26,9 @@ function [oracle_factory, params] = ...
 % 
 % Returns:
 %
-%   A pair consisting of a function and a struct. The function takes in one
-%   argument which, when evaluated at $\xi$, outputs an Oracle object
-%   representing the smoothed primal function with smoothing parameter 
-%   $\xi$. The struct contains the relevant hyperparameters of the problem. 
+%   A pair consisting of a function and a struct. The function takes in one argument which, when evaluated at $\xi$, outputs an 
+%   Oracle object representing the smoothed primal function with smoothing parameter $\xi$. The struct contains the relevant 
+%   hyperparameters of the problem. 
 % 
 
   % Set k-invariant parameters
@@ -65,8 +54,7 @@ function [oracle_factory, params] = ...
     C_arr{i} = sprand(dimM, dimN, density);
     B_arr{i} = sprand(dimN, dimN, density);
     d_arr{i} = rand([dimM, 1]);
-    [alpha_arr{i}, beta_arr{i}, ~, ~] = ...
-      eigen_bisection(M, m, C_arr{i}, D_arr{i} * B_arr{i});
+    [alpha_arr{i}, beta_arr{i}, ~, ~] = eigen_bisection(M, m, C_arr{i}, D_arr{i} * B_arr{i});
   end
   
   % Compute L_y and max(|grad_f_s|)
@@ -85,22 +73,16 @@ function [oracle_factory, params] = ...
       f_s_eval_arr = zeros(k, 1);
       for i=1:k
         f_s_eval_arr(i) = ...
-           -beta_arr{i} / 2 * norm_fn(D_arr{i} * B_arr{i} * x) ^ 2 + ...
-           alpha_arr{i} / 2 * norm_fn(C_arr{i} * x - d_arr{i}) ^ 2;
+          -beta_arr{i} / 2 * norm_fn(D_arr{i} * B_arr{i} * x) ^ 2 + alpha_arr{i} / 2 * norm_fn(C_arr{i} * x - d_arr{i}) ^ 2;
       end
       y_xi = sm_proj(xi * f_s_eval_arr, 1);
-      oracle_struct.f_s = @() ...
-        y_xi' * f_s_eval_arr - norm(y_xi) ^ 2 / (2 * xi);
+      oracle_struct.f_s = @() y_xi' * f_s_eval_arr - norm(y_xi) ^ 2 / (2 * xi);
 
       % Computes the (weighted) gradient.
       grad_f_s_eval_arr = zeros(dimN, 1, k);
       for i=1:k
-          grad_f_s_eval_arr(:, i) = y_xi(i) * (...
-           -beta_arr{i} * ...
-             (B_arr{i}' * (D_arr{i}' * D_arr{i}) * B_arr{i} * x) + ...
-           alpha_arr{i} * ...
-             (C_arr{i}' * C_arr{i} * x - C_arr{i}' * d_arr{i}) ...
-           );
+          grad_f_s_eval_arr(:, i) = y_xi(i) * (-beta_arr{i} * (B_arr{i}' * (D_arr{i}' * D_arr{i}) * B_arr{i} * x) + ...
+                                               alpha_arr{i} * (C_arr{i}' * C_arr{i} * x - C_arr{i}' * d_arr{i}));
       end
       oracle_struct.grad_f_s = @() sum(grad_f_s_eval_arr, 3);
       

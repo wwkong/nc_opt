@@ -1,29 +1,9 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  September 13, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [oracle, params] = ...
-  test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density)
-% Generator of a test suite of unconstrained nonconvex quadratically 
-% constrained quadratic SDP functions. Data matrices are sparse and 
-% their densities are calibrated according to the input variable 'density'.
-% 
-% Note:
-% 
-%   - xi and tau are chosen so that the curvature pair is (M, m)
-%   - Entries of B and C are drawn randomly from a U(0,1) distribution
-%   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is: -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
-%   - Gradient is: -xi * B' * (D' * D) * B * Z + tau *  C' * (C * Z - d)
-%   - Constraint is:
-%       (1 / 2) * (P * Z)' * (P * Z) + (Q' * Q * Z) + (Z' * Q' * Q) <= I
+function [oracle, params] = test_fn_quad_cone_constr_02(N, r, M, m, seed, dimM, dimN, density)
+% Generator of a test suite of unconstrained nonconvex quadratically constrained quadratic SDP functions. Data matrices are 
+% sparse and their densities are calibrated according to the input variable 'density'.
 %
 % Arguments:
 %  
@@ -43,9 +23,8 @@ function [oracle, params] = ...
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
  
   % Initialize.
@@ -70,8 +49,6 @@ function [oracle, params] = ...
   norm_fn = @(a) norm(a, 'fro');
   
   % Computing auxiliary constants of P and Q.
-  fro_P = norm(P, 'fro');
-  fro_Q = norm(Q, 'fro');
   PtP_vec = reshape(PtP, dimN * dimN, 1);
   QtQ_vec = reshape(QtQ, dimN * dimN, 1);
   
@@ -84,20 +61,13 @@ function [oracle, params] = ...
   adj_op = @(Mt, y) sparse(tsr_mult(Mt, y, 'dual'));
   
   % Constraint map methods.
-  params.constr_fn = @(Z) ...
-    (1 / 2) * Z' * PtP * Z + ...
-    (1 / 2) * (QtQ * Z + Z' * QtQ) - ...
-    (1 / (dimN ^ 2)) * eye(dimN);
+  params.constr_fn = @(Z) (1 / 2) * Z' * PtP * Z + (1 / 2) * (QtQ * Z + Z' * QtQ) - (1 / (dimN ^ 2)) * eye(dimN);
   
   % MONTEIRO (gradient).
-  params.grad_constr_fn = @(Z, Delta) ...
-    (1 / 2) * (PtP * Z * Delta + Delta' * Z' * PtP') + ...
-    (1 / 2) * (QtQ * Delta + Delta' * QtQ');
+  params.grad_constr_fn = @(Z, Delta) (1 / 2) * (PtP * Z * Delta + Delta' * Z' * PtP') + (1 / 2) * (QtQ * Delta + Delta' * QtQ');
   
 %   % KONG (gradient).
-%   params.grad_constr_fn = @(Z, Delta) ...
-%     (1 / 2) * PtP * Z * (Delta + Delta') + ...
-%     (1 / 2) * QtQ * (Delta + Delta');
+%   params.grad_constr_fn = @(Z, Delta) (1 / 2) * PtP * Z * (Delta + Delta') + (1 / 2) * QtQ * (Delta + Delta');
   
   % Basic output params.
   params.M = eigs(Dfn(xi, tau) * Z, 1, 'lr');
@@ -112,37 +82,16 @@ function [oracle, params] = ...
   params.m_constr_vec = zeros(dimN * dimN, 1);
   
   % Other maps and constants.
-  params.set_projector = @(Z) psd_cone_proj(Z);
-  params.dual_cone_projector = @(Z) psd_cone_proj(Z);
+  params.set_projector = @(Y) box_mat_proj(Y, 0, Inf);
+  params.dual_cone_projector = @(Y) box_mat_proj(Y, 0, Inf);
   params.K_constr = norm(params.K_constr_vec);
   params.L_constr = norm(params.L_constr_vec);
 
   % Create the Oracle object.
-  f_s = @(x) ...
-    -xi / 2 * norm_fn(D * lin_op(B_tsr, x)) ^ 2 + ...
-    tau / 2 * norm_fn(lin_op(C_tsr, x) - d) ^ 2;
+  f_s = @(x) -xi / 2 * norm_fn(D * lin_op(B_tsr, x)) ^ 2 + tau / 2 * norm_fn(lin_op(C_tsr, x) - d) ^ 2;
   f_n = @(x) 0;
-  grad_f_s = @(x) ...
-      -xi * adj_op(Bt_tsr, (D' * D) * lin_op(B_tsr, x)) + ...
-      tau * adj_op(Ct_tsr, lin_op(C_tsr, x) - d);
+  grad_f_s = @(x) -xi * adj_op(Bt_tsr, (D' * D) * lin_op(B_tsr, x)) + tau * adj_op(Ct_tsr, lin_op(C_tsr, x) - d);
   prox_f_n = @(x, lam) psd_box_proj(x, r);
   oracle = Oracle(f_s, f_n, grad_f_s, prox_f_n);
   
-end
-
-% Projection functions
-function XP = psd_cone_proj(X)
-  % Projection onto the positive semidefinite cone.
-  [Q, d] = eig((X + X') / 2, 'vector'); 
-  d_nn = max(d, 0);
-  XP = Q * diag(d_nn) * Q';
-end
-
-function XP = psd_box_proj(X, R)
-  % Projection onto the set of matrices with eigenvalues between 0 and 
-  % 1 / sqrt(n).
-  [Q, d] = eig((X + X') / 2, 'vector');
-  n = length(d);
-  dP = min(max(d, 0), R / sqrt(n));
-  XP = Q * diag(dP) * Q';
 end

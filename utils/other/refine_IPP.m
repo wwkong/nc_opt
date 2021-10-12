@@ -1,5 +1,8 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 function model = refine_IPP(oracle, params, L, lambda, z0, z, v)
-% IPP Refine Procedure
+% Refinement subroutine for the IPP methods.
 
   % Parse.
   norm_fn = params.norm_fn;

@@ -1,13 +1,5 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong, Jiaming Liang
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_svm_01(n, k, seed, density, r)
 % Generator of a test suite of nonconvex support vector machine (SVM) 
@@ -33,12 +25,10 @@ function [oracle, params] = test_fn_svm_01(n, k, seed, density, r)
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
 
-  % problem generating function.
   rng(seed);
   lam = 1 / k;
 
@@ -61,10 +51,8 @@ function [oracle, params] = test_fn_svm_01(n, k, seed, density, r)
   params.norm_fn = norm_fn;
 
   % Sigmoid loss (William's version)
-  LOSS = ...
-    @(x) 1 / k * sum(1 - tanh(v .* U' * x)) + lam / 2 * norm_fn(x) ^ 2;
-  GRAD = @(x) ...
-    1 / k * sum(((tanh(v .* U' * x) .^ 2 - 1) .* v) .* U', 1)' + lam * x;
+  LOSS = @(x) 1 / k * sum(1 - tanh(v .* U' * x)) + lam / 2 * norm_fn(x) ^ 2;
+  GRAD = @(x) 1 / k * sum(((tanh(v .* U' * x) .^ 2 - 1) .* v) .* U', 1)' + lam * x;
 
   % Create the Oracle object
   f_s = @(x) LOSS(x) + lam / 2 * norm(x) ^ 2;
@@ -75,13 +63,8 @@ function [oracle, params] = test_fn_svm_01(n, k, seed, density, r)
 
 end
 
-% This code generates k samples uniformly from an n-dimensional ball 
-% centered at O with radius r.
-function Z = RandPtBall(n,k,r)
-
-  % n = 3; % dimiension
-  % k = 100000; % samples
-  % r = 4; % radius
+% This code generates k samples uniformly from an n-dimensional ball centered at O with radius r.
+function Z = RandPtBall(n, k, r)
 
   X = randn(n,k);
   for i = 1:k

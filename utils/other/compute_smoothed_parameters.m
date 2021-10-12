@@ -1,6 +1,8 @@
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 function [xi, M] = compute_smoothed_parameters(params, type)
-  % Computes the smoothing parameter of a minmax problem based on the 
-  % curvatures, tolerances, and algorithm.
+% Computes the smoothing parameter of a minmax problem based on the curvatures, tolerances, and algorithm.
   
   % Parse inputs.
   rho_y = params.rho_y;

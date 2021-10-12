@@ -1,24 +1,8 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_unconstr_01(N, M, m, seed, dimM, dimN)
 % Generator of a test suite of unconstrained nonconvex QP functions.
-% 
-% Note:
-% 
-%   - xi and tau are chosen so that the curvature pair is (M, m)
-%   - Entries of A, B, and b are drawn randomly from a U(0, 1) distribution
-%   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is -xi / 2 * ||D * B * x|| ^ 2 + tau / 2 * ||A * x - b|| ^ 2 
-%   - Gradient is -xi * B' * (D' * D) * B * x + tau * (A' * A * x - A' * b)
 %
 % Arguments:
 %  
@@ -36,9 +20,8 @@ function [oracle, params] = test_fn_unconstr_01(N, M, m, seed, dimM, dimN)
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
 
   % Initialize
@@ -67,11 +50,9 @@ function [oracle, params] = test_fn_unconstr_01(N, M, m, seed, dimM, dimN)
   params.x0 = ones(dimN, 1) / dimN;
   
   % Create the Oracle object
-  f_s = @(x) ...
-    -xi / 2 * norm_fn(D * B * x) ^ 2 + tau / 2 * norm_fn(A * x - b) ^ 2;
+  f_s = @(x) -xi / 2 * norm_fn(D * B * x) ^ 2 + tau / 2 * norm_fn(A * x - b) ^ 2;
   f_n = @(x) 0;
-  grad_f_s = @(x) ...
-    -xi * B' * (D' * D) * B * x + tau * (A' * A * x - A' * b); 
+  grad_f_s = @(x) -xi * B' * (D' * D) * B * x + tau * (A' * A * x - A' * b); 
   prox_f_n = @(x, lam) sm_proj(x, 1); 
   oracle = Oracle(f_s, f_n, grad_f_s, prox_f_n);
   
