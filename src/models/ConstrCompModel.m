@@ -9,7 +9,7 @@ classdef ConstrCompModel < CompModel
 %   The following (non-inherited) properties are necessary before the ``optimize()`` method can be called to solve the model:
 %   ``framework``, ``constr_fn``, ``grad_constr_fn``, ``set_projector``, and ``K_constr``.
 % 
-% Key Attributes:
+% Attributes:
 %
 %   framework (function handle): A **required** function handle to a framework that solves constrained composite optimization
 %     problems (see src/frameworks). Defaults to ``None``.

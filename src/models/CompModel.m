@@ -9,15 +9,15 @@ classdef CompModel < matlab.mixin.Copyable
 %   The following properties are necessary before the ``optimize()`` method can be called to solve the model: either {``f_s``,
 %   ``grad_f_s``} or ``oracle``, ``L``, ``x0``, and ``solver``. 
 %
-% Key Attributes:
+% Attributes:
 %
 %   f_s (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_s(x)$. Defaults to ``None``.
 %
 %   grad_f_s (function handle): A one argument function that, when evaluated at a point $x$, outputs $\nabla f_s(x)$. Defaults
 %     to ``None``.
 %
-%   f_n (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_n(x)$. Defaults to ``@(x)
-%     zeros(size(x))``.
+%   f_n (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_n(x)$. Defaults to 
+%   ``@(x) zeros(size(x))``.
 %
 %   prox_f_n (function handle): A two argument function that, when evaluated at $\{x,\lambda\}$, outputs $${\rm prox}_{\lambda
 %     f_n}(x) := {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$ Defaults to ``@(x, lam) x``.
@@ -70,7 +70,7 @@ classdef CompModel < matlab.mixin.Copyable
 %   x (double vector): The stationary point returned by the solver. Defaults to ``None``. Cannot be set by the user.
 %
 %   v (double vector): The stationary residual returned by the solver. Defaults to ``None``. Cannot be set by the user.
-
+%
   %% CONSTRUCTORS
   methods
     function obj = CompModel(varargin)

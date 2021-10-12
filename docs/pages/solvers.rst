@@ -41,6 +41,6 @@ Spectral NCO Solvers
 
 These solvers are used for spectral nonconvex composite optimization problems.
 
-.. autofunction:: IA_ICG(spectral_oracle, params)
-
 .. autofunction:: DA_ICG(spectral_oracle, params)
+
+.. autofunction:: IA_ICG(spectral_oracle, params)

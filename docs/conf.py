@@ -21,9 +21,9 @@ copyright = '2020, Weiwei Kong'
 author = 'Weiwei Kong'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1a1'
+release = '0.2.1'
 # The short version
-version = '0.1a1'
+version = '0.2.1'
 
 
 # -- General configuration ---------------------------------------------------

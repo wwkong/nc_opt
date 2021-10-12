@@ -2,15 +2,18 @@
 % Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = IAIPAL(~, oracle, params)
-% An inexact accelerated proximal augmeneted Lagrangian (IAPIAL) framework for solving a nonconvex composite optimization problem
-% with convex cone constraints.
+% An inner accelerated proximal inexact augmeneted Lagrangian (IAPIAL) framework for solving a nonconvex composite optimization 
+% problem with convex (linear or nonliner) cone constraints.
 % 
 % Note:
 % 
-%   Based on the paper:
+%   Based on the papers:
 %
-%   Kong, W., Melo, J. G., & Monteiro, R. D. (2020). Iteration-complexity of a proximal augmented Lagrangian method for solving
-%   nonconvex composite optimization problems with nonlinear convex constraints. *arXiv preprint arXiv:2008.07080*\.
+%   **[1]** Melo, J. G., & Monteiro, R. D. (2020). Iteration-complexity of an inner accelerated inexact proximal augmented Lagrangian 
+%   method based on the classical Lagrangian function and a full Lagrange multiplier update. *arXiv preprint arXiv:2008.00562*\.
+%
+%   **[2]** Kong, W., Melo, J. G., & Monteiro, R. D. (2020). Iteration-complexity of a proximal augmented Lagrangian method for 
+%   solving nonconvex composite optimization problems with nonlinear convex constraints. *arXiv preprint arXiv:2008.07080*\.
 %
 % Arguments:
 % 
@@ -22,6 +25,7 @@ function [model, history] = IAIPAL(~, oracle, params)
 %   
 %   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
 %   parameters.
+%
 
   % Timer start.
   t_start = tic;
