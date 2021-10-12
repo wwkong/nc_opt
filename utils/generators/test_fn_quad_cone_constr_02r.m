@@ -105,8 +105,8 @@ function [oracle, params] = test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM,
   params.m_constr_vec = zeros(dimN * dimN, 1);
   
   % Other maps and constants.
-  params.set_projector = @(Z) box_mat_proj(Z, 0, Inf);
-  params.dual_cone_projector = @(Z) box_mat_proj(Z, 0, Inf);
+  params.set_projector = @(Y) box_mat_proj(Y, 0, Inf);
+  params.dual_cone_projector = @(Y) box_mat_proj(Y, 0, Inf);
   params.K_constr = norm(params.K_constr_vec);
   params.L_constr = norm(params.L_constr_vec);
 

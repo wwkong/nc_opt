@@ -1,71 +1,33 @@
-%% SPDX-License-Identifier: MIT
-% Copyright © 2021 Weiwei "William" Kong
-
-% Solve a multivariate nonconvex quadratically constrained quadratic programming problem constrained to a box.
-run('../../../init.m');
+% Solve a multivariate nonconvex quadratically constrained quadratic programming  
+% problem constrained to a box using MULTIPLE SOLVERS.
+run('../../../../init.m');
 format long
 
+% Comment out later.
+dimN = 500;
+r = 1; 
+m = 1; 
+M = 1e4;
+
 % Run an instance via the command line.
-print_tbls(n);
+print_tbls(dimN, r, m, M);
 
 %% Utility functions
-function print_tbls(dimN) 
+function print_tbls(dimN, r, m, M) 
 
   % Initialize
   seed = 77777;
   dimM = 10;
-  global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 15];
-  first_tbl = true;
-
-  % Variable M.
-  m = 1e0;
-  r = 1;
-  for M=M_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable m.
-  M = 1e6;
-  r = 1;
-  for m=m_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  % Variable r.
-  m = 1e0;
-  M = 1e6;
-  for r=r_vec
-    tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-    if first_tbl
-      o_tbl = tbl_row;
-      first_tbl = false;
-    else
-      o_tbl = [o_tbl; tbl_row];
-    end
-  end
-  
-  disp(['Tables for dimN = ', num2str(dimN)]);
+  global_tol = 1e1;
+  disp(table(dimN, r, m, M));
+  o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   disp(o_tbl);
   
 end
 function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
-  [oracle, hparams] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
+  [oracle, hparams] = ...
+    test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
   
   % Set up the termination function.
   function proj = proj_dh(a, b)
@@ -85,8 +47,9 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   g0 = hparams.constr_fn(hparams.x0);
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
-  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, hparams.grad_constr_fn, @proj_dh, @proj_NKt, ...
-                                       hparams.norm_fn, rho, eta);
+  term_wrap = @(x,p) ...
+    termination_check(x, p, o_at_x0, hparams.constr_fn, hparams.grad_constr_fn, ...
+                      @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);
 
   % Create the Model object and specify the solver.
   ncvx_qc_qp = ConstrCompModel(oracle);
@@ -101,7 +64,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Set the tolerances
   ncvx_qc_qp.opt_tol = global_tol;
   ncvx_qc_qp.feas_tol = global_tol;
-  ncvx_qc_qp.time_limit = 6000;
+  ncvx_qc_qp.time_limit = 18000;
   ncvx_qc_qp.iter_limit = 1000000;
   
   % Add linear constraints
@@ -128,20 +91,52 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   ipla_hparam.init_mult_L = 0.5;
   ipla_hparam.sigma_min = 1/sqrt(2);
   
+%   % Create the complicated iALM hparams.
+%   ialm_hparam = base_hparam;
+%   ialm_hparam.proj_dh = @proj_dh;
+%   ialm_hparam.i_ineq_constr = true;
+%   ialm_hparam.rho0 = hparams.m;
+%   ialm_hparam.L0 = max([hparams.m, hparams.M]);
+%   ialm_hparam.rho_vec = hparams.m_constr_vec;
+%   ialm_hparam.L_vec = hparams.L_constr_vec;
+%   % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
+%   ialm_hparam.B_vec = hparams.K_constr_vec;
+  
+%   % Run a benchmark test and print the summary.
+%   hparam_arr = {ialm_hparam};
+%   name_arr = {'iALM'};
+%   framework_arr = {@iALM};
+%   solver_arr = {@ECG};
+  
   % Run a benchmark test and print the summary.
   hparam_arr = {ipl_hparam, ipla_hparam};
   name_arr = {'IPL', 'IPL_A'};
   framework_arr = {@IAIPAL, @IAIPAL};
   solver_arr = {@ECG, @ECG};
   
+%   hparam_arr = {ipla_hparam};
+%   name_arr = {'IPL_A'};
+%   framework_arr = {@IAIPAL};
+%   solver_arr = {@ECG};
+  
+%   % Run a benchmark test and print the summary.
+%   hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
+%   name_arr = {'iALM', 'IPL', 'IPL_A'};
+%   framework_arr = {@iALM, @IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @ECG, @ECG};
+  
   % Run the test.
-  [summary_tables, ~] = run_CCM_benchmark(ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = ...
+    run_CCM_benchmark(...
+      ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   
   % Set up HiAPeM options.
   o_at_x0 = copy(oracle);
   o_at_x0.eval(hparams.x0);
   feas_at_x0 = feasibility(hparams.x0);
-  rel_tol = min([global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s())), global_tol * (1 + feas_at_x0)]);
+  rel_tol = min([...
+    global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s())), ...
+    global_tol * (1 + feas_at_x0)]);
   opts = struct();
   opts.x0 = hparams.x0;
   opts.Lip0 = max([hparams.m, hparams.M]);
@@ -161,7 +156,8 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   % Run the HiAPeM code.
   tic;
-  [x_hpm, ~, out_hpm] = HiAPeM_qcqp(hparams.Q, hparams.c, hparams.d, dimM, x_l_vec, x_u_vec, opts);
+  [x_hpm, ~, out_hpm] = HiAPeM_qcqp(...
+    hparams.Q, hparams.c, hparams.d, dimM, x_l_vec, x_u_vec, opts);
   t_hpm = toc;
   o_at_x_hpm = copy(oracle);
   o_at_x_hpm.eval(x_hpm);
@@ -183,8 +179,10 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   end
 
   function o_tbl = agg_tbl(summary_tbls, f_HiAPeM, iter_HiAPeM, t_HiAPeM)
-    o_tbl = [table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, table(f_HiAPeM), summary_tbls.iter, ...
-             table(iter_HiAPeM), summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
+    o_tbl = [...
+      table(dimN, dimM, x_l, x_u), summary_tbls.pdata, summary_tbls.fval, ...
+      table(f_HiAPeM), summary_tbls.iter, table(iter_HiAPeM), ...
+      summary_tbls.runtime, table(t_HiAPeM), summary_tbls.mdata];
   end
 
 end

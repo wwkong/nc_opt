@@ -42,13 +42,12 @@ function [model, history] = IAIPAL(~, oracle, params)
   
   % Initialize special constraint functions
   norm_fn = params.norm_fn;
-  pc_fn = params.set_projector; % projection onto the cone K.
   
   % Cone projector function on the point q = p + c * g(x) on the cones:
   %   -K (primal) and K^* (dual).
   function [dual_point, primal_point]= cone_proj(x, p, c)
     p_step = p + c * params.constr_fn(x);
-    primal_point = -pc_fn(-p_step);
+    primal_point = -params.set_projector(-p_step);
     dual_point = p_step - primal_point;
   end
   
@@ -65,7 +64,7 @@ function [model, history] = IAIPAL(~, oracle, params)
       function val = wrap_f_s(x)
         [~, primal_proj_point]= cone_proj(x, p, c);
         p_step = p + c * params.constr_fn(x);
-        dist_val = norm_fn((-p_step) - primal_proj_point);
+        dist_val = norm_fn(p_step - primal_proj_point);
         val = 1 / (2 * c) * (dist_val ^ 2 - norm_fn(p) ^ 2);
       end
       function val = wrap_grad_f_s(x)

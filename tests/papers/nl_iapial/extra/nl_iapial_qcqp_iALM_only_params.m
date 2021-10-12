@@ -56,7 +56,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Set the tolerances
   ncvx_qc_qp.opt_tol = global_tol;
   ncvx_qc_qp.feas_tol = global_tol;
-  ncvx_qc_qp.time_limit = Inf;
+  ncvx_qc_qp.time_limit = 6000;
   ncvx_qc_qp.iter_limit = 1000000;
   
   % Add linear constraints

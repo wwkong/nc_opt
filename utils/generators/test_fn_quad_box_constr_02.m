@@ -9,8 +9,7 @@ Coders:
 
 %} 
 
-function [oracle, params] = ...
-  test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u)
+function [oracle, params] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u)
 % Generator of a test suite of linearly constrained nonconvex QP functions.
 % 
 % Note:
@@ -78,7 +77,7 @@ function [oracle, params] = ...
   function gcx = grad_constr_sub_fn(z, delta)
     gcx = zeros(dimN, 1);
     for j=1:dimM
-      gcx = gcx + delta(j) * Q{j} * z + c{j};
+      gcx = gcx + delta(j) * (Q{j} * z + c{j});
     end
   end
   
@@ -86,11 +85,11 @@ function [oracle, params] = ...
   % i-th row is (Q{i} z + c{i})'. The Frobenius norm of this row, for
   % x in [x_l, x_u], is bounded by
   %
-  %   (|Q{i}|*|ones(dimM, 1) * (x_u - x_l)| + |c{i}|)
+  %   (|Q{i}| * |ones(dimM, 1) * (x_u - x_l)| + |c{i}|)
   %
   % and this is just the Lipschitz constant of the i-th constraint.
   K_constr_vec = zeros(dimM, 1);
-  norm_Xbd = norm(ones(dimM, 1) * (x_u - x_l));
+  norm_Xbd = norm(ones(dimN, 1) * (x_u - x_l));
   for i=1:dimM
     K_constr_vec(i) = norm(Q{i}) * norm_Xbd + norm(c{i});
   end
@@ -104,8 +103,8 @@ function [oracle, params] = ...
   % Constraint map methods.
   params.constr_fn = @(z) constr_sub_fn(z);
   params.grad_constr_fn = @(z, delta) grad_constr_sub_fn(z, delta);
-  params.set_projector = @(z) max(z, 0.0);
-  params.dual_cone_projector = @(z) max(z, 0.0);
+  params.set_projector = @(y) max(y, 0.0);
+  params.dual_cone_projector = @(y) max(y, 0.0);
   params.K_constr = norm(K_constr_vec); % Aggregated by the Euclidean norm.
   params.L_constr = norm(L_constr_vec); % Aggregated by the Euclidean norm.
   
@@ -133,7 +132,7 @@ function [oracle, params] = ...
   f_s = @(x) x' * Q{dimM + 1} * x / 2 + c{dimM + 1}' * x + d{dimM + 1};
   f_n = @(x) 0;
   grad_f_s = @(x) Q{dimM + 1} * x + c{dimM + 1};
-  prox_f_n = @(x, lam) min(max(x, x_l), x_u);
+  prox_f_n = @(x, lam) box_proj(x, x_l, x_u);
   oracle = Oracle(f_s, f_n, grad_f_s, prox_f_n);
  
 end

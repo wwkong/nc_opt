@@ -29,9 +29,8 @@ function [model, history] = ACG(oracle, params)
 %
 
   % Set some ACG global tolerances.
-  INEQ_COND_ERR_TOL = 1e-6;
+  INEQ_TOL = 1e-6;
   CURV_TOL = 1e-6;
-  DIV_TOL = 1e-6;
 
   %% PRE-PROCESSING
 
@@ -118,7 +117,7 @@ function [model, history] = ACG(oracle, params)
       error('Unknown ACG steptype!');
   end
   
-  % Safeguard against the case where (L == mu), i.e. nu = Inf.
+  % Safeguard against the case where (L == mu), i.e. lamK = Inf.
   L = max(L, mu + CURV_TOL);
   
   % Set up the oracle at x0
@@ -131,9 +130,9 @@ function [model, history] = ACG(oracle, params)
   function [local_L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev)
 
     % Simple quantities.
-    nu = nu_fn(mu, L);
-    nu_prev = (1 + mu * A_prev) * nu;
-    a_prev = (nu_prev + sqrt(nu_prev ^ 2 + 4 * nu_prev * A_prev)) / 2;
+    lamK = lamK_fn(mu, L);
+    tauK = (1 + mu * A_prev) * lamK;
+    a_prev = (tauK + sqrt(tauK ^ 2 + 4 * tauK * A_prev)) / 2;
     A = A_prev + a_prev;
     x_tilde_prev = (A_prev / A) * y_prev + a_prev / A * x_prev;
 
@@ -143,20 +142,26 @@ function [model, history] = ACG(oracle, params)
     grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
     
     % Oracle at y.
-    y_prox_mult = nu / (1 + nu * mu);
+    y_prox_mult = lamK / (1 + lamK * mu);
     y_prox_ctr = x_tilde_prev - y_prox_mult * grad_f_s_at_x_tilde_prev;
     [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
     f_s_at_y = o_y.f_s();
     
     % Estimate of L based on y and x_tilde_prev.
-    local_L_est = max(0, 2 * (f_s_at_y - (f_s_at_x_tilde_prev + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev))) / ...
-                         norm_fn(y - x_tilde_prev) ^ 2);
+    LHS = f_s_at_y - (f_s_at_x_tilde_prev + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev));
+    dist_xt_y = norm_fn(y - x_tilde_prev);
+    RHS = L * dist_xt_y ^ 2 / 2;
+    local_L_est = max(0, 2 * LHS / dist_xt_y ^ 2);    
     
     % Save auxiliary quantities.
+    aux_struct.LHS = LHS;
+    aux_struct.RHS = RHS;
+    aux_struct.dist_xt_y = dist_xt_y;
+    aux_struct.descent_cond = (LHS <= RHS + INEQ_TOL);
     aux_struct.y = y;
     aux_struct.o_y = o_y;
-    aux_struct.nu = nu;
-    aux_struct.nu_prev = nu_prev;
+    aux_struct.lamK = lamK;
+    aux_struct.tauK = tauK;
     aux_struct.a_prev = a_prev;
     aux_struct.A = A;
     aux_struct.x_tilde_prev = x_tilde_prev;
@@ -206,22 +211,23 @@ function [model, history] = ACG(oracle, params)
       [local_L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
       iter = iter + 1;
       
-      % Adjust if the local estimate is smaller, up to a point.
-      if (L / 2 < local_L_est && local_L_est < L)
-        L = local_L_est;
-        [local_L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
-        iter = iter + 1;
-      end
-      
       % Update based on the value of the local L compared to the current estimate of L.
-      while (L < min([L_max, local_L_est]))
-        if (norm_fn(aux_struct.x_tilde_prev - aux_struct.y) ^ 2 <= DIV_TOL)
-          L = min(L_max, L * params.mult_L);
-        else
-          L = min(L_max, L * params.mult_L);
-        end
-        [local_L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
+      while (~aux_struct.descent_cond)        
+        L = min(L_max, L * params.mult_L);
+        [~, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
+        
+        % DEBUG ONLY
+        if (params.i_debug)
+          diff = abs(aux_struct.RHS - aux_struct.LHS);
+          dist_xt_y = aux_struct.dist_xt_y;
+          disp(table(local_L_est, L, L_max, dist_xt_y, diff, aux_struct.LHS, aux_struct.RHS , aux_struct.descent_cond));
+        end
+        % END DEBUG
+        
+        if (L >= L_max && ~aux_struct.descent_cond)
+          error('Theoretical upper bound on the upper curvature L_max does not appear to be correct!');
+        end
         if (toc(t_start) > time_limit)
           break;
         end
@@ -230,8 +236,8 @@ function [model, history] = ACG(oracle, params)
       % Load auxiliary quantities
       y = aux_struct.y;
       o_y = aux_struct.o_y;
-      nu = aux_struct.nu;
-      nu_prev = aux_struct.nu_prev;
+      lamK = aux_struct.lamK;
+      tauK = aux_struct.tauK;
       a_prev = aux_struct.a_prev;
       A = aux_struct.A;
       x_tilde_prev = aux_struct.x_tilde_prev;
@@ -242,9 +248,9 @@ function [model, history] = ACG(oracle, params)
     elseif strcmp(params.acg_steptype, "constant")
             
       % Iteration parameters.
-      nu = nu_fn(mu, L);
-      nu_prev = (1 + mu * A_prev) * nu;
-      a_prev = (nu_prev + sqrt(nu_prev ^ 2 + 4 * nu_prev * A_prev)) / 2;
+      lamK = lamK_fn(mu, L);
+      tauK = (1 + mu * A_prev) * lamK;
+      a_prev = (tauK + sqrt(tauK ^ 2 + 4 * tauK * A_prev)) / 2;
       A = A_prev + a_prev;
       x_tilde_prev = (A_prev / A) * y_prev + (a_prev / A) * x_prev;
 
@@ -254,7 +260,7 @@ function [model, history] = ACG(oracle, params)
       grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
       
       % Oracle at y.
-      y_prox_mult = nu / (1 + nu * mu);
+      y_prox_mult = lamK / (1 + lamK * mu);
       y_prox_ctr = x_tilde_prev - y_prox_mult * grad_f_s_at_x_tilde_prev;
       [y, o_y] = get_y(y_prox_ctr, y_prox_mult);
       
@@ -280,14 +286,14 @@ function [model, history] = ACG(oracle, params)
     %% COMPUTE (u, η), Γ, and x.
            
     % Compute x and u.
-    x = 1 / (1 + mu * A) * (x_prev  - a_prev / nu * (x_tilde_prev - y) + mu * (A_prev * x_prev + a_prev * y));
+    x = 1 / (1 + mu * A) * (x_prev  - a_prev / lamK * (x_tilde_prev - y) + mu * (A_prev * x_prev + a_prev * y));
     u = (x0 - x) / A;
 
     % Compute eta.
     if strcmp(params.eta_type, 'recursive')
       % Recursive
       gamma_at_x = f_n_at_y + f_s_at_x_tilde_prev + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ...
-                   (mu / 2) * norm_fn(y - x_tilde_prev) ^ 2 + 1 / nu * prod_fn(x_tilde_prev - y, x - y) + ...
+                   (mu / 2) * norm_fn(y - x_tilde_prev) ^ 2 + 1 / lamK * prod_fn(x_tilde_prev - y, x - y) + ...
                    (mu / 2) * norm_fn(x - y) ^ 2;
       Gamma_at_x = a_prev / A * gamma_at_x + A_prev / A * Gamma_at_x_prev + A_prev / A * prod_fn(grad_Gamma_at_x_prev, x - x_prev) + ...
                    (mu / 2) * A_prev / A * norm_fn(x - x_prev) ^ 2;
@@ -296,8 +302,8 @@ function [model, history] = ACG(oracle, params)
     elseif strcmp(params.eta_type, 'accumulative')
       % Accumulative
       p_at_y = f_s_at_x_tilde_prev + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + mu / 2 * norm_fn(y - x_tilde_prev) ^ 2 + f_n_at_y;
-      sci = p_at_y + mu / 2 * norm_fn(y) ^ 2 - (1 / nu) * prod_fn(y, x_tilde_prev - y);
-      svi = - mu * y + (1 / nu) * (x_tilde_prev - y);
+      sci = p_at_y + mu / 2 * norm_fn(y) ^ 2 - (1 / lamK) * prod_fn(y, x_tilde_prev - y);
+      svi = - mu * y + (1 / lamK) * (x_tilde_prev - y);
       sni = mu / 2;
       scSum = scSum + a_prev * sci;
       svSum = svSum + a_prev * svi;
@@ -318,7 +324,7 @@ function [model, history] = ACG(oracle, params)
     % Check the negativity of eta in a relative sense.
     if strcmp(termination_type, "aipp")
       relative_exact_eta = exact_eta / max([norm_fn(u + x0 - y) ^ 2 / 2, 0.01]);
-      if (relative_exact_eta < -INEQ_COND_ERR_TOL)
+      if (relative_exact_eta < -INEQ_TOL)
         error(['eta is negative with a value of ', num2str(exact_eta)]);
       end
     end
@@ -334,7 +340,7 @@ function [model, history] = ACG(oracle, params)
       small_gd = f_at_y + prod_fn(u, x0 - y) - eta;
       del_gd = large_gd - small_gd;
       base = max([abs(large_gd), abs(small_gd), 0.01]);
-      if (del_gd / base < -INEQ_COND_ERR_TOL)
+      if (del_gd / base < -INEQ_TOL)
         model.status = -1;
         break;
       end
@@ -346,7 +352,7 @@ function [model, history] = ACG(oracle, params)
       large_gd = norm_fn(y - x0) ^ 2;
       del_gd = large_gd - small_gd;
       base = max([abs(large_gd), abs(small_gd), 0.01]);
-      if (del_gd / base < -INEQ_COND_ERR_TOL)
+      if (del_gd / base < -INEQ_TOL)
         model.status = -2;
         break;
       end
@@ -359,7 +365,7 @@ function [model, history] = ACG(oracle, params)
       large_gd = norm_fn(y - x0) ^ 2;
       del_gd = large_gd - small_gd;
       base = max([abs(large_gd), abs(small_gd), 0.01]);
-      if (del_gd / base < -INEQ_COND_ERR_TOL)
+      if (del_gd / base < -INEQ_TOL)
         model.status = -2;
         break;
       end
@@ -369,13 +375,13 @@ function [model, history] = ACG(oracle, params)
     
     % Termination for the AIPP method (Phase 1).
     if strcmp(termination_type, "aipp")
-      if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2 + INEQ_COND_ERR_TOL)
+      if (norm_fn(u) ^ 2 + 2 * eta <= sigma * norm_fn(x0 - y + u) ^ 2 + INEQ_TOL)
         break;
       end
       
     % Termination for the AIPP method (with sigma square).
     elseif strcmp(termination_type, "aipp_sqr")
-      if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2 + INEQ_COND_ERR_TOL)
+      if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2 + INEQ_TOL)
         break;
       end
       
@@ -426,7 +432,7 @@ function [model, history] = ACG(oracle, params)
        
     % Update iterates.
     if (strcmp(params.eta_type, 'recursive'))
-      grad_gamma_at_x = 1 / nu * (x_tilde_prev - y) + mu * (x - y);
+      grad_gamma_at_x = 1 / lamK * (x_tilde_prev - y) + mu * (x - y);
       grad_Gamma_at_x = a_prev / A * grad_gamma_at_x + A_prev / A * grad_Gamma_at_x_prev + A_prev / A * mu * (x - x_prev);
       Gamma_at_x_prev = Gamma_at_x;
       grad_Gamma_at_x_prev = grad_Gamma_at_x;
@@ -466,8 +472,8 @@ end
 
 %% HELPER FUNCTIONS
 
-function out_nu = nu_fn(mu, L)
-  out_nu = 1 / (L - mu);
+function out_lamK =lamK_fn(mu, L)
+  out_lamK = 1 / (L - mu);
 end
 
 % Fills in parameters that were not set as input.

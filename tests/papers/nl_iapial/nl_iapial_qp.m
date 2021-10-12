@@ -137,7 +137,8 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(-g0-hparams.set_projector(-g0)));
   alt_grad_constr_fn = @(x, p) tsr_mult(hparams.grad_constr_fn(x), p, 'dual');
-  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
+  term_wrap = @(x,p) ...
+    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
   
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -151,7 +152,7 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 600;
+  ncvx_qsdp.time_limit = 6000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -188,7 +189,6 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
   ialm_hparam.rho_vec = hparams.m_constr_vec;
   ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the simplex.
   ialm_hparam.B_vec = hparams.K_constr_vec;
   
   % Run a benchmark test and print the summary.

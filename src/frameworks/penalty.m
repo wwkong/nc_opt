@@ -191,6 +191,9 @@ function params = set_default_params(params)
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
   end
+  if (~isfield(params, 'i_debug')) 
+    params.i_debug = false;
+  end
   if (~isfield(params, 'i_reset_prox_center')) 
     params.i_reset_prox_center = false;
   end
