@@ -17,18 +17,21 @@ classdef CompModel < matlab.mixin.Copyable
 %     to ``None``.
 %
 %   f_n (function handle): A one argument function that, when evaluated at a point $x$, outputs $f_n(x)$. Defaults to 
-%   ``@(x) zeros(size(x))``.
+%     ``@(x) zeros(size(x))``.
 %
-%   prox_f_n (function handle): A two argument function that, when evaluated at $\{x,\lambda\}$, outputs $${\rm prox}_{\lambda
-%     f_n}(x) := {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$ Defaults to ``@(x, lam) x``.
+%   prox_f_n (function handle): A two argument function that, when evaluated at $\{x,\lambda\}$, outputs 
+%     $${\rm prox}_{\lambda f_n}(x) := {\rm argmin}_u \left\{\lambda f_n(u) + \frac{1}{2}\|u-x\|^2\right\}.$$ 
+%     Defaults to ``@(x, lam) x``.
 %
 %   L (double): A **required** Lipschitz constant of $\nabla f_s$. Defaults to ``None``.
 %
-%   M (double): An **optional** upper curvature constant of $\nabla f_s$, i.e., a constant satisfying $$f_s(z) - f_s(u) - \langle
-%     \nabla f_s(u), z - u \rangle \leq \frac{M}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ Defaults to ``None``.
+%   M (double): An **optional** upper curvature constant of $\nabla f_s$, i.e., a constant satisfying 
+%     $$f_s(z) - f_s(u) - \langle\nabla f_s(u), z - u \rangle \leq \frac{M}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ 
+%     Defaults to ``None``.
 %
-%   m (double): An **optional** lower curvature constant of $\nabla f_s$, i.e. a constant satisfying $$f_s(z) - f_s(u) - \langle
-%     \nabla f_s(u), z - u \rangle \geq -\frac{m}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ Defaults to ``None``.
+%   m (double): An **optional** lower curvature constant of $\nabla f_s$, i.e. a constant satisfying 
+%     $$f_s(z) - f_s(u) - \langle\nabla f_s(u), z - u \rangle \geq -\frac{m}{2}\|u-z\|^2 \quad \forall u,z \in {\rm dom}\, f_n.$$ 
+%     Defaults to ``None``.
 %
 %   x0 (double vector): A **required** starting point of the solver. Defaults to ``None``.
 %
