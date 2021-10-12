@@ -15,7 +15,7 @@ function print_tbls(dimN)
   dimM = 25;
   N = 1000;
   density = 0.05;
-  global_tol = 1e-3;
+  global_tol = 5 * 1e-4;
   m_vec = [1e2, 1e3, 1e4];
   M_vec = [1e4, 1e5, 1e6];
   r_vec = [5, 10, 20];
@@ -83,7 +83,8 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   rho = global_tol * (1 + hparams.norm_fn(o_at_x0.grad_f_s()));
   eta = global_tol * (1 + hparams.norm_fn(g0 - hparams.set_projector(g0)));
   alt_grad_constr_fn = @(x, p) tsr_mult(hparams.grad_constr_fn(x), p, 'dual');
-  term_wrap = @(x,p) termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
+  term_wrap = @(x,p) ...
+    termination_check(x, p, o_at_x0, hparams.constr_fn, alt_grad_constr_fn, @proj_dh, @proj_NKt, hparams.norm_fn, rho, eta);  
   
   % Create the Model object and specify the solver.
   ncvx_qsdp = ConstrCompModel(oracle);
@@ -94,10 +95,10 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   ncvx_qsdp.m = hparams.m;
   ncvx_qsdp.K_constr = hparams.K_constr;
   
-  % Set the tolerances
+  % Set the tolerances.
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 12000;
+  ncvx_qsdp.time_limit = 6000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -116,8 +117,12 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
+  ipl_hparam.sigma_min = sqrt(0.3);
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.sigma_min = sqrt(0.3);
+  
+  % Create the QP-AIPP hparams.
   qp_hparam = base_hparam;
   qp_hparam.acg_steptype = 'constant';
   qp_hparam.aipp_type = 'aipp';
@@ -133,7 +138,6 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
   ialm_hparam.rho_vec = hparams.m_constr_vec;
   ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
   ialm_hparam.B_vec = hparams.K_constr_vec;
   
   % Run a benchmark test and print the summary.

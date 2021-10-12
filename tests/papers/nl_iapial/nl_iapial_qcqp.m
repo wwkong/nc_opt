@@ -101,7 +101,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Set the tolerances
   ncvx_qc_qp.opt_tol = global_tol;
   ncvx_qc_qp.feas_tol = global_tol;
-  ncvx_qc_qp.time_limit = 6000;
+  ncvx_qc_qp.time_limit = 3000;
   ncvx_qc_qp.iter_limit = 1000000;
   
   % Add linear constraints
@@ -122,11 +122,10 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
-  ipl_hparam.sigma_min = 1/sqrt(2);
+  ipl_hparam.sigma_min = sqrt(0.3);
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
-  ipla_hparam.init_mult_L = 0.5;
-  ipla_hparam.sigma_min = 1/sqrt(2);
+  ipla_hparam.sigma_min = sqrt(0.3);
   
   % Run a benchmark test and print the summary.
   hparam_arr = {ipl_hparam, ipla_hparam};

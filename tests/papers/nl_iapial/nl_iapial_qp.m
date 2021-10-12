@@ -152,7 +152,7 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   % Set the tolerances
   ncvx_qsdp.opt_tol = global_tol;
   ncvx_qsdp.feas_tol = global_tol;
-  ncvx_qsdp.time_limit = 6000;
+  ncvx_qsdp.time_limit = 3000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;
@@ -171,6 +171,9 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   % Create the IAPIAL hparams.
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.sigma_min = sqrt(0.3);
+  
+  % Create the QP-AIPP hparams.
   qpa_hparam = base_hparam;
   qpa_hparam.acg_steptype = 'variable';
   qpa_hparam.aipp_type = 'aipp';

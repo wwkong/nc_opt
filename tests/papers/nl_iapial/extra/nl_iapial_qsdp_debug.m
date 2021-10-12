@@ -4,9 +4,9 @@ run('../../../../init.m');
 
 n = 100;
 r = 1;
-m = 1e4;
-M = 1e6;
-global_tol = 1e-2;
+m = 1e0;
+M = 1e4;
+global_tol = 1e-4;
 
 % Run an instance via the command line.
 print_tbls(n, r, m, M, global_tol);
@@ -71,20 +71,24 @@ function run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
   base_hparam.check_all_terminations = true;
   
   % Create the IAPIAL hparams.
-  qp_hparam = base_hparam;
-  qp_hparam.acg_steptype = 'constant';
-  qp_hparam.aipp_type = 'aipp';
+  qpa_hparam = base_hparam;
+  qpa_hparam.acg_steptype = 'variable';
+  qpa_hparam.aipp_type = 'aipp';
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
+  ipl_hparam.sigma_min = sqrt(0.3);
+  ipla_hparam = base_hparam;
+  ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.sigma_min = sqrt(0.3);
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {qp_hparam, ipl_hparam};
-  name_arr = {'QP','IPL'};
+  hparam_arr = {qpa_hparam, ipla_hparam};
+  name_arr = {'QP_A', 'IPL_A'};
   framework_arr = {@penalty, @IAIPAL};
   solver_arr = {@AIPP, @ECG};
   
   % Run the test.
-  [~, summary_mdls] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tbls, summary_mdls] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);
   for s=name_arr
     disp(['Algorithm = ', s{1}]);
     disp(table(dimN, m, M, r));
@@ -93,5 +97,6 @@ function run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
     tbl.Properties.VariableNames = {'inner_iter', 'L_est', 'norm_v'};
     disp(tbl);
   end
+  disp(summary_tbls.all);
   
 end

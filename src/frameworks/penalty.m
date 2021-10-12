@@ -25,9 +25,6 @@ function [model, history] = penalty(solver, oracle, params)
 %   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
 %   parameters.
 
-  % Global constants.
-  MIN_PENALTY_CONST = 1;
-
   % Timer start.
   t_start = tic;
   
@@ -89,7 +86,7 @@ function [model, history] = penalty(solver, oracle, params)
   stage = 1;
   solver_params = params;
   i_reset_prox_center = params.i_reset_prox_center;
-  c = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
+  c = params.c0;
 
   %% MAIN ALGORITHM
   while true
@@ -146,9 +143,16 @@ function [model, history] = penalty(solver, oracle, params)
     end
     
     % Check for termination.
-    feas = feas_fn(solver_model.x);
-    if (feas <= feas_tol)
-      break;
+    feas = feas_fn(solver_model.x);  
+    if (~isempty(params.termination_fn) || params.check_all_terminations)
+      if (feas <= feas_tol)
+        break;
+      end
+    end
+    if (~isempty(params.termination_fn) || params.check_all_terminations)
+      if wrap_termination(params, solver_model.x, c)
+        break;
+      end
     end
     
     % Apply warm-start onto the initial point fed into the next iteration.
@@ -164,12 +168,11 @@ function [model, history] = penalty(solver, oracle, params)
   
   % Prepare to output
   model = solver_model;
-  if (isempty(params.termination_fn) || params.check_all_terminations)
+  if (isempty(params.termination_fn))
     [~, feas_vec] = feas_fn(solver_model.x);
     model.w = feas_vec;
-  end
-  if (~isempty(params.termination_fn) || params.check_all_terminations)
-    [~, model.v, model.w] = wrap_termination(params, solver_model.x, c);  
+  else
+    [~, model.v, model.w] = wrap_termination(params, solver_model.x, c);
   end
   history.iter = iter;
   history.stage = stage;
@@ -187,6 +190,10 @@ end
 
 % Fills in parameters that were not set as input.
 function params = set_default_params(params)
+
+  % Global constants.
+  MIN_PENALTY_CONST = 1;
+
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
@@ -205,5 +212,8 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'check_all_terminations'))
     params.check_all_terminations = false;
+  end
+  if (~isfield(params, 'c0'))
+    params.c0 = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
   end
 end

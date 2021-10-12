@@ -64,7 +64,7 @@ function print_tbls(dimN)
   disp(o_tbl);
   
 end
-function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
+function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol)
 
   [oracle, hparams] = test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM, dimN, density);
 
@@ -118,8 +118,10 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
   ipl_hparam.acg_steptype = 'constant';
+  ipl_hparam.sigma_min = sqrt(0.3);
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.sigma_min = sqrt(0.3);
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;
@@ -129,7 +131,6 @@ function o_tbl =   run_experiment(N, r, M, m, dimM, dimN, density, seed, global_
   ialm_hparam.L0 = max([hparams.m, hparams.M]);
   ialm_hparam.rho_vec = hparams.m_constr_vec;
   ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the eigenbox.
   ialm_hparam.B_vec = hparams.K_constr_vec;
   
   % Run a benchmark test and print the summary.

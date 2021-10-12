@@ -191,29 +191,13 @@ function [model, history] = IAIPAL(~, oracle, params)
     params_acg.t_start = t_start;
     
     % Set the correct stepsizes.
-    if strcmp(params.acg_steptype, 'constant')
-      params_acg.L_est = M_s;
-    elseif strcmp(params.acg_steptype, 'variable') 
-      if (i_first_acg_run)
-        o_z0 = copy(oracle);
-        o_z0.eval(z0);
-        iter = iter + 1;
-        o_z1 = copy(oracle);
-        o_z1.eval(z0 - o_z0.grad_f_s() / M);
-        iter = iter + 1;
-        z1 = o_z1.prox_f_n(1 / M);
-        o_z1.eval(z1);
-        iter = iter + 1;
-        if (norm_fn(z0 - z1) <= 1e-6)
-          params_acg.L_est = lambda * M + 1;
-        else
-          M_est = norm_fn(o_z0.grad_f_s() - o_z1.grad_f_s()) / norm_fn(z0 - z1);
-          params_acg.L_est = lambda * M_est + 1;
-        end
-      else
-        % Use the previous estimate.
-        params_acg.L_est = model_acg.L_est;
-      end
+    if ( strcmp(params.acg_steptype, 'constant'))
+        params_acg.L_est = M_s;
+    elseif (i_first_acg_run && strcmp(params.acg_steptype, 'variable'))
+      params_acg.L_est = lambda * M + 1;
+    elseif (~i_first_acg_run && strcmp(params.acg_steptype, 'variable'))
+      % Use the previous estimate.
+      params_acg.L_est = model_acg.L_est;
     else
       error('Unknown ACG steptype!');
     end
@@ -270,7 +254,7 @@ function [model, history] = IAIPAL(~, oracle, params)
       history.norm_p_hat = [history.norm_p_hat; norm_fn(p_hat)];
       history.norm_v = [history.norm_v; norm_fn(w_hat)];
     end
-    
+        
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
       if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
