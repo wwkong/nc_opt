@@ -1,27 +1,8 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 17, 2020
-Coders: 
-  Weiwei Kong
-
-%} 
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_lin_cone_constr_03r(N, r, M, m, seed, dimM, dimN)
 % Generator of a test suite of linearly constrained nonconvex QP functions.
-% 
-% Note:
-% 
-%   - xi and tau are chosen so that the curvature pair is (M, m)
-%   - Entries of A, B, and C are drawn randomly from a U(0,1) distribution
-%   - A and C are dimM-by-dimN sized matrices
-%   - b is defined as b = A * (E / dimN) where E is a vector of all ones.
-%   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is -xi / 2 * ||D * B * z|| ^ 2 + tau / 2 * ||C * z - d|| ^ 2 
-%   - Gradient is -xi * B' * (D' * D) * B * z + tau *  C' * (C * z - d)
-%   - Constraint is A * z = b
 %
 % Arguments:
 %  
@@ -39,9 +20,8 @@ function [oracle, params] = test_fn_lin_cone_constr_03r(N, r, M, m, seed, dimM, 
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
 
   % Initialize.

@@ -38,7 +38,7 @@ Unconstrained Problems
 
 This subsection considers unconstrained composite optimization problems.
 
-:scpt:`src.examples.unconstrained.basic_convex_qp`
+:scpt:`examples/unconstrained/basic_convex_qp.m`
 
 This example solves the convex univariate optimization problem
 
@@ -47,7 +47,7 @@ This example solves the convex univariate optimization problem
     \underset{x}{\text{minimize}}\quad  & \frac{1}{2}x^{2}-x+\frac{1}{2} \\
     \text{subject to}\quad & x\in\mathbb{R}.
 
-:scpt:`src.examples.unconstrained.nonconvex_qp`
+:scpt:`examples/unconstrained/nonconvex_qp`
 
 This example solves the nonconvex quadratic programming problem
 
@@ -62,7 +62,7 @@ where $\Delta^n$ is the unit simplex given by
     
     \Delta^{n}:=\left\{ x\in\mathbb{R}^{n}:\sum_{i=1}^{n}x_{i}=1,0\leq x\leq1\right\}.
 
-:scpt:`src.examples.unconstrained.nonconvex_qsdp`
+:scpt:`examples/unconstrained/nonconvex_qsdp.m`
 
 This example solves the nonconvex quadratic semidefinite programming problem
 
@@ -77,7 +77,7 @@ where $\mathbb{S}^{n}_{+}$ is the collection of positive semidefinite matrices a
 
     P^{n}:=\left\{ X\in\mathbb{S}^{n}_{+}: {\rm tr}\, X = 1\right\}.
 
-:scpt:`src.examples.unconstrained.nonconvex_svm`
+:scpt:`examples/unconstrained/nonconvex_svm.m`
 
 This example solves the nonconvex support vector machine problem
 
@@ -111,7 +111,7 @@ under a saddle-point termination criterion based on the one given in **[3]**. Mo
     \partial\left[-\Phi(x,\cdot)\right](y)
     \end{array}\right),\quad\|v\|\leq\rho_{x},\quad\|w\|\leq\rho_{y}.
 
-:scpt:`src.examples.minmax.nonconvex_minmax_qp`
+:scpt:`examples/minmax/nonconvex_minmax_qp.m`
 
 This example solves the nonconvex minmax quadratic programming problem
 
@@ -131,7 +131,7 @@ where $\Delta^n$ is the unit simplex given by
 
     \Delta^{n}:=\left\{ x\in\mathbb{R}^{n}:\sum_{i=1}^{n}x_{i}=1,0\leq x\leq1\right\}.
 
-:scpt:`src.examples.minmax.nonconvex_power_control`
+:scpt:`examples/minmax/nonconvex_power_control.m`
 
 This example solves the nonconvex power control problem
 
@@ -149,7 +149,7 @@ where $f_{k,n}$, $B_x$, and $B_y$ are given by
     B_x & := \left\{X\in \mathbb{R}^{K\times N} : 0 \leq X \leq R \right\}, \\
     B_y & := \left\{y\in \mathbb{R}^{N} : 0 \leq y \leq \frac{N}{2} \right\}.
 
-:scpt:`src.examples.minmax.nonconvex_robust_regression`
+:scpt:`examples/minmax/nonconvex_robust_regression.m`
 
 This example solves the robust regression problem 
 
@@ -173,7 +173,7 @@ Spectral Problems
 -----------------
 This subsection considers spectral optimization problems where $f_s = f_{1,s} + f_{2,s}^{\cal V} \circ \sigma$ and $f_n = f_{n}^{\cal V} \circ \sigma$ for absolutely symmetric functions $f_{2,s}^{\cal V}$ and $f_{n}^{\cal V}$.
 
-:scpt:`src.examples.spectral.nonconvex_spectral_mc`
+:scpt:`examples/spectral/nonconvex_spectral_mc.m`
 
 This example solves the spectral matrix completion problem
 
@@ -184,7 +184,7 @@ This example solves the spectral matrix completion problem
 
 where ${\cal R}_{\mu}$ is an absolutely symmetric regularization function, $\sigma(\cdot)$ is the function that maps a matrix to its vector of singular values, and $B_R$ is the Euclidean ball of radius $R$, i.e., $B_R := \{X \in \mathbb{R}^{p\times q} : \|X\|_F \leq R\}$.
 
-:scpt:`src.examples.spectral.nonconvex_spectral_bmc`
+:scpt:`examples/spectral/nonconvex_spectral_bmc.m`
 
 This example solves the spectral blockwise matrix completion problem
 
@@ -200,7 +200,7 @@ Linearly-Set Constrained Problems
 
 This subsection considers linearly-set constrained composite optimization problems where $g(x)=Ax$ for a linear operator $A$ and $S$ is a closed convex set.
 
-:scpt:`src.examples.constrained.lin_constr_nonconvex_qp`
+:scpt:`examples/constrained/lin_constr_nonconvex_qp.m`
 
 This example solves the linearly-constrained nonconvex quadratic programming problem
 
@@ -215,7 +215,7 @@ where $\Delta^n$ is the unit simplex given by
 
     \Delta^{n}:=\left\{ x\in\mathbb{R}^{n}:\sum_{i=1}^{n}x_{i}=1,0\leq x\leq1\right\}.
 
-:scpt:`src.examples.constrained.nonconvex_lin_constr_qsdp`
+:scpt:`examples/constrained/nonconvex_lin_constr_qsdp.m`
 
 This example solves the linearly-constrained nonconvex quadratic semidefinite programming problem
 
@@ -230,7 +230,7 @@ where $\mathbb{S}^{n}_{+}$ is the collection of positive semidefinite matrices a
 
     P^{n}:=\left\{ X\in\mathbb{S}^{n}_{+}: {\rm tr}\, X = 1\right\}.
 
-:scpt:`src.examples.constrained.nonconvex_sparse_pca`
+:scpt:`examples/constrained/nonconvex_sparse_pca.m`
 
 This example solves the nonconvex sparse principal component analysis problem
 
@@ -246,7 +246,7 @@ where ${\cal F}^k$ is the $k$-Fantope given by
 
     {\cal F}^k:=\left\{ X\in\mathbb{S}^{n}_{+}: 0 \preceq X \preceq I, {\rm tr}\, X = k\right\}.
 
-:scpt:`src.examples.constrained.nonconvex_bounded_mc`
+:scpt:`examples/constrained.nonconvex_bounded_mc.m`
 
 This example solves the nonconvex bounded matrix completion problem
 

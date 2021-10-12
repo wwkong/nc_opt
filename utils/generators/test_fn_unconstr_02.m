@@ -1,27 +1,9 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [oracle, params] = ...
-  test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density)
-% Generator of a test suite of unconstrained nonconvex quadratic SDP 
-% functions. Data matrices are sparse and their densities are calibrated
-% according to the input variable 'density'.
-% 
-% Note:
-% 
-%   - xi and tau are chosen so that the curvature pair is (M, m)
-%   - Entries of A, B, and b are drawn randomly from a U(0, 1) distribution
-%   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is -xi / 2 * ||D * B * Z|| ^ 2 + tau / 2 * ||C * Z - d|| ^ 2 
-%   - Gradient is -xi * B' * (D' * D) * B * Z + tau *  C' * (C * Z - d)
+function [oracle, params] = test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density)
+% Generator of a test suite of unconstrained nonconvex quadratic SDP functions. Data matrices are sparse and their densities are
+% calibrated according to the input variable 'density'.
 %
 % Arguments:
 %  
@@ -41,9 +23,8 @@ function [oracle, params] = ...
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
  
   % Initialize.
@@ -75,13 +56,9 @@ function [oracle, params] = ...
   adj_op = @(Qt, y) sparse(tsr_mult(Qt, y, 'dual'));
 
   % Create the Oracle object.
-  f_s = @(x) ...
-    -xi / 2 * norm_fn(D * lin_op(B_tsr, x)) ^ 2 + ...
-    tau / 2 * norm_fn(lin_op(C_tsr, x) - d) ^ 2;
+  f_s = @(x) -xi / 2 * norm_fn(D * lin_op(B_tsr, x)) ^ 2 + tau / 2 * norm_fn(lin_op(C_tsr, x) - d) ^ 2;
   f_n = @(x) 0;
-  grad_f_s = @(x) ...
-      -xi * adj_op(Bt_tsr, (D' * D) * lin_op(B_tsr, x)) + ...
-      tau * adj_op(Ct_tsr, lin_op(C_tsr, x) - d);
+  grad_f_s = @(x) -xi * adj_op(Bt_tsr, (D' * D) * lin_op(B_tsr, x)) + tau * adj_op(Ct_tsr, lin_op(C_tsr, x) - d);
   prox_f_n = @(x, lam) sm_mat_proj(x, 1);
   oracle = Oracle(f_s, f_n, grad_f_s, prox_f_n);
 

@@ -1,33 +1,24 @@
-%{
-
-DESCRIPTION
------------
-Finds xi and tau such that eig_min(-xi * B' * B + tau * A' * A) = -m and 
-eig_max(-xi * B' * B + tau * A' * A) = M using a bisection method 
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong
-
-INPUT
------
-(A, B, M, m):
-  Inputs as stated by the function description. A and B are matrices, 
-  while M and m are positive scalars.
-
-OUTPUT
-------
-(tau, xi):
-  The main scalar outputs.
-(Dfn, Z)
-  Several auxillary outputs (see the function lowRankFactor(...) below).
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [tau, xi, Dfn, Z] = eigen_bisection(M, m, A, B)
+% Finds nonnegative constants tau and xi such that the matrix C := tau * A' * A - xi * B' * B has maximum eigenvalue M and minimum 
+% eigenvalue m.
+%
+% Arguments:
+%  
+%   M (double): target maximum eigenvalue
+%
+%   m (double): target minimum eigenvalue
+%
+%   A (double): positive matrix component of C
+%
+%   B (double): negative matrix component of C
+%
+% Returns:
+%
+%   Scalars and matrices related to the solution system.
+%
 
   % Initialize
   [mA, nA] = size(A);
@@ -98,11 +89,9 @@ function [tau, xi, Dfn, Z] = eigen_bisection(M, m, A, B)
   
 end
 
-% Given X(xi, tau) := tau * A' * A - xi * B' * B = X, find diagonal matrix 
-% D := D(xi, tau) and matrix Z such that lambda{X} = lambda{D * Z}.
-% This function should only be called if A, B is in R^(m*n) and n >> m.
-
 function [Dfn, Z] = low_rank_factor(A, B)
+% Given C(xi, tau) := tau * A' * A - xi * B' * B = C, find diagonal matrix D := D(xi, tau) and matrix Z such that 
+% lambda{X} = lambda{D * Z}. This function should only be called if A, B is in R^(m*n) and n >> m.
 
   % Check if we need this subroutine
   [mA, nA] = size(A);

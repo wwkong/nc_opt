@@ -1,16 +1,7 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  August 21, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [oracle_factory, params] = ...
-  test_fn_power_control_01(dim_K, dim_N, sigma, seed)
+function [oracle_factory, params] = test_fn_power_control_01(dim_K, dim_N, sigma, seed)
 % Generator of a test suite of nonconvex power control problems.
 %
 % Arguments:
@@ -25,10 +16,9 @@ function [oracle_factory, params] = ...
 % 
 % Returns:
 %
-%   A pair consisting of a function and a struct. The function takes in one
-%   argument which, when evaluated at $\xi$, outputs an Oracle object
-%   representing the smoothed primal function with smoothing parameter 
-%   $\xi$. The struct contains the relevant hyperparameters of the problem. 
+%   A pair consisting of a function and a struct. The function takes in one argument which, when evaluated at $\xi$, outputs an 
+%   Oracle object representing the smoothed primal function with smoothing parameter $\xi$. The struct contains the relevant 
+%   hyperparameters of the problem. 
 % 
 
   % Parse input and initialize matrices
@@ -40,8 +30,7 @@ function [oracle_factory, params] = ...
   R = dim_K ^ (1 / dim_K);
   
   % Compute the array of partial diagonal elements A_{k,k,n}.
-  exp_idx = sub2ind(...
-    size(A), (1:(dim_N * dim_K)), repmat(1:dim_K, [1, dim_N]));
+  exp_idx = sub2ind(size(A), (1:(dim_N * dim_K)), repmat(1:dim_K, [1, dim_N]));
   A_kkn_reduced = reshape(A(exp_idx), [dim_K, dim_N]);
 
   % Compute the two arrays with elements sum_{j} A_{k,j,n} and
@@ -75,11 +64,9 @@ function [oracle_factory, params] = ...
       S1_kn_reduced = A_times_X_blk' * mask_S1';
 
       % Helper functions.
-      S12_y_full_kn = @(y) ...
-        sigma ^ 2 + bsxfun(@times, B', y)' + S1_kn_reduced;
+      S12_y_full_kn = @(y) sigma ^ 2 + bsxfun(@times, B', y)' + S1_kn_reduced;
       S12_y_partial_kn = @(y) S12_y_full_kn(y) - A_kkn_reduced .* X;
-      y_ls_fn = @(y) sum(B ./ (...
-         S12_y_full_kn(y) .* S12_y_partial_kn(y)), 1)' - y / xi;
+      y_ls_fn = @(y) sum(B ./ (S12_y_full_kn(y) .* S12_y_partial_kn(y)), 1)' - y / xi;
 
       % Compute y_xi by line search.
       low_y = zeros(dim_N, 1);
@@ -103,18 +90,13 @@ function [oracle_factory, params] = ...
       % sum_{j} A_{k,j,n} / [S_{j,n} * S_{j,n}^-]
       S_jn_full = S12_y_full_kn(y_xi);
       S_jn_partial = S12_y_partial_kn(y_xi);
-      S_prod_cell = ...
-        mat2cell(1 ./ (S_jn_full .* S_jn_partial), dim_K, ones(dim_N, 1));
+      S_prod_cell = mat2cell(1 ./ (S_jn_full .* S_jn_partial), dim_K, ones(dim_N, 1));
       mask_grad_f_s = blkdiag(S_prod_cell{:})';
       A_div_S_prod_sum = A' * mask_grad_f_s';
 
       % Set up the suboracles.
-      oracle_struct.f_s = @() ...
-        -sum(log(1 + A_kkn_reduced .* X ./ S_jn_partial), 'all') - ...
-        norm(y_xi, 'fro') ^ 2 / (2 * xi);
-      oracle_struct.grad_f_s = @() ...
-        -A_kkn_reduced ./ S_jn_full + ...
-        A_div_S_prod_sum - A_kkn_reduced ./ (S_jn_full .* S_jn_partial);
+      oracle_struct.f_s = @() -sum(log(1 + A_kkn_reduced .* X ./ S_jn_partial), 'all') - norm(y_xi, 'fro') ^ 2 / (2 * xi);
+      oracle_struct.grad_f_s = @() -A_kkn_reduced ./ S_jn_full + A_div_S_prod_sum - A_kkn_reduced ./ (S_jn_full .* S_jn_partial);
       oracle_struct.f_n = @() 0;
       oracle_struct.prox_f_n = @(lam) min(max(0, X), R);
       

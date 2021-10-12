@@ -1,32 +1,20 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  August 22, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [spectral_oracle, params] = ...
-  test_fn_spectral_bmc_01(matrix_arr, alpha, beta, theta, mu, seed)
-% Generates the needed functions for the regularized block matrix completion 
-% problem. Requires an array of matrices to make up the blocks.
+function [spectral_oracle, params] = test_fn_spectral_bmc_01(matrix_arr, alpha, beta, theta, mu, seed)
+% Generates the needed functions for the regularized block matrix completion problem. Requires an array of matrices to make up 
+% the blocks.
 % 
 % Note:
 % 
 %   This version also adds:
 % 
-%     1. A ball constraint of the form ||X||_F <= R, where 
-%        R := sqrt(m * n) * ||X||_infinty.
-%     2. A kappa_tilde(||x||^2/2) penalty (scaled by alpha) to the 
-%        f2 component, where kappa_tilde(t) := beta * (1 - exp(-t / theta)).
+%     1. A ball constraint of the form ||X||_F <= R, where R := sqrt(m * n) * ||X||_infinty.
+%     2. A kappa_tilde(||x||^2/2) penalty (scaled by alpha) to the f2 component, where kappa_tilde(t) := beta * (1 - exp(-t / theta)).
 %
 % Arguments:
 % 
-%   matrix_arr (double vector array): An array of matrices to populate the
-%     blocks of the matrices to be completed.
+%   matrix_arr (double vector array): An array of matrices to populate the blocks of the matrices to be completed.
 % 
 %   beta (double): One of the objective function's hyperparameters.
 % 
@@ -43,7 +31,6 @@ function [spectral_oracle, params] = ...
 %   the struct contains the relevant hyperparameters of the problem. 
 % 
 
-  % problem generating function
   rng(seed);
   
   % Parse input
@@ -78,14 +65,12 @@ function [spectral_oracle, params] = ...
   % Output params
   params.norm_fn = norm_fn;
   params.m1 = 0;
-  params.m2 = ...
-    2 * rho * mu + alpha * 2 * beta / theta * exp(-3 * theta / 2);
+  params.m2 = 2 * rho * mu + alpha * 2 * beta / theta * exp(-3 * theta / 2);
   params.M1 = 1;
   params.M2 = alpha * beta / theta;
   params.M = params.M1 + params.M2;
   params.m = params.m1 + params.m2;
-  params.x0 = ...
-    binornd(upper_data, mean_data / upper_data, dim_m, dim_n) - min_data;
+  params.x0 = binornd(upper_data, mean_data / upper_data, dim_m, dim_n) - min_data;
   % Projector onto the set Omega
   params.Omega_projection = @(X) ball_projection(X, R); 
   % This function takes in a matrix and returns a triple [P, D, Q] of some
@@ -122,8 +107,7 @@ function [spectral_oracle, params] = ...
     kappa = @(t) beta * log(1 + abs(t) / theta);
     kappa_tilde = @(s) beta * (1 - exp(- norm(s) ^ 2 / (2 * theta)));
     kappa_prime = @(t) beta ./ (theta + abs(t)) .* sign(t);
-    kappa_tilde_prime = ...
-      @(s) beta / theta * exp(-norm(s) ^ 2 / (2 * theta)) .* s;
+    kappa_tilde_prime = @(s) beta / theta * exp(-norm(s) ^ 2 / (2 * theta)) .* s;
     s_prox_l1 = @(lam) prox_l1(s, lam);
     s_prox_const = @(lam) R / max([R, norm(s_prox_l1(lam), 'fro')]);
     s_prox = @(lam) s_prox_l1(lam) * s_prox_const(lam);
@@ -143,48 +127,35 @@ function [spectral_oracle, params] = ...
       idx = 1;
       for i=1:length(blk_min_dims)
         blk_s = s(idx:(idx + blk_min_dims(i) - 1));
-        penalty_prime(idx:(idx + blk_min_dims(i) - 1)) = ...
-          kappa_tilde_prime(blk_s);
+        penalty_prime(idx:(idx + blk_min_dims(i) - 1)) = kappa_tilde_prime(blk_s);
         idx = idx + blk_min_dims(i);
       end
     end
 
     % Create the (spectral) oracle functions
     oracle_struct.sigma = s;
-    oracle_struct.spectral_grad_f2_s = @() ...
-      alpha * block_kappa_tilde_prime(s) + ...
-      mu * (kappa_prime(s) - kappa0 * sign(s));
+    oracle_struct.spectral_grad_f2_s = @() alpha * block_kappa_tilde_prime(s) + mu * (kappa_prime(s) - kappa0 * sign(s));
     oracle_struct.spectral_prox_f_n = @(lam) s_prox(lam * mu_bar);
 
     % Create the (non-spectral) oracle functions
     oracle_struct.f1_s = @() 1/2 * norm_fn(P .* (X - data)) ^ 2;
-    oracle_struct.f2_s = @() ...
-      alpha * block_kappa_tilde(s) + ...
-      mu * sum(kappa(s) - kappa0 * abs(s));
+    oracle_struct.f2_s = @() alpha * block_kappa_tilde(s) + mu * sum(kappa(s) - kappa0 * abs(s));
     oracle_struct.f_n = @() mu_bar * sum(abs(s));
     oracle_struct.grad_f1_s = @() P .* (X - data);
-    oracle_struct.grad_f2_s = @() ...
-      U * bsxfun(@times, oracle_struct.spectral_grad_f2_s(), V');
-    oracle_struct.prox_f_n = @(lam) ...
-      U * bsxfun(@times, oracle_struct.spectral_prox_f_n(lam), V'); 
+    oracle_struct.grad_f2_s = @() U * bsxfun(@times, oracle_struct.spectral_grad_f2_s(), V');
+    oracle_struct.prox_f_n = @(lam) U * bsxfun(@times, oracle_struct.spectral_prox_f_n(lam), V'); 
 
     % Create the combined functions
     oracle_struct.f_s = @() oracle_struct.f1_s() + oracle_struct.f2_s();
-    oracle_struct.grad_f_s = ...
-      @() oracle_struct.grad_f1_s() + oracle_struct.grad_f2_s();
+    oracle_struct.grad_f_s = @() oracle_struct.grad_f1_s() + oracle_struct.grad_f2_s();
 
     % Create the Tier I special oracle constructs
-    oracle_struct.f_s_at_prox_f_n = ...
-      @(lam) 1/2 * norm_fn(P .* (X - data)) ^ 2 + ...
-        alpha * block_kappa_tilde(s) + ...
-        mu * sum(kappa(s_prox(lam)) - kappa0 * s_prox(lam)); 
+    oracle_struct.f_s_at_prox_f_n = @(lam) ...
+      1/2 * norm_fn(P .* (X - data)) ^ 2 + alpha * block_kappa_tilde(s) + mu * sum(kappa(s_prox(lam)) - kappa0 * s_prox(lam)); 
     oracle_struct.f_n_at_prox_f_n = @(lam) mu_bar * sum(s_prox(lam));
-    oracle_struct.grad_f_s_at_prox_f_n = ...
-      @(lam) P .* (X - data) + U * bsxfun(...
-        @times,  ...
-        alpha * block_kappa_tilde_prime(s) + ...
-        mu * (kappa_prime(s_prox(lam)) - kappa0 * sign(s_prox(lam))), ...
-        V(:, 1:min_rank)');
+    oracle_struct.grad_f_s_at_prox_f_n = @(lam) ...
+      P .* (X - data) + U * bsxfun(@times, alpha * block_kappa_tilde_prime(s) + mu * ...
+        (kappa_prime(s_prox(lam)) - kappa0 * sign(s_prox(lam))), V(:, 1:min_rank)');
   end
   spectral_oracle = SpectralOracle(@oracle_eval_fn);
 

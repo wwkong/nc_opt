@@ -1,25 +1,8 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 17, 2021
-Coders: 
-  Weiwei Kong
-
-%} 
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u)
 % Generator of a test suite of linearly constrained nonconvex QP functions.
-% 
-% Note:
-% 
-%   - Function is z' * Q{m+1} * z / 2 + c{m+1}' * z
-%   - Gradient is Q{m+1} * z + c{m+1}
-%   - Constraints are z' * Q{i} * z / 2 + c{i}' * z + d{i} <= 0 where: 
-%       * Q{i} is PSD with eigenvalues in [0,1] for i=1,...,dimM.
-%       * d{i} is in [-2,-1].
-%   - Projection is done over the box x_l <= z <= x_u
 %
 % Arguments:
 %
@@ -35,9 +18,8 @@ function [oracle, params] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
 
   % Initialize globals.
@@ -81,9 +63,8 @@ function [oracle, params] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x
     end
   end
   
-  % Note that the gradient of the constraint function is a matrix, whose
-  % i-th row is (Q{i} z + c{i})'. The Frobenius norm of this row, for
-  % x in [x_l, x_u], is bounded by
+  % Note that the gradient of the constraint function is a matrix, whose i-th row is (Q{i} z + c{i})'. The Frobenius norm of this
+  % row, for x in [x_l, x_u], is bounded by
   %
   %   (|Q{i}| * |ones(dimM, 1) * (x_u - x_l)| + |c{i}|)
   %

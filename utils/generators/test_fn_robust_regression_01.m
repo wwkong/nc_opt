@@ -1,16 +1,7 @@
-%{
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
-FILE DATA
----------
-Last Modified: 
-  August 21, 2020
-Coders: 
-  Weiwei Kong
-
-%}
-
-function [oracle_factory, params] = ...
-  test_fn_robust_regression_01(data_name, alpha)
+function [oracle_factory, params] = test_fn_robust_regression_01(data_name, alpha)
 % Generator of a test suite of robust regression functions.
 %
 % Arguments:
@@ -21,10 +12,9 @@ function [oracle_factory, params] = ...
 % 
 % Returns:
 %
-%   A pair consisting of a function and a struct. The function takes in one
-%   argument which, when evaluated at $\xi$, outputs an Oracle object
-%   representing the smoothed primal function with smoothing parameter 
-%   $\xi$. The struct contains the relevant hyperparameters of the problem. 
+%   A pair consisting of a function and a struct. The function takes in one argument which, when evaluated at $\xi$, outputs an 
+%   Oracle object representing the smoothed primal function with smoothing parameter $\xi$. The struct contains the relevant 
+%   hyperparameters of the problem. 
 % 
 
   % Read in data
@@ -62,30 +52,21 @@ function [oracle_factory, params] = ...
       gap = labels .* features * x;
       i_pos_gap = gap > 0;
       i_neg_gap = 1 - i_pos_gap;
-      ell_at_x_arr = ...
-        i_pos_gap .* ...
-          log(1 + exp(-gap .* i_pos_gap)) + ...
-        i_neg_gap .* (...
-          -gap + log(1 + exp(gap .* i_neg_gap)));
+      ell_at_x_arr = i_pos_gap .* log(1 + exp(-gap .* i_pos_gap)) + i_neg_gap .* (-gap + log(1 + exp(gap .* i_neg_gap)));
       phi_alpha_ell_arr = alpha * log(1 + ell_at_x_arr / alpha);
 
       % Set up variables for computing  gradient value
       logistic_at_x_arr = ...
-        i_pos_gap .* (...
-          exp(-gap .* i_pos_gap) ./ (1 + exp(-gap .* i_pos_gap))) + ...
-        i_neg_gap .* (...
-          1 ./ (1 + exp(gap .* i_neg_gap)));
+        i_pos_gap .* (exp(-gap .* i_pos_gap) ./ (1 + exp(-gap .* i_pos_gap))) + i_neg_gap .* (1 ./ (1 + exp(gap .* i_neg_gap)));
       tau_at_x_arr = logistic_at_x_arr ./ (alpha + ell_at_x_arr);
 
       % Compute y_xi
       y_xi = sm_proj(xi * phi_alpha_ell_arr, 1);
 
       % Create the oracle
-      oracle_struct.f_s = ...
-        @() y_xi' * phi_alpha_ell_arr - norm(y_xi) ^ 2 / (2 * xi);
+      oracle_struct.f_s = @() y_xi' * phi_alpha_ell_arr - norm(y_xi) ^ 2 / (2 * xi);
       oracle_struct.f_n = @() 0;
-      oracle_struct.grad_f_s = ...
-        @() -alpha * features' * (tau_at_x_arr .* y_xi .* labels);
+      oracle_struct.grad_f_s = @() -alpha * features' * (tau_at_x_arr .* y_xi .* labels);
       oracle_struct.prox_f_n = @(lam) x;
     end % End oracle_eval_fn.
     

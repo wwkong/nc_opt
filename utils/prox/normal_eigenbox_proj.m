@@ -1,5 +1,8 @@
-% Projects Z onto the normal cone of the set of positive semidefinite matrices whose eigenvalues are bounded above by r at Z.
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
+
 function proj = normal_eigenbox_proj(X, Z, r)
+% Projects Z onto the normal cone of the set of positive semidefinite matrices whose eigenvalues are bounded above by r at Z.
 
   % Set up helper variables.
   tol = 1e-12;
@@ -20,7 +23,5 @@ function proj = normal_eigenbox_proj(X, Z, r)
   C_hi = P_hi * max(0, D_hi) * P_hi';
   proj = Q_lo * C_lo * Q_lo' + Q_hi * C_hi * Q_hi';
   proj = (proj' + proj) / 2;
-  
-%   disp(table(d, lo_mask, hi_mask));
 
 end

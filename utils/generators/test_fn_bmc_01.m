@@ -1,23 +1,13 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 18, 2020
-Coders: 
-  Weiwei Kong
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_bmc_01(data_name, beta, theta, mu, seed)
-% Generates the needed functions for the regularized matrix completion 
-% problem under box constraints. Requires a data matrix with the variable 
-% name 'data' that is read from a .mat file with name given by data_name.
+% Generates the needed functions for the regularized matrix completion problem under box constraints. Requires a data matrix with 
+% the variable name 'data' that is read from a .mat file with name given by data_name.
 % 
 % Arguments:
 % 
-%   data_name (character vector): Name of the .mat dataset used for the 
-%     problem. 
+%   data_name (character vector): Name of the .mat dataset used for the problem. 
 % 
 %   beta (double): One of the objective function's hyperparameters.
 % 
@@ -29,9 +19,8 @@ function [oracle, params] = test_fn_bmc_01(data_name, beta, theta, mu, seed)
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
 
   % Set the generator.
@@ -90,28 +79,16 @@ function [oracle, params] = test_fn_bmc_01(data_name, beta, theta, mu, seed)
     s_prox = @(lam) prox_l1(s, lam * mu_bar);
 
     % Create the standard oracle constructs
-    oracle_struct.f_s = @() ...
-      1/2 * norm_fn(P .* (x - data)) ^ 2 + ...
-      mu * sum(kappa(s) - kappa0 * s);
+    oracle_struct.f_s = @() 1/2 * norm_fn(P .* (x - data)) ^ 2 + mu * sum(kappa(s) - kappa0 * s);
     oracle_struct.f_n = @() mu_bar * sum(s);
-    oracle_struct.grad_f_s = @() ...
-      P .* (x - data) + ...
-      U * bsxfun(...
-        @times,  mu * (kappa_prime(s) - kappa0), V(:, 1:min_rank)'); 
-    oracle_struct.prox_f_n = @(lam) ...
-      U * bsxfun(@times, s_prox(lam), V(:, 1:min_rank)'); 
+    oracle_struct.grad_f_s = @() P .* (x - data) + U * bsxfun(@times,  mu * (kappa_prime(s) - kappa0), V(:, 1:min_rank)'); 
+    oracle_struct.prox_f_n = @(lam) U * bsxfun(@times, s_prox(lam), V(:, 1:min_rank)'); 
 
     % Create the Tier II special oracle constructs
-    oracle_struct.f_s_at_prox_f_n = @(lam) ...
-      1/2 * norm_fn(P .* (x - data)) ^ 2 + ...
-      mu * sum(kappa(s_prox(lam)) - kappa0 * s_prox(lam)); 
-    oracle_struct.f_n_at_prox_f_n = @(lam) ...
-      mu_bar * sum(s_prox(lam));
+    oracle_struct.f_s_at_prox_f_n = @(lam) 1/2 * norm_fn(P .* (x - data)) ^ 2 + mu * sum(kappa(s_prox(lam)) - kappa0 * s_prox(lam)); 
+    oracle_struct.f_n_at_prox_f_n = @(lam) mu_bar * sum(s_prox(lam));
     oracle_struct.grad_f_s_at_prox_f_n = @(lam) ...
-      P .* (x - data) + ...
-      U * bsxfun(...
-        @times,  mu * (kappa_prime(s_prox(lam)) - kappa0), ...
-        V(:, 1:min_rank)');
+      P .* (x - data) + U * bsxfun(@times,  mu * (kappa_prime(s_prox(lam)) - kappa0), V(:, 1:min_rank)');
   end
   oracle = Oracle(@oracle_eval_fn);
 

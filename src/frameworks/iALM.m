@@ -3,7 +3,7 @@
 
 function [model, history] = iALM(~, oracle, params)
 % An inexact augmented Lagrangian method (iALM) for solving a nonconvex composite optimization model with nonlinear equality
-% constraints, i.e. g(x) = 0.
+% constraints, i.e. $g(x) = 0$.
 % 
 % Note:
 % 

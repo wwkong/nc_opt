@@ -2,31 +2,26 @@
 % Copyright © 2021 Weiwei "William" Kong
 
 function [model, history] = AIDAL(~, oracle, params)
-  % An accelerated inexact dampened augmeneted Lagrangian (AIDAL) framework for solving a nonconvex composite optimization problem
-  % with linear constraints
-  % 
-  % Note:
-  % 
-  %   Based on the paper:
-  %
-  %     ?????
-  %
-  % Arguments:
-  % 
-  %   oracle (Oracle): The oracle underlying the optimization problem.
-  % 
-  %   params (struct): Contains instructions on how to call the framework.
-  %   
-  %   ??? add defaults here ???
-  % 
-  % Returns:
-  %   
-  %   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
-  %   parameters.
-  %
-
-  % Global constants.
-  MIN_PENALTY_CONST = 1;
+% An accelerated inexact dampened augmeneted Lagrangian (AIDAL) framework for solving a nonconvex composite optimization problem
+% with linear constraints
+%
+% Note:
+%
+%   Based on the paper:
+%
+%   **TBD**
+%
+% Arguments:
+%
+%   oracle (Oracle): The oracle underlying the optimization problem.
+%
+%   params (struct): Contains instructions on how to call the framework.
+%
+% Returns:
+%
+%   A pair of structs containing model and history related outputs of the solved problem associated with the oracle and input
+%   parameters.
+%
 
   % Timer start.
   t_start = tic;
@@ -107,7 +102,7 @@ function [model, history] = AIDAL(~, oracle, params)
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
   p00 = p0;
-  c = max([MIN_PENALTY_CONST, L / K_constr ^ 2]);
+  c = params.c0;
   c0 = c;
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
@@ -215,6 +210,9 @@ end
 % Fills in parameters that were not set as input.
 function params = set_default_params(params)
 
+  % Global constants.
+  MIN_PENALTY_CONST = 1;
+
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
@@ -234,6 +232,9 @@ function params = set_default_params(params)
   if (~isfield(params, 'theta'))
     params.theta = 0.01;
   end
+  if (~isfield(params, 'c0'))
+    params.c0 = max([MIN_PENALTY_CONST, L / K_constr ^ 2]);
+  end  
   if (~isfield(params, 'chi'))
     theta = params.theta;
     params.chi = theta ^ 2 / (2 * (2 - theta) * (1 - theta));

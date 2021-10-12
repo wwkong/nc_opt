@@ -1,32 +1,8 @@
-%{
-
-DESCRIPTION
------------
-Given a matrix X, produce the projection of the point X onto the 
-alpha-spectrahedron of dimension size(X).
-
-FILE DATA
----------
-Last Modified: 
-  August 2, 2020
-Coders: 
-  Weiwei Kong
-
-INPUT 
------
-X:
-  The vector or matrix being projected.
-alpha:
-  A parameter of the spectrahedron.
-
-OUTPUT 
-------
-XP:
-  A vector or matrix representing the solution point.
-
-%}
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function XP = sm_mat_proj(X, alpha)
+% Given a matrix X, produce the projection of the point X onto the alpha-spectrahedron of dimension size(X).
 
   % Compute with the symmetric part to smooth out rounding errors
     % i.e. ensure the eigendecomposition produces only real eigenvalues

@@ -11,8 +11,12 @@ For simplicity, we only list the parameter inputs that affect the behavior of th
 
 .. automodule:: src.frameworks
 
-.. autofunction:: penalty(solver, oracle, params)
+.. autofunction:: AIDAL(~, oracle, params)
 
-.. autofunction:: IAPIAL(~, oracle, params)
+.. autofunction:: IAIPAL(~, oracle, params)
 
 .. autofunction:: iALM(~, oracle, params)
+
+.. autofunction:: penalty(solver, oracle, params)
+
+.. autofunction:: sProxALM(~, oracle, params)

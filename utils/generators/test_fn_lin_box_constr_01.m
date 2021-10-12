@@ -1,29 +1,8 @@
-%{
-
-FILE DATA
----------
-Last Modified: 
-  August 17, 2020
-Coders: 
-  Weiwei Kong
-
-%} 
+% SPDX-License-Identifier: MIT
+% Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_lin_box_constr_01(M, m, seed, dimM, dimN)
 % Generator of a test suite of linearly constrained nonconvex QP functions.
-% 
-% Note:
-% 
-%   - Entries of A and d are drawn randomly from a U(0,5) distribution
-%   - Q is generated using a randomized QR factorization with eigenvalues
-%       that range uniformly from -m to M
-%   - A (resp. Q) is a dimM-by-dimN (resp. dimN-by-dimN) sized matrix
-%   - b is defined as b = A * e where e is a random vector in [0, 5]
-%   - D is a diagonal matrix with integer elements from [1, N]
-%   - Function is (z - d)' * Q * (z - d) / 2 
-%   - Gradient is Q * (z - d)
-%   - Constraint is A * z = b
-%   - Projection is done over the box 0 <= z <= 5
 %
 % Arguments:
 %
@@ -39,9 +18,8 @@ function [oracle, params] = test_fn_lin_box_constr_01(M, m, seed, dimM, dimN)
 % 
 % Returns:
 %
-%   A pair consisting of an Oracle and a struct. The oracle is first-order
-%   oracle underyling the optimization problem and the struct contains the
-%   relevant hyperparameters of the problem. 
+%   A pair consisting of an Oracle and a struct. The oracle is first-order oracle underyling the optimization problem and the 
+%   struct contains the relevant hyperparameters of the problem. 
 % 
 
   % Initialize.
