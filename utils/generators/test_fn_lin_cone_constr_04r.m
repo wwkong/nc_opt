@@ -46,7 +46,7 @@ function [oracle, params] = test_fn_lin_cone_constr_04r(N, r, M, m, seed, dimM, 
   % Computing norm of A.
   Hp = A * A';
   Hp = (Hp + Hp') / 2;
-  norm_A = sqrt(eigs(Hp, 1, 'la')); % same as lamMax(A'*A)
+  norm_A = norm(full(Hp));
   
   % Set up helper tensors and operators.
   A_tsr = ndSparse(A, [dimM, dimN, dimN]);

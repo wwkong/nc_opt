@@ -217,13 +217,13 @@ function [model, history] = ACG(oracle, params)
         [~, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
         
-        % DEBUG ONLY
-        if (params.i_debug)
-          diff = abs(aux_struct.RHS - aux_struct.LHS);
-          dist_xt_y = aux_struct.dist_xt_y;
-          disp(table(local_L_est, L, L_max, dist_xt_y, diff, aux_struct.LHS, aux_struct.RHS , aux_struct.descent_cond));
-        end
-        % END DEBUG
+%         % DEBUG ONLY
+%         if (params.i_debug)
+%           diff = abs(aux_struct.RHS - aux_struct.LHS);
+%           dist_xt_y = aux_struct.dist_xt_y;
+%           disp(table(local_L_est, L, L_max, dist_xt_y, diff, aux_struct.LHS, aux_struct.RHS , aux_struct.descent_cond));
+%         end
+%         % END DEBUG
         
         if (L >= L_max && ~aux_struct.descent_cond)
           error('Theoretical upper bound on the upper curvature L_max does not appear to be correct!');

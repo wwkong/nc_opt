@@ -15,9 +15,9 @@ function print_tbls(dimN)
   seed = 77777;
   dimM = 10;
   global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
-  r_vec = [5, 10, 15];
+  m_vec = [1e1, 1e2, 1e3];
+  M_vec = [1e3, 1e4, 1e5];
+  r_vec = [5, 10, 20];
   first_tbl = true;
 
   % Variable M.
@@ -34,7 +34,7 @@ function print_tbls(dimN)
   end
   
   % Variable m.
-  M = 1e6;
+  M = 1e5;
   r = 1;
   for m=m_vec
     tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
@@ -48,7 +48,7 @@ function print_tbls(dimN)
   
   % Variable r.
   m = 1e0;
-  M = 1e6;
+  M = 1e5;
   for r=r_vec
     tbl_row = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
     if first_tbl
@@ -121,17 +121,27 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
-  ipl_hparam.acg_steptype = 'constant';
   ipl_hparam.sigma_min = sqrt(0.3);
+  ipl_hparam.acg_steptype = 'constant';
   ipla_hparam = base_hparam;
+  ipla_hparam.L_start = (hparams.M / (2 * hparams.m) + 1) / 1000;
   ipla_hparam.acg_steptype = 'variable';
-  ipla_hparam.sigma_min = sqrt(0.3);
+  
+  % Create the complicated iALM hparams.
+  ialm_hparam = base_hparam;
+  ialm_hparam.proj_dh = @proj_dh;
+  ialm_hparam.i_ineq_constr = true;
+  ialm_hparam.rho0 = hparams.m;
+  ialm_hparam.L0 = max([hparams.m, hparams.M]);
+  ialm_hparam.rho_vec = hparams.m_constr_vec;
+  ialm_hparam.L_vec = hparams.L_constr_vec;
+  ialm_hparam.B_vec = hparams.K_constr_vec;
   
   % Run a benchmark test and print the summary.
-  hparam_arr = {ipl_hparam, ipla_hparam};
-  name_arr = {'IPL', 'IPL_A'};
-  framework_arr = {@IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @ECG};
+  hparam_arr = {ialm_hparam, ipl_hparam, ipla_hparam};
+  name_arr = {'iALM', 'IPL', 'IPL_A'};
+  framework_arr = {@iALM, @IAIPAL, @IAIPAL};
+  solver_arr = {@ECG, @ECG, @ECG};
   
   % Run the test.
   [summary_tables, ~] = run_CCM_benchmark(ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);

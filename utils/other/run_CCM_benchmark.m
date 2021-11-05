@@ -65,6 +65,12 @@ function [summary_tables, comp_models] = run_CCM_benchmark(base_cc_model, fw_arr
     summary_tables.iter = add_column(['iter_', framework_name], constr_comp_model.iter, summary_tables.iter);
     summary_tables.fval = add_column(['fval_', framework_name], constr_comp_model.f_at_x, summary_tables.fval);
     % Auxiliary results.
+    if (isfield(constr_comp_model.history, 'c0'))
+      summary_tables.mdata = add_column(['c0_', framework_name], constr_comp_model.history.c0, summary_tables.mdata);
+    end
+    if (isfield(constr_comp_model.history, 'stage'))
+      summary_tables.mdata = add_column(['stage_', framework_name], constr_comp_model.history.stage, summary_tables.mdata);
+    end
     if (isfield(constr_comp_model.history, 'outer_iter'))
       summary_tables.mdata = add_column(['oiter_', framework_name], constr_comp_model.history.outer_iter, summary_tables.mdata);
     end

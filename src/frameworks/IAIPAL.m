@@ -132,6 +132,7 @@ function [model, history] = IAIPAL(~, oracle, params)
     history.norm_p0 = [];
     history.norm_p_hat = [];
     history.norm_v = [];
+    history.norm_w = [];
   end
 
   % Initialize framework parameters.
@@ -198,7 +199,7 @@ function [model, history] = IAIPAL(~, oracle, params)
     if ( strcmp(params.acg_steptype, 'constant'))
         params_acg.L_est = M_s;
     elseif (i_first_acg_run && strcmp(params.acg_steptype, 'variable'))
-      params_acg.L_est = lambda * M + 1;
+      params_acg.L_est = params.L_start;
     elseif (~i_first_acg_run && strcmp(params.acg_steptype, 'variable'))
       % Use the previous estimate.
       params_acg.L_est = model_acg.L_est;
@@ -257,6 +258,7 @@ function [model, history] = IAIPAL(~, oracle, params)
       history.norm_p0 = [history.norm_p0; norm_fn(p0)];
       history.norm_p_hat = [history.norm_p_hat; norm_fn(p_hat)];
       history.norm_v = [history.norm_v; norm_fn(w_hat)];
+      history.norm_w = [history.norm_w; norm_fn(q_hat)];
     end
         
     % Check for termination.
@@ -322,6 +324,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   history.first_L_psi = first_L_psi;
   history.last_L_psi = M_s;
   history.last_sigma = sigma;
+  history.c0 = params.c0;
   history.first_c0 = first_c0;
   history.last_c0 = c0;
   history.runtime = toc(t_start);
@@ -373,5 +376,8 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'check_all_terminations'))
     params.check_all_terminations = false;
+  end
+  if (~isfield(params, 'L_start'))
+    params.L_start = params.M / (2 * params.m) + 1;
   end
 end

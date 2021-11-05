@@ -61,7 +61,7 @@ function [oracle, params] = test_fn_quad_cone_constr_02r(N, r, M, m, seed, dimM,
   adj_op = @(Mt, y) sparse(tsr_mult(Mt, y, 'dual'));
   
   % Constraint map methods.
-  params.constr_fn = @(Z) (1 / 2) * Z' * PtP * Z + (1 / 2) * (QtQ * Z + Z' * QtQ) - (1 / (dimN ^ 2)) * eye(dimN);
+  params.constr_fn = @(Z) (1 / 2) * Z' * PtP * Z + (1 / 2) * (QtQ * Z + Z' * QtQ) - eye(dimN);
   
   % MONTEIRO (gradient).
   params.grad_constr_fn = @(Z, Delta) (1 / 2) * (PtP * Z * Delta + Delta' * Z' * PtP') + (1 / 2) * (QtQ * Delta + Delta' * QtQ');

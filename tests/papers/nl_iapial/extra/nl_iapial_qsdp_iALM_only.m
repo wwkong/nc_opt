@@ -2,7 +2,7 @@
 % Copyright © 2021 Weiwei "William" Kong
 
 % Solve a multivariate nonconvex linear constrained quadratic semidefinite programming problem constrained to an eigenbqx.
-run('../../../init.m');
+run('../../../../init.m');
 
 % Run an instance via the command line.
 print_tbls(n);
@@ -141,21 +141,21 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, opt_tol, 
   ialm_hparam.L_vec = hparams.L_constr_vec;
   ialm_hparam.B_vec = hparams.K_constr_vec;
   
-  % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
-  name_arr = {'iALM', 'QP', 'QP_A', 'IPL', 'IPL_A'};
-  framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
+%   % Run a benchmark test and print the summary.
+%   hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
+%   name_arr = {'iALM', 'QP', 'QP_A', 'IPL', 'IPL_A'};
+%   framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG};
 %   
 %   hparam_arr = {qp_hparam, qpa_hparam, ipl_hparam, ipla_hparam};
 %   name_arr = {'QP', 'QP_A', 'IPL', 'IPL_A'};
 %   framework_arr = {@penalty, @penalty, @IAIPAL, @IAIPAL};
 %   solver_arr = {@AIPP, @AIPP, @ECG, @ECG};
 %   
-%   hparam_arr = {qpa_hparam, ipla_hparam};
-%   name_arr = {'QP_A', 'IPL_A'};
-%   framework_arr = {@penalty, @IAIPAL};
-%   solver_arr = {@AIPP, @ECG};
+  hparam_arr = {ialm_hparam};
+  name_arr = {'iALM'};
+  framework_arr = {@iALM};
+  solver_arr = {@ECG};
   
   % Run the test.
   [summary_tables, ~] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);

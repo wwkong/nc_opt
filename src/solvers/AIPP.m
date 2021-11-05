@@ -159,7 +159,11 @@ function [model, history] = AIPP(oracle, params)
     params_acg.z0 = z0;
     params_acg.mu = mu_fn(lambda);
     params_acg.L = L_prox_fn(lambda, M); % upper curvature
-    params_acg.L_est = L_prox_fn(lambda, M_est); % est. upper curvature
+    if (outer_iter == 1)
+      params_acg.L_est = params.L_start;
+    else
+      params_acg.L_est = L_prox_fn(lambda, M_est); % est. upper curvature
+    end
     params_acg.L_grad_f_s_est = L_prox_fn(lambda, L_grad_f_s_est);
     params_acg.time_limit = max([0, time_limit - toc(t_start)]);
         
@@ -384,6 +388,10 @@ function params = set_default_params(params)
   % i_logging = false
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
+  end
+  
+  if (~isfield(params, 'L_start'))
+    params.L_start = params.lambda * params.M + 1;
   end
 
 end

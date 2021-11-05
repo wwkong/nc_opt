@@ -68,6 +68,7 @@ function [model, history] = penalty(solver, oracle, params)
   params = set_default_params(params);
 
   % Initialize history parameters.
+  history = struct();
   if params.i_logging
     history.function_values = [];
     history.iteration_values = [];
@@ -79,6 +80,8 @@ function [model, history] = penalty(solver, oracle, params)
     history.inner_iter = [];
     history.L_est = [];
     history.norm_v = [];
+    history.norm_w = [];
+    history.c = [];
   end
 
   % Initialize solver parameters.
@@ -86,7 +89,8 @@ function [model, history] = penalty(solver, oracle, params)
   stage = 1;
   solver_params = params;
   i_reset_prox_center = params.i_reset_prox_center;
-  c = params.c0;
+  c_prev = params.c0;
+  c = c_prev;
 
   %% MAIN ALGORITHM
   while true
@@ -115,7 +119,11 @@ function [model, history] = penalty(solver, oracle, params)
     
     % Update curvatures and time limit, call the solver, and update iteration count.
     solver_params.time_limit = max([0, time_limit - toc(t_start)]);
-    solver_params.M = params.M + c * params.K_constr ^ 2;
+    if (stage == 1)
+      solver_params.M = params.M_start;
+    else
+      solver_params.M = solver_params.M + (c - c_prev) * params.K_constr ^ 2;
+    end
     [solver_model, solver_history] = solver(solver_oracle, solver_params);
     iter = iter + solver_history.iter;
     
@@ -135,11 +143,23 @@ function [model, history] = penalty(solver, oracle, params)
         history.time_values = [history.time_values, solver_history.time_values];
       end
     end
+    if (isfield(solver_history, 'outer_iter'))
+      if (isfield(history, 'outer_iter'))
+        history.outer_iter = history.outer_iter + solver_history.outer_iter;
+      else
+        history.outer_iter = solver_history.outer_iter;
+      end 
+    end
     
+    % DEBUG ONLY
     if params.i_debug      
       history.inner_iter = [history.inner_iter; solver_history.inner_iter];
       history.L_est = [history.L_est; solver_history.L_est];
       history.norm_v = [history.norm_v; solver_history.norm_v];
+      w_vec = NaN(length(solver_history.inner_iter), 1);
+      w_vec(end) = feas_fn(solver_model.x);
+      history.norm_w = [history.norm_w; w_vec];
+      history.c = [history.c; c * ones(length(solver_history.inner_iter), 1)];
     end
     
     % Check for termination.
@@ -161,6 +181,7 @@ function [model, history] = penalty(solver, oracle, params)
     end
 
     % Update iterates.
+    c_prev = c;
     c = params.penalty_multiplier * c;
     stage = stage + 1;
     
@@ -174,6 +195,7 @@ function [model, history] = penalty(solver, oracle, params)
   else
     [~, model.v, model.w] = wrap_termination(params, solver_model.x, c);
   end
+  history.c0 = params.c0;
   history.iter = iter;
   history.stage = stage;
   history.runtime = toc(t_start);
@@ -216,4 +238,8 @@ function params = set_default_params(params)
   if (~isfield(params, 'c0'))
     params.c0 = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
   end
+  if (~isfield(params, 'M_start'))
+    params.M_start = params.M + params.c0 * params.K_constr ^ 2;
+  end
+  
 end

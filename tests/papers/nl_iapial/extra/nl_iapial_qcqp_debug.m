@@ -4,10 +4,10 @@ run('../../../../init.m');
 format long
 
 % Comment out later.
-dimN = 250;
+dimN = 500;
 r = 1; 
-m = 1; 
-M = 1e4;
+m = 1e1; 
+M = 1e5;
 
 % Run an instance via the command line.
 print_tbls(dimN, r, m, M);
@@ -20,11 +20,10 @@ function print_tbls(dimN, r, m, M)
   dimM = 10;
   global_tol = 1e-5;
   disp(table(dimN, r, m, M));
-  o_tbl = run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
-  disp(o_tbl);
+  run_experiment(M, m, dimM, dimN, -r, r, seed, global_tol);
   
 end
-function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
+function run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
 
   [oracle, hparams] = test_fn_quad_box_constr_02(M, m, seed, dimM, dimN, x_l, x_u);
   
@@ -62,7 +61,7 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   % Set the tolerances
   ncvx_qc_qp.opt_tol = global_tol;
   ncvx_qc_qp.feas_tol = global_tol;
-  ncvx_qc_qp.time_limit = 18000;
+  ncvx_qc_qp.time_limit = 2000;
   ncvx_qc_qp.iter_limit = 1000000;
   
   % Add linear constraints
@@ -83,12 +82,11 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
+  ipl_hparam.sigma_min = sqrt(0.3);
   ipl_hparam.acg_steptype = 'constant';
-  ipl_hparam.sigma_min = 1/sqrt(2);
-  ipla_hparam = base_hparam;
+  ipla_hparam = ipl_hparam;
+  ipla_hparam.L_start = (hparams.M / (2 * hparams.m) + 1) / 1000;
   ipla_hparam.acg_steptype = 'variable';
-  ipla_hparam.init_mult_L = 0.5;
-  ipla_hparam.sigma_min = 1/sqrt(2);
   
   % Run a benchmark test and print the summary.
   hparam_arr = {ipla_hparam, ipl_hparam};
@@ -97,8 +95,16 @@ function o_tbl = run_experiment(M, m, dimM, dimN, x_l, x_u, seed, global_tol)
   solver_arr = {@ECG, @ECG};
   
   % Run the test.
-  [summary_tables, ~] = run_CCM_benchmark(ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
-  o_tbl = summary_tables.all;
+  [summary_tbls, summary_mdls] = run_CCM_benchmark(ncvx_qc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  for s=name_arr
+    disp(['Algorithm = ', s{1}]);
+    disp(table(dimN, m, M, x_l, x_u));
+    hist = summary_mdls.(s{1}).history;
+    tbl = table(hist.inner_iter, hist.c, hist.L_est, hist.norm_v, hist.norm_w);
+    tbl.Properties.VariableNames = {'inner_iter', 'penalty_param', 'L_est', 'opt_resid', 'feas_resid'};
+    disp(tbl);
+  end
+  disp(summary_tbls.all);
 
 end
 

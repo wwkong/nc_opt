@@ -12,12 +12,12 @@ function print_tbls(dimN)
 
   % Initialize
   seed = 777;
-  dimM = 25;
+  dimM = 10;
   N = 1000;
   density = 1.00;
   global_tol = 1e-3;
   m_vec = [1e1, 1e2, 1e3];
-  M_vec = [1e4, 1e5, 1e6];
+  M_vec = [1e3, 1e4, 1e5];
   r_vec = [5, 10, 20];
   first_tbl = true;
 
@@ -35,7 +35,7 @@ function print_tbls(dimN)
   end
   
   % Variable m.
-  M = 1e6;
+  M = 1e5;
   r = 1;
   for m=m_vec
     tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
@@ -49,7 +49,7 @@ function print_tbls(dimN)
   
   % Variable r.
   m = 1e0;
-  M = 1e6;
+  M = 1e5;
   for r=r_vec
     tbl_row = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_tol);
     if first_tbl
@@ -99,7 +99,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   % Set the tolerances
   ncvx_qc_qsdp.opt_tol = global_tol;
   ncvx_qc_qsdp.feas_tol = global_tol;
-  ncvx_qc_qsdp.time_limit = 12000;
+  ncvx_qc_qsdp.time_limit = 6000;
   
   % Add linear constraints
   ncvx_qc_qsdp.constr_fn = hparams.constr_fn;
@@ -117,11 +117,11 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, global_to
   
   % Create the IAPIAL hparams.
   ipl_hparam = base_hparam;
-  ipl_hparam.acg_steptype = 'constant';
   ipl_hparam.sigma_min = sqrt(0.3);
-  ipla_hparam = base_hparam;
+  ipl_hparam.acg_steptype = 'constant';
+  ipla_hparam = ipl_hparam;
+  ipla_hparam.L_start = (hparams.M / (2 * hparams.m) + 1) / 1000;
   ipla_hparam.acg_steptype = 'variable';
-  ipla_hparam.sigma_min = sqrt(0.3);
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;

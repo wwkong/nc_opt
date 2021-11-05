@@ -1,4 +1,4 @@
-% SPDX-License-Identifier: MIT
+%% SPDX-License-Identifier: MIT
 % Copyright © 2021 Weiwei "William" Kong
 
 % Solve a multivariate nonconvex linearly constrained quadratic programming problem constrained to a box.
@@ -15,8 +15,8 @@ function print_tbls(dimN)
   dimM = 25;
   N = 1000;
   global_tol = 1e-5;
-  m_vec = [1e2, 1e3, 1e4];
-  M_vec = [1e4, 1e5, 1e6];
+  m_vec = [1e1, 1e2, 1e3];
+  M_vec = [1e3, 1e4, 1e5];
   r_vec = [5, 10, 20];
   first_tbl = true;
 
@@ -36,7 +36,7 @@ function print_tbls(dimN)
   end
   
   % Variable m.
-  M = 1e6;
+  M = 1e5;
   r = 1;
   for m=m_vec
     [~, out_models] = run_experiment(N, r, M, m, dimM, dimN, seed, global_tol);
@@ -52,7 +52,7 @@ function print_tbls(dimN)
   
   % Variable r.
   m = 1e0;
-  M = 1e6;
+  M = 1e5;
   for r=r_vec
     [~, out_models] = run_experiment(N, r, M, m, dimM, dimN, seed, global_tol);
     tbl_row = parse_models(out_models);
@@ -170,11 +170,13 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   
   % Create the IAPIAL hparams.
   ipla_hparam = base_hparam;
-  ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.L_start = (hparams.M / (2 * hparams.m) + 1) / 1000;
   ipla_hparam.sigma_min = sqrt(0.3);
+  ipla_hparam.acg_steptype = 'variable';
   
   % Create the QP-AIPP hparams.
   qpa_hparam = base_hparam;
+  qpa_hparam.L_start = (hparams.M / (2 * hparams.m) + 1) / 1000;
   qpa_hparam.acg_steptype = 'variable';
   qpa_hparam.aipp_type = 'aipp';
   
