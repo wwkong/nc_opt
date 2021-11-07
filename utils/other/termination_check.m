@@ -1,10 +1,7 @@
-% Utility function that checks whether or not a pair (x,p) satisfies the
-% first-order stationarity condition. 
-%   - grad_constr_fn(a,b) is the gradient (or derivative) of the constraint 
-%     function at `a` evaluated with displacement b.
+% Utility function that checks whether or not a pair (x,p) satisfies the first-order stationarity condition. 
+%   - grad_constr_fn(a,b) is the gradient (or derivative) of the constraint function at `a` evaluated with displacement b.
 %   - proj_dh(a,b) is the projection of `b` onto the subdifferential of h at `a`.
-%   - proj_NKt(a,b) is the projection of `b` onto the normal cone of of the dual 
-%     cone of K at `a`.
+%   - proj_NKt(a,b) is the projection of `b` onto the normal cone of of the dual cone of K at `a`.
 function [terminate, w, q] = termination_check(x, p, oracle, constr_fn, grad_constr_fn, proj_dh, proj_NKt, norm_fn, rho, eta) 
   
   % Initialize.
@@ -17,7 +14,6 @@ function [terminate, w, q] = termination_check(x, p, oracle, constr_fn, grad_con
   dual_residual = norm_fn(q);
   
   % Check and output.
-%   disp(table(primal_residual, dual_residual));
   if (primal_residual <= rho && dual_residual <= eta)
     terminate = true;
   else
