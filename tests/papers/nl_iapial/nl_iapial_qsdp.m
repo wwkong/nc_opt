@@ -99,7 +99,7 @@ function o_tbl = run_experiment(N, r, M, m, dimM, dimN, density, seed, opt_tol, 
   % Set the tolerances.
   ncvx_qsdp.opt_tol = opt_tol;
   ncvx_qsdp.feas_tol = feas_tol;
-  ncvx_qsdp.time_limit = 3000;
+  ncvx_qsdp.time_limit = 6000;
   
   % Add linear constraints
   ncvx_qsdp.constr_fn = hparams.constr_fn;

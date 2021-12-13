@@ -27,17 +27,15 @@ globals.feas_tol = 1e-4;
 
 % The main parameters (mM_mat) should be spec'd by Condor.
 
-% E.g. 
+% % E.g. 
 % mM_mat = ...
-%   [1e1, 1e2; ...
-%    1e1, 1e3; ...
+%   [1e1, 1e3; ...
 %    1e1, 1e4; ...
-%    1e1, 1e5; ...
-%    1e1, 1e6; ];
-
+%    1e1, 1e5;];
 i_first_row = true;
 for i=1:size(mM_mat, 1)
-  tbl_row = run_experiment(mM_mat(i, 1), mM_mat(i, 2), globals);
+  [~, out_models] = run_experiment(mM_mat(i, 1), mM_mat(i, 2), globals);
+  tbl_row = parse_models(out_models);
   disp(tbl_row);
   if i_first_row
     tbl = tbl_row;
@@ -50,8 +48,67 @@ disp(tbl);
 
 %% Helper Functions
 
+% Parse the output models and log the output.
+function out_tbl = parse_models(models)
+
+  % Initialize.
+  alg_names = fieldnames(models);
+  
+  % Loop over the different algorithms.
+  
+  % First for |w|
+  i_first_alg = true;
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    if i_first_alg
+      m = cur_mdl.m;
+      M = cur_mdl.M;
+      time_limit = cur_mdl.time_limit;
+      out_tbl = table(m, M, time_limit);
+      i_first_alg = false;
+    end
+    cur_mdl.oracle.eval(cur_mdl.x0);
+    grad_f_at_x0 = cur_mdl.oracle.grad_f_s();
+    opt_mult = 1  / (1 + cur_mdl.norm_fn(grad_f_at_x0));
+    eval([alg_names{i}, '_opt =', num2str(cur_mdl.norm_of_v * opt_mult), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_opt)];'])
+  end
+  
+  % Next for |Az-b|
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    feas_mult = 1 / (1 + cur_mdl.norm_fn(cur_mdl.constr_fn(cur_mdl.x0)));
+    eval([alg_names{i}, '_feas =', num2str(cur_mdl.norm_of_w * feas_mult), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_feas)];'])
+  end
+  
+  % Next for iter
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    eval([alg_names{i}, '_iter =', num2str(cur_mdl.iter), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_iter)];'])
+  end
+  
+  % Next for time
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    eval([alg_names{i}, '_time =', num2str(cur_mdl.runtime), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_time)];'])
+  end
+  
+  % Next for function value
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    o_at_x = cur_mdl.oracle.eval(cur_mdl.x);
+    f_at_x = o_at_x.f_s() + o_at_x.f_n();
+    eval([alg_names{i}, '_fval =', num2str(f_at_x), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_fval)];'])
+  end
+  
+end
+
 % Run a single experiment and output the summary row.
-function out_tbl = run_experiment(m, M, params) 
+function [out_tbl, out_models] = run_experiment(m, M, params) 
 
   % Gather the oracle and hparam instance.
   [oracle, hparams] = test_fn_lin_cone_constr_02(params.N, M, m, params.seed, params.dimM, params.dimN, params.density);
@@ -109,6 +166,8 @@ function out_tbl = run_experiment(m, M, params)
   solver_arr = {@ECG, @AIPP, @AIPP, @AIPP, @ECG, @ECG};
   
   % Run the test.
-  [summary_tables, ~] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, out_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   out_tbl = summary_tables.all;
 end
+
+

@@ -390,6 +390,16 @@ function params = set_default_params(params)
     params.i_logging = false;
   end
   
+  % i_debug = false
+  if (~isfield(params, 'i_debug')) 
+    params.i_debug = false;
+  end
+  
+  % termination_fn = []
+  if (~isfield(params, 'termination_fn')) 
+    params.termination_fn = [];
+  end
+  
   if (~isfield(params, 'L_start'))
     params.L_start = params.lambda * params.M + 1;
   end

@@ -18,7 +18,7 @@ function print_tbls(dimN)
   m_vec = [1e1, 1e2, 1e3];
   M_vec = [1e3, 1e4, 1e5];
   r_vec = [5, 10, 20];
-  first_tbl = true;
+  first_tbl = true;  
 
   % Variable M.
   m = 1e0;
@@ -200,7 +200,7 @@ function [o_tbl, o_mdl] = run_experiment(N, r, M, m, dimM, dimN, seed, global_to
   hparam_arr = {ialm_hparam, qpa_hparam, ipla_hparam, spa1_hparam, spa2_hparam};
   name_arr = {'iALM', 'QP_A', 'IPL_A', 'SPA1', 'SPA2'};
   framework_arr = {@iALM, @penalty, @IAIPAL, @sProxALM, @sProxALM};
-  solver_arr = {@ECG, @AIPP, @ECG, @ECG, @ECG};
+  solver_arr = {@ECG, @AIPP, @ECG, @ECG, @ECG};  
   
   % Run the test.
   [summary_tables, o_mdl] = run_CCM_benchmark(ncvx_qsdp, framework_arr, solver_arr, hparam_arr, name_arr);

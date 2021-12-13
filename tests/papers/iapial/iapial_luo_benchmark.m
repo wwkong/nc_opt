@@ -21,8 +21,8 @@ globals.N = 1000;
 globals.seed = 777;
 globals.dimM = 20;
 globals.dimN = 1000;
-globals.opt_tol = 1e-6;
-globals.feas_tol = 1e-6;
+globals.opt_tol = 1e-8;
+globals.feas_tol = 1e-8;
 
 %% Run a single experiment.
 
@@ -186,7 +186,15 @@ function out_tbl = parse_models(models)
     eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_time)];'])
   end
   
-
+  % Next for function value
+  for i=1:length(alg_names)
+    cur_mdl = models.(alg_names{i});
+    o_at_x = cur_mdl.oracle.eval(cur_mdl.x);
+    f_at_x = o_at_x.f_s() + o_at_x.f_n();
+    eval([alg_names{i}, '_fval =', num2str(f_at_x), ';'])
+    eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_fval)];'])
+  end
+  
 end
 
 % Run a single experiment and output the summary models.

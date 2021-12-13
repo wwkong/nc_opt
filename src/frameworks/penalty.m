@@ -148,7 +148,7 @@ function [model, history] = penalty(solver, oracle, params)
         history.outer_iter = history.outer_iter + solver_history.outer_iter;
       else
         history.outer_iter = solver_history.outer_iter;
-      end 
+      end
     end
     
     % DEBUG ONLY
@@ -163,13 +163,12 @@ function [model, history] = penalty(solver, oracle, params)
     end
     
     % Check for termination.
-    feas = feas_fn(solver_model.x);  
-    if (~isempty(params.termination_fn) || params.check_all_terminations)
+    feas = feas_fn(solver_model.x);
+    if (isempty(params.termination_fn) && ~params.check_all_terminations)
       if (feas <= feas_tol)
         break;
       end
-    end
-    if (~isempty(params.termination_fn) || params.check_all_terminations)
+    else
       if wrap_termination(params, solver_model.x, c)
         break;
       end
