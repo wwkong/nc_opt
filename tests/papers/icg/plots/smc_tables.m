@@ -1,5 +1,5 @@
 % Set up paths.
-run('../../init.m');
+run('../../../../init.m');
 
 %% Legend
 alg_text = {'ECG', 'AIPP', 'AG', 'UP', 'NCF', 'IA', 'DA'};
@@ -25,17 +25,7 @@ load('filmtrust_1508u_2071m_theta1e-02_history.mat')
 out_tbl = [out_tbl; generate_sgl_tbl(comp_history, times, 0.01)];
 disp(out_tbl)
 
-%% TRUNCATED NORMAL
-disp('Table for the TRUNCATED NORMAL dataset');
-load('truncated_normal_theta_history.mat')
-out_tbl = generate_sgl_tbl(comp_history, times, 1);
-load('truncated_normal_theta1e-01_history.mat')
-out_tbl = [out_tbl; generate_sgl_tbl(comp_history, times, 0.1)];
-load('truncated_normal_theta1e-02_history.mat')
-out_tbl = [out_tbl; generate_sgl_tbl(comp_history, times, 0.01)];
-disp(out_tbl)
-
-%% TRUNCATED NORMAL
+%% BINOMIAL
 disp('Table for the BINOMIAL dataset');
 load('binomial_theta_history.mat')
 out_tbl = generate_sgl_tbl(comp_history, times, 1);
@@ -45,6 +35,15 @@ load('binomial_theta1e-02_history.mat')
 out_tbl = [out_tbl; generate_sgl_tbl(comp_history, times, 0.01)];
 disp(out_tbl)
 
+%% TRUNCATED NORMAL
+disp('Table for the TRUNCATED NORMAL dataset');
+load('truncated_normal_theta_history.mat')
+out_tbl = generate_sgl_tbl(comp_history, times, 1);
+load('truncated_normal_theta1e-01_history.mat')
+out_tbl = [out_tbl; generate_sgl_tbl(comp_history, times, 0.1)];
+load('truncated_normal_theta1e-02_history.mat')
+out_tbl = [out_tbl; generate_sgl_tbl(comp_history, times, 0.01)];
+disp(out_tbl)
 
 %% Main table generating functions
 function out_tbl = generate_sgl_tbl(data, times, theta)

@@ -63,15 +63,15 @@ function [model, history] = IAIPAL(~, oracle, params)
   function al_oracle = create_al_oracle(p, c)
     
     % Create the penalty oracle.
-    function oracle_struct = alp_eval_fn(~)
+    function oracle_struct = alp_eval_fn(x)
       % Wrapper functions.
-      function val = wrap_f_s(x)
+      function val = wrap_f_s()
         [~, primal_proj_point]= cone_proj(x, p, c);
         p_step = p + c * params.constr_fn(x);
         dist_val = norm_fn(p_step - primal_proj_point);
         val = 1 / (2 * c) * (dist_val ^ 2 - norm_fn(p) ^ 2);
       end
-      function val = wrap_grad_f_s(x)
+      function val = wrap_grad_f_s()
         [dual_proj_proint, ~]= cone_proj(x, p, c);
         grad_constr_fn = params.grad_constr_fn;
         %  If the gradient function has a single argument, assume that the gradient at a point is a constant tensor.
@@ -87,9 +87,9 @@ function [model, history] = IAIPAL(~, oracle, params)
       end
       % Create the function struct.
       oracle_struct.f_s = @wrap_f_s;
-      oracle_struct.f_n = @(x) 0;
+      oracle_struct.f_n = @() 0;
       oracle_struct.grad_f_s = @wrap_grad_f_s;
-      oracle_struct.prox_f_n = @(x, lam) x;
+      oracle_struct.prox_f_n = @(lam) x;
     end
     oracle_AL1 = Oracle(@alp_eval_fn);
     

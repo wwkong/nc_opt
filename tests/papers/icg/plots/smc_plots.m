@@ -1,5 +1,5 @@
 % Set up paths.
-run('../../init.m');
+run('../../../../init.m');
 
 %% Legend
 leg_text = {'ECG', 'AIPP', 'AG', 'UP', 'NCF', 'IA', 'DA'};
