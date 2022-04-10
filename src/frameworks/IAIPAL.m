@@ -120,25 +120,12 @@ function [model, history] = IAIPAL(~, oracle, params)
     history.iteration_values = [];
     history.time_values = [];
   end
-  
-  % DEBUG ONLY.
-  if params.i_debug
-    history.theta1 = [];
-    history.theta2 = [];
-    history.inner_iter = [];
-    history.c = [];
-    history.sigma = [];
-    history.L_est = [];
-    history.norm_p0 = [];
-    history.norm_p_hat = [];
-    history.norm_v = [];
-    history.norm_w = [];
-  end
 
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
   stage = 1;
+  k0 = params.k0;
   z0 = params.x0;
   z_hat = z0;
   p0 = zeros(size(params.constr_fn(z0)));
@@ -241,25 +228,6 @@ function [model, history] = IAIPAL(~, oracle, params)
       history.iteration_values = [history.iteration_values; iter];
       history.time_values = [history.time_values; toc(t_start)];
     end
-    
-    % DEBUG ONLY.
-    if params.i_debug
-      if isempty(history.theta1)
-        history.theta1 = 1;
-        history.theta2 = 1;
-      else
-        history.theta1 = [history.theta1; norm_fn(w_hat) / norm_fn(model_refine.v_hat)];
-        history.theta2 = [history.theta2; norm_fn(q_hat) / norm_fn((1 / c0) * (p0 - p_hat))];
-      end
-      history.inner_iter = [history.inner_iter; history_acg.iter];
-      history.c = [history.c; c0];
-      history.sigma = [history.sigma; sigma];
-      history.L_est = [history.L_est; params_acg.L_est];
-      history.norm_p0 = [history.norm_p0; norm_fn(p0)];
-      history.norm_p_hat = [history.norm_p_hat; norm_fn(p_hat)];
-      history.norm_v = [history.norm_v; norm_fn(w_hat)];
-      history.norm_w = [history.norm_w; norm_fn(q_hat)];
-    end
         
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
@@ -276,7 +244,9 @@ function [model, history] = IAIPAL(~, oracle, params)
     
     % Apply the dual update and create a new ALP oracle.
     x = model_acg.y;
-    p = cone_proj(x, p0, c0);
+    if (k0 == 1 || mod(outer_iter, k0) == 1)
+        p = cone_proj(x, p0, c0);
+    end
     oracle_Delta = create_al_oracle(p, c0);
     
     % Check if we need to double c0 (and do some useful precomputations).
@@ -355,6 +325,9 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'sigma_min'))
     params.sigma_min = 1 / sqrt(2);
+  end
+  if (~isfield(params, 'k0'))
+      params.k0 = 1;
   end
   if (~isfield(params, 'c0'))
     params.c0 = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
