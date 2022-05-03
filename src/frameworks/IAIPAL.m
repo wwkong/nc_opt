@@ -141,15 +141,13 @@ function [model, history] = IAIPAL(~, oracle, params)
   w_hat = Inf;
   q_hat = Inf;
   delta_p_avg = 0;
+  delta_psqr_avg = 0;
   
   % Set up k0.
-  if (params.k0_type == 1)
+  if (params.k0_type == 1 || params.k0_type == 3)
     k0 = 1;
-  elseif (params.k0_type == 2)
-    k0 = max(1, ceil(c0 / K_constr ^ 2));
   else
-    k0 = 1;
-    delta_psqr_avg = 0;
+    k0 = max(1, ceil(c0 / K_constr ^ 2));
   end
   
   % Set up some parameters used to define Delta_k.
@@ -293,7 +291,6 @@ function [model, history] = IAIPAL(~, oracle, params)
         end
         if (params.k0_type == 2) 
           k0 = max(1, ceil(c0 / K_constr ^ 2));
-          disp(k0);
         end
       end
     else
