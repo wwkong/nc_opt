@@ -27,15 +27,23 @@ globals.feas_tol = 1e-4;
 
 % The main parameters (mM_mat) should be spec'd by Condor.
 
-% % E.g. 
-% mM_mat = ...
-%   [1e1, 1e3; ...
-%    1e1, 1e4; ...
-%    1e1, 1e5;];
+% E.g. 
+
+% mM_mat = [1e1, 1e3];
+
+mM_mat = ...
+  [1e0, 1e2; ...
+   1e0, 1e3; ...
+   1e0, 1e4; ...
+   1e1, 1e5; ...
+   1e2, 1e5; ...
+   1e3, 1e5];
+
 i_first_row = true;
+
 for i=1:size(mM_mat, 1)
-  [~, out_models] = run_experiment(mM_mat(i, 1), mM_mat(i, 2), globals);
-  tbl_row = parse_models(out_models);
+  [out_summaries, out_models] = run_experiment(mM_mat(i, 1), mM_mat(i, 2), globals);
+  tbl_row = parse_outputs(out_summaries, out_models);
   disp(tbl_row);
   if i_first_row
     tbl = tbl_row;
@@ -45,11 +53,12 @@ for i=1:size(mM_mat, 1)
   end
 end
 disp(tbl);
+writetable(tbl, "iapial_qsdp.xlsx");
 
 %% Helper Functions
 
 % Parse the output models and log the output.
-function out_tbl = parse_models(models)
+function out_tbl = parse_outputs(summaries, models)
 
   % Initialize.
   alg_names = fieldnames(models);
@@ -104,6 +113,13 @@ function out_tbl = parse_models(models)
     eval([alg_names{i}, '_fval =', num2str(f_at_x), ';'])
     eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_fval)];'])
   end
+
+  % Next for multiplier ratio
+  for i=1:length(alg_names)
+    if (ismember(['k0_avg_', alg_names{i}], summaries.Properties.VariableNames))
+      eval(['out_tbl = [out_tbl, summaries(:,["', 'k0_avg_', alg_names{i}, '"])];'])
+    end
+  end
   
 end
 
@@ -137,15 +153,17 @@ function [out_tbl, out_models] = run_experiment(m, M, params)
   
   % Create some basic hparams.
   base_hparam = struct();
-  ipl_hparam = base_hparam;
-  ipl_hparam.acg_steptype = 'constant';
-  ipla_hparam = base_hparam;
-  ipla_hparam.acg_steptype = 'variable';
+  ipla0_hparam = base_hparam;
+  ipla0_hparam.acg_steptype = 'variable';
+  ipla0_hparam.k0_type = 1;
+  ipla1_hparam = base_hparam;
+  ipla1_hparam.acg_steptype = 'variable';
+  ipla1_hparam.k0_type = 2;
+  ipla2_hparam = base_hparam;
+  ipla2_hparam.acg_steptype = 'variable';
+  ipla2_hparam.k0_type = 3;
   rqp_hparam = base_hparam;
   rqp_hparam.acg_steptype = 'variable';
-  qp_hparam = base_hparam;
-  qp_hparam.acg_steptype = 'constant';
-  qp_hparam.aipp_type = 'aipp';
   qpa_hparam = base_hparam;
   qpa_hparam.acg_steptype = 'variable';
   qpa_hparam.aipp_type = 'aipp';
@@ -159,11 +177,17 @@ function [out_tbl, out_models] = run_experiment(m, M, params)
   ialm_hparam.B_vec = hparams.K_constr_vec;
   ialm_hparam.sigma = 2;
   
+%   % Old version
+%   hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
+%   name_arr = {'iALM', 'QP', 'QP_A', 'RQP', 'IPL', 'IPL_A'};
+%   framework_arr = {@iALM, @penalty, @penalty, @penalty, @IAIPAL, @IAIPAL};
+%   solver_arr = {@ECG, @AIPP, @AIPP, @AIPP, @ECG, @ECG};
+  
   % Run a benchmark test and print the summary.
-  hparam_arr = {ialm_hparam, qp_hparam, qpa_hparam, rqp_hparam, ipl_hparam, ipla_hparam};
-  name_arr = {'iALM', 'QP', 'QP_A', 'RQP', 'IPL', 'IPL_A'};
-  framework_arr = {@iALM, @penalty, @penalty, @penalty, @IAIPAL, @IAIPAL};
-  solver_arr = {@ECG, @AIPP, @AIPP, @AIPP, @ECG, @ECG};
+  hparam_arr = {ialm_hparam, qpa_hparam, rqp_hparam, ipla0_hparam, ipla1_hparam, ipla2_hparam};
+  name_arr = {'iALM', 'QP_A', 'RQP', 'IPL_A0', 'IPL_A1', 'IPL_A2'};
+  framework_arr = {@iALM, @penalty, @penalty, @IAIPAL, @IAIPAL, @IAIPAL};
+  solver_arr = {@ECG, @AIPP, @AIPP, @ECG, @ECG, @ECG};
   
   % Run the test.
   [summary_tables, out_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);

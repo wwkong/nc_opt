@@ -124,8 +124,8 @@ function [model, history] = IAIPAL(~, oracle, params)
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
+  multiplier_iter = 1;
   stage = 1;
-  k0 = params.k0;
   z0 = params.x0;
   z_hat = z0;
   p0 = zeros(size(params.constr_fn(z0)));
@@ -140,6 +140,17 @@ function [model, history] = IAIPAL(~, oracle, params)
   i_first_acg_run = true;
   w_hat = Inf;
   q_hat = Inf;
+  delta_p_avg = 0;
+  
+  % Set up k0.
+  if (params.k0_type == 1)
+    k0 = 1;
+  elseif (params.k0_type == 2)
+    k0 = max(1, ceil(c0 / K_constr ^ 2));
+  else
+    k0 = 1;
+    delta_psqr_avg = 0;
+  end
   
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
@@ -243,10 +254,20 @@ function [model, history] = IAIPAL(~, oracle, params)
     end
     
     % Apply the dual update and create a new ALP oracle.
-    x = model_acg.y;
-    if (k0 == 1 || mod(outer_iter, k0) == 1)
-        p = cone_proj(x, p0, c0);
+    x = model_acg.y;    
+    if ((mod(outer_iter, k0) == 0 && (params.k0_type == 1 || params.k0_type == 2)) || ...
+        (delta_psqr_avg / lambda <= 0.01 / c0 && params.k0_type == 3))
+      p = cone_proj(x, p0, c0);
+      multiplier_iter = multiplier_iter + 1;
+    else
+      p = p0;
     end
+    
+    delta_p_avg = (delta_p_avg * outer_iter + norm_fn(p - p0)) / (outer_iter + 1);
+    if (params.k0_type == 3 && outer_iter >= 2)
+      delta_psqr_avg = (delta_psqr_avg * (outer_iter - 1) + norm_fn(p - p0) ^ 2) / outer_iter;
+    end
+    
     oracle_Delta = create_al_oracle(p, c0);
     
     % Check if we need to double c0 (and do some useful precomputations).
@@ -270,6 +291,10 @@ function [model, history] = IAIPAL(~, oracle, params)
         if (i_reset_prox_center)
           x = o_z0;
         end
+        if (params.k0_type == 2) 
+          k0 = max(1, ceil(c0 / K_constr ^ 2));
+          disp(k0);
+        end
       end
     else
       error('Something went wrong with the variable `outer_iter`');
@@ -290,6 +315,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   history.acg_ratio = iter / outer_iter;
   history.iter = iter;
   history.outer_iter = outer_iter;
+  history.multiplier_iter = multiplier_iter;
   history.stage = stage;
   history.first_L_psi = first_L_psi;
   history.last_L_psi = M_s;
@@ -326,8 +352,11 @@ function params = set_default_params(params)
   if (~isfield(params, 'sigma_min'))
     params.sigma_min = 1 / sqrt(2);
   end
-  if (~isfield(params, 'k0'))
-      params.k0 = 1;
+  if (~isfield(params, 'k0_type'))
+      % 1: k0 = 1
+      % 2: k0 = c / |A|^2 and is adapted to the cycle
+      % 3: k0 is adapted to the outer iter 
+      params.k0_type = 1;
   end
   if (~isfield(params, 'c0'))
     params.c0 = max([MIN_PENALTY_CONST, params.M / params.K_constr ^ 2]);
