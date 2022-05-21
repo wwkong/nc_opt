@@ -33,13 +33,13 @@ function [model, history] = NC_FISTA(oracle, params)
   t_start = tic;
   
   % Main params
-  m = params.m;
   z0 = params.x0;
   norm_fn = params.norm_fn;
   
   % Fill in OPTIONAL input params.
   params = set_default_params(params);
-  lambda = params.lambda;
+  lambda = 1 / params.M0;
+  m = params.m0;
   xi = params.xi;
   
   % Solver params.
@@ -133,8 +133,14 @@ end % function end
 function params = set_default_params(params)
 
   % Overwrite if necessary.
-  if (~isfield(params, 'lambda')) 
-    params.lambda = 0.99 / params.L;
+%   if (~isfield(params, 'lambda')) 
+%     params.lambda = 0.99 / params.L;
+%   end
+  if (~isfield(params, 'm0')) 
+    params.m0 = params.m;
+  end
+  if (~isfield(params, 'M0')) 
+    params.M0 = params.M;
   end
   if (~isfield(params, 'xi')) 
     params.xi = 1.05 * params.m;

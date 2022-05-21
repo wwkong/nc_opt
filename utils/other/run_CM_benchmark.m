@@ -57,7 +57,6 @@ function [summary_tables, comp_models] = run_CM_benchmark(base_c_model, solver_a
     summary_tables.runtime = add_column(['t_', solver_name], comp_model.runtime, summary_tables.runtime);
     summary_tables.iter = add_column(['iter_', solver_name], comp_model.iter, summary_tables.iter);
     summary_tables.fval = add_column(['fval_', solver_name], comp_model.f_at_x, summary_tables.fval);
-    summary_tables.normV = add_column(['min_vNorm_', solver_name], comp_model.min_norm_of_v, summary_tables.normV);
   end
   
   % Add solver independent data.

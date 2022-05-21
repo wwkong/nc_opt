@@ -9,7 +9,7 @@
 
 % Create the Model object and specify the solver.
 cvx_qp = CompModel;
-cvx_qp.solver = @ECG;
+cvx_qp.solver = @APD;
 
 % Define the function and its gradient.
 cvx_qp.f_s = @(x) (1 / 2) * (x - 1) ^ 2;

@@ -89,6 +89,9 @@ function [model, history] = ACG(oracle, params)
   elseif strcmp(termination_type, "aipp_phase2")
     lambda = params.lambda;
     epsilon_bar = params.epsilon_bar;
+  elseif strcmp(termination_type, "apd")
+    sigma = params.sigma;
+    theta = params.theta;
   elseif strcmp(termination_type, "none")
     % Do nothing, but check the validity.
   else
@@ -123,6 +126,7 @@ function [model, history] = ACG(oracle, params)
   % Set up the oracle at x0
   o_x0 = oracle.eval(x0);
   f_at_x0 = o_x0.f_s() + o_x0.f_n();
+  f_at_y_prev = f_at_x0;
   
   %% LOCAL FUNCTIONS
   
@@ -160,6 +164,7 @@ function [model, history] = ACG(oracle, params)
     aux_struct.descent_cond = (LHS <= RHS + INEQ_TOL);
     aux_struct.y = y;
     aux_struct.o_y = o_y;
+    aux_struct.o_x_tilde_prev = o_x_tilde_prev;
     aux_struct.lamK = lamK;
     aux_struct.tauK = tauK;
     aux_struct.a_prev = a_prev;
@@ -217,13 +222,29 @@ function [model, history] = ACG(oracle, params)
         [~, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
         
-%         % DEBUG ONLY
-%         if (params.i_debug)
-%           diff = abs(aux_struct.RHS - aux_struct.LHS);
-%           dist_xt_y = aux_struct.dist_xt_y;
-%           disp(table(local_L_est, L, L_max, dist_xt_y, diff, aux_struct.LHS, aux_struct.RHS , aux_struct.descent_cond));
-%         end
-%         % END DEBUG
+        % Additional APD descent condition.
+        if strcmp(termination_type, 'apd')
+          % Parse the computed iterates.
+          A = aux_struct.A;
+          y = aux_struct.y;
+          lamK = aux_struct.lamK;
+          a_prev = aux_struct.a_prev;
+          f_s_at_x_tilde_prev = aux_struct.f_s_at_x_tilde_prev;
+          grad_f_s_at_x_tilde_prev = aux_struct.grad_f_s_at_x_tilde_prev;
+          x_tilde_prev = aux_struct.x_tilde_prev;
+          dist_xt_y = aux_struct.dist_xt_y;
+          o_x_tilde_prev = aux_struct.o_x_tilde_prev;
+          o_y = aux_struct.o_y;
+          x = 1 / (1 + mu * A) * (x_prev  - a_prev / lamK * (x_tilde_prev - y) + mu * (A_prev * x_prev + a_prev * y));
+          % Computation of the minorants.
+          q_tilde_at_y = f_s_at_x_tilde_prev + o_x_tilde_prev.f_n() + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ... 
+                         mu * dist_xt_y^2 /2; 
+          q_at_y_prev = q_tilde_at_y + L * prod_fn(x_tilde_prev - y, y_prev - y) + mu * norm_fn(y - y_prev)^2;       
+          % Main check
+          LHS = mu * A * norm_fn(y - x_tilde_prev)^2 / 2 + (1 + mu * A) * norm_fn(y_prev - x)^2 / 2;
+          RHS = A * (q_at_y_prev - o_y.f_s() - o_y.f_n()) + (1 + mu * A_prev) * norm_fn(y - x)^2 / 2;
+          aux_struct.descent_cond = aux_struct.descent_cond && (LHS <= RHS + INEQ_TOL);
+        end
         
         if (L >= L_max && ~aux_struct.descent_cond)
           error('Theoretical upper bound on the upper curvature L_max does not appear to be correct!');
@@ -243,6 +264,7 @@ function [model, history] = ACG(oracle, params)
       x_tilde_prev = aux_struct.x_tilde_prev;
       f_s_at_x_tilde_prev = aux_struct.f_s_at_x_tilde_prev;
       grad_f_s_at_x_tilde_prev = aux_struct.grad_f_s_at_x_tilde_prev;
+      dist_xt_y = aux_struct.dist_xt_y;
       
     % Constant L updates.
     elseif strcmp(params.acg_steptype, "constant")
@@ -335,7 +357,7 @@ function [model, history] = ACG(oracle, params)
     %% CHECK INVARIANTS.
         
     % Sufficient descent.
-    if (any(strcmp(termination_type, {'gd'})))
+    if (any(strcmp(termination_type, {'gd', 'apd'})))
       large_gd = f_at_x0;
       small_gd = f_at_y + prod_fn(u, x0 - y) - eta;
       del_gd = large_gd - small_gd;
@@ -366,6 +388,16 @@ function [model, history] = ACG(oracle, params)
       del_gd = large_gd - small_gd;
       base = max([abs(large_gd), abs(small_gd), 0.01]);
       if (del_gd / base < -INEQ_TOL)
+        model.status = -2;
+        break;
+      end
+    end
+    
+    if (any(strcmp(termination_type, {'apd'})))
+      q_tilde_at_y = f_s_at_x_tilde_prev + o_x_tilde_prev.f_n() + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ... 
+                     mu * dist_xt_y^2 /2;
+      q_at_y_prev = q_tilde_at_y + L * prod_fn(x_tilde_prev - y, y_prev - y) + mu * norm_fn(y - y_prev)^2;
+      if (q_at_y_prev > f_at_y_prev || Gamma(y_prev) > f_at_y_prev || Gamma(y) > f_at_y)
         model.status = -2;
         break;
       end
@@ -426,6 +458,14 @@ function [model, history] = ACG(oracle, params)
         break;
       end
       
+    % Termination for the APD method.
+    elseif strcmp(termination_type, "apd")
+      u_tilde = (L + mu) * (x_tilde_prev - y) + o_y.grad_f_s() - grad_f_s_at_x_tilde_prev;
+      cond1 = norm_fn(u_tilde + x0 - y)^2 <= theta * (f_at_x0 - f_at_y + norm_fn(y - x0)^2 / 2);
+      cond2 = norm_fn(u_tilde)^2 <= sigma^2 * norm_fn(y - x0)^2;
+      if (cond1 && cond2)
+        break;
+      end
     end
     
     %% UPDATE VARIABLES.
@@ -437,6 +477,7 @@ function [model, history] = ACG(oracle, params)
       Gamma_at_x_prev = Gamma_at_x;
       grad_Gamma_at_x_prev = grad_Gamma_at_x;
     end
+    f_at_y_prev = f_at_y;
     A_prev = A;
     y_prev = y;
     x_prev = x;

@@ -33,7 +33,12 @@ function [model, history] = UPFAG(oracle, params)
 
   % Main params
   z0 = params.x0;
-  M_bar = params.L; % Lipschitz constant
+  % Lipschitz constant
+  if (isfield(params, 'M0') && isfield(params, 'm0'))
+    M_bar = max(params.M0, params.m0);
+  else
+    M_bar = params.L;
+  end
   M = 1 * M_bar;
   lambda0 = 1 / M;
   beta0 = 1 / M;
