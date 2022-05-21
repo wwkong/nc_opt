@@ -124,7 +124,8 @@ function [model, history] = IAIPAL(~, oracle, params)
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
-  multiplier_iter = 1;
+  multiplier_iter = 0;
+  possible_multiplier_updates = 0;
   stage = 1;
   z0 = params.x0;
   z_hat = z0;
@@ -149,9 +150,11 @@ function [model, history] = IAIPAL(~, oracle, params)
   else
     k0 = max(1, ceil(c0 / K_constr ^ 2));
   end
+  history.k0_max = k0;
   
   % Set up some parameters used to define Delta_k.
   stage_outer_iter = 1;
+  local_outer_iter = 1;
   
   %% MAIN ALGORITHM
   while true
@@ -171,7 +174,7 @@ function [model, history] = IAIPAL(~, oracle, params)
        
     % Create the ACG oracle.
     oracle_acg = copy(oracle_al0);
-    oracle_acg.proxify(lambda, z0);    
+    oracle_acg.proxify(lambda, z0);
     
     % Create the ACG params.
     L_psi = M + L_constr * norm_fn(p0) + c0 * (B_constr * L_constr + K_constr ^ 2);
@@ -192,7 +195,7 @@ function [model, history] = IAIPAL(~, oracle, params)
     params_acg.t_start = t_start;
     
     % Set the correct stepsizes.
-    if ( strcmp(params.acg_steptype, 'constant'))
+    if (strcmp(params.acg_steptype, 'constant'))
         params_acg.L_est = M_s;
     elseif (i_first_acg_run && strcmp(params.acg_steptype, 'variable'))
       params_acg.L_est = params.L_start;
@@ -251,19 +254,23 @@ function [model, history] = IAIPAL(~, oracle, params)
       end
     end
     
-    % Apply the dual update and create a new ALP oracle.
-    x = model_acg.y;    
-    if ((mod(outer_iter, k0) == 0 && (params.k0_type == 1 || params.k0_type == 2)) || ...
-        (delta_psqr_avg / lambda <= 0.01 / c0 && params.k0_type == 3))
+    % Apply the dual update and create a new ALP oracle.      
+    x = model_acg.y;
+    possible_multiplier_updates = possible_multiplier_updates + 1;
+    if ((local_outer_iter == 1) || ...
+        (params.k0_type == 1) || ...
+        (mod(local_outer_iter-1, k0) == 0 && params.k0_type == 2) || ...
+        (delta_psqr_avg / lambda <= params.k0_type3_alpha / c0 && params.k0_type == 3))
+      history.k0_max = max(history.k0_max, k0);
       p = cone_proj(x, p0, c0);
       multiplier_iter = multiplier_iter + 1;
     else
       p = p0;
     end
     
-    delta_p_avg = (delta_p_avg * outer_iter + norm_fn(p - p0)) / (outer_iter + 1);
-    if (params.k0_type == 3 && outer_iter >= 2)
-      delta_psqr_avg = (delta_psqr_avg * (outer_iter - 1) + norm_fn(p - p0) ^ 2) / outer_iter;
+    delta_p_avg = (delta_p_avg * local_outer_iter + norm_fn(p - p0)) / (local_outer_iter + 1);
+    if (params.k0_type == 3 && local_outer_iter >= 1)
+      delta_psqr_avg = (delta_psqr_avg * (local_outer_iter - 1) + norm_fn(p - p0) ^ 2) / local_outer_iter;
     end
     
     oracle_Delta = create_al_oracle(p, c0);
@@ -283,13 +290,16 @@ function [model, history] = IAIPAL(~, oracle, params)
         c0 = penalty_multiplier * c0;
         stage = stage + 1;
         stage_outer_iter = outer_iter + 1;
+        local_outer_iter = 1;
+        delta_p_avg = 0;
+        delta_psqr_avg = 0;
         if (i_reset_multiplier)
           p = o_p0;
         end
         if (i_reset_prox_center)
           x = o_z0;
         end
-        if (params.k0_type == 2) 
+        if (params.k0_type == 2)
           k0 = max(1, ceil(c0 / K_constr ^ 2));
         end
       end
@@ -298,10 +308,10 @@ function [model, history] = IAIPAL(~, oracle, params)
     end
     
     % Update the other iterates.
+    outer_iter = outer_iter + 1;
+    local_outer_iter = local_outer_iter + 1;
     p0 = p;
     z0 = x;
-    outer_iter = outer_iter + 1;
-    
   end
   
   % Prepare to output
@@ -312,7 +322,9 @@ function [model, history] = IAIPAL(~, oracle, params)
   history.acg_ratio = iter / outer_iter;
   history.iter = iter;
   history.outer_iter = outer_iter;
+  history.possible_multiplier_updates = possible_multiplier_updates;
   history.multiplier_iter = multiplier_iter;
+  history.k0_avg = possible_multiplier_updates / multiplier_iter;
   history.stage = stage;
   history.first_L_psi = first_L_psi;
   history.last_L_psi = M_s;
@@ -348,6 +360,9 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'sigma_min'))
     params.sigma_min = 1 / sqrt(2);
+  end
+  if (~isfield(params, 'k0_type3_alpha'))
+      params.k0_type3_alpha = 0.1;
   end
   if (~isfield(params, 'k0_type'))
       % 1: k0 = 1

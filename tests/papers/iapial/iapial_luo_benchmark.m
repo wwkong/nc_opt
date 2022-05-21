@@ -21,27 +21,28 @@ globals.N = 1000;
 globals.seed = 777;
 globals.dimM = 20;
 globals.dimN = 1000;
-globals.opt_tol = 1e-8;
-globals.feas_tol = 1e-8;
+globals.opt_tol = 1e-7;
+globals.feas_tol = 1e-7;
 
 %% Run a single experiment.
 
 % The main parameters (m, M) should be spec'd by Condor.
 
 % E.g.
-% mM_mat = ...
-%   [1e1, 1e2; ...
-%    1e1, 1e3; ...
-%    1e1, 1e4; ...
-%    1e1, 1e5; ...
-%    1e1, 1e6; ];
+mM_mat = ...
+  [1e0, 1e2; ...
+   1e0, 1e3; ...
+   1e0, 1e4; ...
+   1e2, 1e6; ...
+   1e3, 1e6; ...
+   1e4, 1e6];
 
 % Run an experiment.
 time_limit = 600;
 i_first_row = true;
 for i=1:size(mM_mat, 1)
-  [~, out_models] = run_experiment(mM_mat(i, 1), mM_mat(i, 2), time_limit, globals);
-  tbl_row = parse_models(out_models);
+  [out_summaries, out_models] = run_experiment(mM_mat(i, 1), mM_mat(i, 2), time_limit, globals);
+  tbl_row = parse_outputs(out_summaries, out_models);
   disp(tbl_row);
   if i_first_row
     tbl = tbl_row;
@@ -51,7 +52,7 @@ for i=1:size(mM_mat, 1)
   end
 end
 disp(tbl);
-
+writetable(tbl, "iapial_luo.xlsx");
 
 %% Create the graphs for the paper. (DEPRECATED)
 % save('luo_models.mat', 'out_models')
@@ -139,7 +140,7 @@ function generate_graphs(models)
 end
 
 % Parse the output models and log the output.
-function out_tbl = parse_models(models)
+function out_tbl = parse_outputs(summaries, models)
 
   % Initialize.
   alg_names = fieldnames(models);
@@ -195,6 +196,13 @@ function out_tbl = parse_models(models)
     eval(['out_tbl = [out_tbl, table(', alg_names{i}, '_fval)];'])
   end
   
+  % Next for multiplier ratio
+  for i=1:length(alg_names)
+    if (ismember(['k0_avg_', alg_names{i}], summaries.Properties.VariableNames))
+      eval(['out_tbl = [out_tbl, summaries(:,["', 'k0_avg_', alg_names{i}, '"])];'])
+    end
+  end
+  
 end
 
 % Run a single experiment and output the summary models.
@@ -238,6 +246,7 @@ function [out_tbl, out_models] = run_experiment(m, M, time_limit, params)
   rqp_hparam.acg_steptype = 'variable';
   ipla_hparam = base_hparam;
   ipla_hparam.acg_steptype = 'variable';
+  ipla_hparam.k0_type = 2;
   qpa_hparam = base_hparam;
   qpa_hparam.acg_steptype = 'variable';
   qpa_hparam.aipp_type = 'aipp';
@@ -249,6 +258,7 @@ function [out_tbl, out_models] = run_experiment(m, M, time_limit, params)
   solver_arr = {@AIPP, @AIPP, @ECG, @ECG, @ECG, @ECG};
   
   % Run the test.
-  [out_tbl, out_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  [summary_tables, out_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
+  out_tbl = summary_tables.all;
   
 end

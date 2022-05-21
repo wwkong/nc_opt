@@ -73,10 +73,12 @@ function [summary_tables, comp_models] = run_CCM_benchmark(base_cc_model, fw_arr
     end
     if (isfield(constr_comp_model.history, 'outer_iter'))
       summary_tables.mdata = add_column(['oiter_', framework_name], constr_comp_model.history.outer_iter, summary_tables.mdata);
-      if (isfield(constr_comp_model.history, 'multiplier_iter'))
-        value = constr_comp_model.history.outer_iter / constr_comp_model.history.multiplier_iter;
-        summary_tables.mdata = add_column(['k0_avg_', framework_name], value, summary_tables.mdata);
-      end
+    end
+    if (isfield(constr_comp_model.history, 'k0_avg'))
+      summary_tables.mdata = add_column(['k0_avg_', framework_name], constr_comp_model.history.k0_avg, summary_tables.mdata);
+    end
+    if (isfield(constr_comp_model.history, 'k0_max'))
+      summary_tables.mdata = add_column(['k0_max_', framework_name], constr_comp_model.history.k0_avg, summary_tables.mdata);
     end
   end
   
