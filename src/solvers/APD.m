@@ -15,10 +15,10 @@ function [model, history] = APD(oracle, params)
 %   params.theta (double): Determines the accuracy of the inner ACG call. Defaults to ``4``.
 %
 %   params.alpha (double): Determines how quickly the line search subroutine of m0 (multiplicatively)
-%     increases its estimate. Defaults to ``1.25``.
+%     increases its estimate. Defaults to ``2``.
 %
 %   params.beta (double): Determines how quickly the line search subroutine of the ACG call (multiplicatively)
-%     increases its estimate. Defaults to ``1.25``.
+%     increases its estimate. Defaults to ``2``.
 %
 %   params.M0 (function handle): Initial upper curvature estimate. Defaults to ``1``.
 %
@@ -94,7 +94,11 @@ function [model, history] = APD(oracle, params)
     params_acg.L_est = M / (2 * m) + 1;
     params_acg.time_limit = max([0, time_limit - toc(t_start)]);
         
-    % Repeatedly call the ACG.    
+    % Repeatedly call the ACG.
+    if strcmp(params.line_search_type, 'optimistic')
+      L_acg = M / (2 * m) + 1;
+      params_acg.init_mult_L = max(1, L_acg / ((1 + params.beta) / 2)) / L_acg;
+    end
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
     if (model_acg.status < 0)
@@ -111,6 +115,9 @@ function [model, history] = APD(oracle, params)
     
     % Update iterates
     M = (model_acg.L_est - 1) * (2 * m);
+    if strcmp(params.line_search_type, 'optimistic')
+      m = m / ((1 + params.alpha) / 2);
+    end
     z0 = x;
     outer_iter = outer_iter + 1;
   end 
@@ -144,14 +151,19 @@ function params = set_default_params(params)
     params.theta = 1;
   end
 
-  % alpha = 1.25
+  % alpha = 2
   if (~isfield(params, 'alpha'))
-    params.alpha = 1.25;
+    params.alpha = 2;
   end
   
-  % beta = 1.25
+  % beta = 2
   if (~isfield(params, 'beta'))
-    params.beta = 1.25;
+    params.beta = 2;
+  end
+  
+  % line_search_type = 'monotonic'
+  if (~isfield(params, 'line_search_type'))
+    params.line_search_type = 'monotonic';
   end
   
   % i_logging = false
