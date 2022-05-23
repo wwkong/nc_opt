@@ -27,8 +27,6 @@ function [model, history] = ECG(oracle, params)
   % Initialize params.
   x0 = params.x0;
   x_prev = x0;
-  M = params.M;
-  m = params.m;
   norm_fn = params.norm_fn;
   prod_fn = params.prod_fn;
   iter = 1;
@@ -53,10 +51,14 @@ function [model, history] = ECG(oracle, params)
   
   % Choose the intial estimate of L.
   if (strcmp(params.steptype, 'constant'))
+    m = params.m;
+    M = params.M;
     L = max(m, M);
   elseif strcmp(params.steptype, 'adaptive')
-    Lf = max(m, M);
-    L = Lf / 100;
+    m = params.m0;
+    M = params.M0;
+    L = max(m, M);
+    Lf = L;
     L0 = L;
     gamma_u = 2;
     gamma_d = 2;

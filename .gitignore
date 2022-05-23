@@ -1,6 +1,7 @@
 .gitignore
 *.asv
 *.prj
+*.xlsx
 resources/*
 docs/_build/*
 todo_list.md

@@ -38,8 +38,8 @@ function [model, history] = NC_FISTA(oracle, params)
   
   % Fill in OPTIONAL input params.
   params = set_default_params(params);
-  lambda = 1 / params.M0;
-  m = params.m0;
+  lambda = 0.99 / params.L;
+  m = params.m;
   xi = params.xi;
   
   % Solver params.
@@ -92,6 +92,7 @@ function [model, history] = NC_FISTA(oracle, params)
     
     % Check for termination
     norm_v = norm_fn(v);
+    disp(norm_v)
     history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
     if (norm_fn(v) <= opt_tol)
       break
@@ -133,14 +134,8 @@ end % function end
 function params = set_default_params(params)
 
   % Overwrite if necessary.
-%   if (~isfield(params, 'lambda')) 
-%     params.lambda = 0.99 / params.L;
-%   end
-  if (~isfield(params, 'm0')) 
-    params.m0 = params.m;
-  end
-  if (~isfield(params, 'M0')) 
-    params.M0 = params.M;
+  if (~isfield(params, 'lambda')) 
+    params.lambda = 0.99 / params.L;
   end
   if (~isfield(params, 'xi')) 
     params.xi = 1.05 * params.m;

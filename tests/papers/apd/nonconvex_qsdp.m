@@ -9,29 +9,49 @@
 %
 % with curvature pair (m, M). 
 
-% Initialize
-N = 100;
-seed = 777;
+%% Initialization
+
+% Set up paths.
+run('../../../init.m');
+
+% Set up variables
+N = 1000;
+seed = 7;
 dimM = 10;
 dimN = 35;
-density = 0.70;
-global_tol = 1e-4;
-time_limit = 1200;
+density = 1.0;
+global_tol = 1e-5;
+time_limit = 2000;
 
-% Set hyperparameters
+% Set hyperparameters.
 base_hparam = struct();
-base_hparam.m0 = global_tol;
-base_hparam.M0 = 1;
+
+ncf_hparam = base_hparam;
+ncf_hparam.m0 = 1;
+ncf_hparam.M0 = 1;
+
+upf_hparam = base_hparam;
+upf_hparam.line_search_type = 'monotonic';
+
 apd_hparam = base_hparam;
-apd_hparam.line_search_type = 'optimistic';
+apd_hparam.m0 = 1;
+apd_hparam.M0 = 1;
+apd1_hparam = apd_hparam;
+apd1_hparam.line_search_type = 'monotonic';
+apd2_hparam = base_hparam;
+apd2_hparam.line_search_type = 'optimistic';
+
 pgd_hparam = base_hparam;
+pgd_hparam.m0 = global_tol;
+pgd_hparam.M0 = 1;
 pgd_hparam.steptype = 'adaptive';
 
 % Loop over the curvature pair (m, M).
-mM_vec = [1E1, 1E4;     1E1, 1E5;     1E1, 1E6; ...
-          1E2, 1E6;     1E3, 1E6;     1E4, 1E6;];
-        
-mM_vec = [1E1, 1E5;];
+base = 5;
+mM_vec = [base^1, base^3;  base^1, base^4;  base^1, base^5; ...
+          base^2, base^5;  base^3, base^5;  base^4, base^5; ];
+
+% mM_vec = [1E0, 1E5];
 
 [nrows, ncols] = size(mM_vec);
 
@@ -56,24 +76,29 @@ for i = 1:nrows
   ncvx_qp.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  solver_arr = {@ECG, @UPFAG, @NC_FISTA, @APD};
-  hparam_arr = {pgd_hparam, base_hparam, base_hparam, apd_hparam};
-  name_arr = {'PGD', 'UPF', 'NCF', 'APD'};
- 
+  solver_arr = {@ECG, @UPFAG, @ADAP_FISTA, @APD};
+  hparam_arr = {pgd_hparam, upf_hparam, ncf_hparam, apd2_hparam};
+  name_arr = {'APGD', 'UPF', 'ANCF', 'APD'};
+  
 %   solver_arr = {@UPFAG, @APD};
-%   hparam_arr = {base_hparam, apd_hparam};
-%   name_arr = {'UPF', 'APD'};
-% 
+%   hparam_arr = {upf_hparam, apd1_hparam};
+%   name_arr = {'UPF', 'APD1'};
+
 %   solver_arr = {@APD};
-%   hparam_arr = {apd_hparam};
-%   name_arr = {'APD'};
-% 
+%   hparam_arr = {apd1_hparam};
+%   name_arr = {'APD1'};
+
 %   solver_arr = {@ECG, @APD};
-%   hparam_arr = {apgd_hparam, apd_hparam};
-%   name_arr = {'APGD', 'APD'};
+%   hparam_arr = {pgd_hparam, apd1_hparam};
+%   name_arr = {'APGD', 'APD1'};
+
+%   solver_arr = {@ADAP_FISTA, @APD};
+%   hparam_arr = {ncf_hparam, apd2_hparam};
+%   name_arr = {'ANCF', 'APD2'};
   
   [summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
+  writetable(summary_tables.all, "adp_qsdp" + num2str(i) + ".xlsx");
   
   % Set up the final table.
   if (i == 1)

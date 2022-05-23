@@ -66,8 +66,8 @@ function [model, history] = ADAP_FISTA(oracle, params)
   A = A0;
   x = z0;
   y = z0;
-  m = params.m;
-  M = params.M;
+  m = params.m0;
+  M = params.M0;
     
   %% LOCAL FUNCTIONS
   function [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, count)
@@ -92,12 +92,13 @@ function [model, history] = ADAP_FISTA(oracle, params)
     end
   end % End SUB.
 
-  function [lam, xi] = CURV(z0)
+  function [lam, xi, count] = CURV(z0)
     
     curv_f = @(a,b) 2*(ell_f(a,b) - f_s(a)) / norm_fn(a-b)^2;
     x0 = z0;
     C = 0;
     scale = 100; % could play around with this parameter
+    count = 0;
     
     % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     % NOTE: x0 CANNOT BE ZERO SINCE x0 = 2 * x0.
@@ -111,6 +112,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
         theta = theta/2;
         x = prox_f_n(x0 - grad_f_s(x0)/theta, theta);
         C = curv_f(x,x0); 
+        count = count + 1;
     end
     M = theta / scale;
     m = M;
@@ -120,7 +122,8 @@ function [model, history] = ADAP_FISTA(oracle, params)
   end % End CURV.
 
   % Use Jiaming's subroutine for choosing (lambda, xi).
-  [lam, xi] = CURV(z0);
+  [lam, xi, count] = CURV(z0);
+  iter = iter + count;
 
   %% MAIN ALGORITHM
   while true
@@ -149,6 +152,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
     [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, count);
     xNext = (a+xi*lam)/(xi*lam+1)*yNext - (a-1)/(xi*lam+1)*y;
     v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);
+    iter = iter + count;
 
     % Check for early termination.
     norm_v = norm_fn(v);
@@ -170,7 +174,6 @@ function [model, history] = ADAP_FISTA(oracle, params)
     y = yNext;
     A = ANext;
     x = xNext;
-    iter = iter + 1;
    
   end
   

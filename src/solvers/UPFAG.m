@@ -97,7 +97,7 @@ function [model, history] = UPFAG(oracle, params)
     % Main algorithm
     line_search_cvx = 0;
     itr_cvx = 0; % tau_1_k
-    if k == 0
+    if (k == 0 || ~strcmp(params.line_search_type, 'bb'))
       lambda_bb = max(lambda0, sigma);        
     else
       sk = x_ag_tilde - x_md;
@@ -131,7 +131,7 @@ function [model, history] = UPFAG(oracle, params)
     sum_lambda_k = sum_lambda_k + lambda_k; % (2.7)
     line_search_nocvx = 0;
     itr_nocvx = 0; % tau_2_k
-    if k == 0
+    if (k == 0 || ~strcmp(params.line_search_type, 'bb'))
       beta_bb = max(beta0, sigma);
     else
       sk = x_ag - x_agold;
@@ -215,6 +215,11 @@ function params = set_default_params(params)
   % Overwrite if necessary.
   if (~isfield(params, 'i_logging')) 
     params.i_logging = false;
+  end
+  
+  % line_search_type = 'monotonic'
+  if (~isfield(params, 'line_search_type'))
+    params.line_search_type = 'monotonic';
   end
 
 end
