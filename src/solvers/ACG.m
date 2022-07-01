@@ -84,7 +84,7 @@ function [model, history] = ACG(oracle, params)
   elseif strcmp(termination_type, "gd")
     tau = params.tau;
     theta = params.theta;
-  elseif (any(strcmp(termination_type, {'aipp', 'aipp_sqr'})))
+  elseif (any(strcmp(termination_type, {'aipp', 'aipp_sqr', 'adap_aidal'})))
     sigma = params.sigma;
   elseif strcmp(termination_type, "aipp_phase2")
     lambda = params.lambda;
@@ -369,7 +369,7 @@ function [model, history] = ACG(oracle, params)
     end
     
     % Minorization.
-    if (any(strcmp(termination_type, {'gd'})))
+    if (any(strcmp(termination_type, {'gd', 'adap_aidal'})))
       small_gd = norm_fn(A * u + y - x0) ^ 2 + 2 * A * eta;
       large_gd = norm_fn(y - x0) ^ 2;
       del_gd = large_gd - small_gd;
@@ -412,7 +412,7 @@ function [model, history] = ACG(oracle, params)
       end
       
     % Termination for the AIPP method (with sigma square).
-    elseif strcmp(termination_type, "aipp_sqr")
+    elseif (any(strcmp(termination_type, {'aipp_sqr', 'adap_aidal'})))
       if (norm_fn(u) ^ 2 + 2 * eta <= sigma ^ 2 * norm_fn(x0 - y + u) ^ 2 + INEQ_TOL)
         break;
       end

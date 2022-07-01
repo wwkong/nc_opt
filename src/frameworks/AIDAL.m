@@ -106,7 +106,13 @@ function [model, history] = AIDAL(~, oracle, params)
   c0 = c;
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
-  params_acg.termination_type = 'aipp_sqr';
+  
+  if (strcmp(params.steptype, 'variable'))
+    params_acg.termination_type = 'adap_aidal'; 
+    Psi0 = -Inf; % For debugging purposes.
+  else
+    params_acg.termination_type = 'aipp_sqr';
+  end
 
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -129,7 +135,7 @@ function [model, history] = AIDAL(~, oracle, params)
     alp0_oracle = Oracle(alp0_s, alp_n, grad_alp0_s, alp_prox);
     oracle_AL0 = copy(oracle);
     oracle_AL0.add_smooth_oracle(alp0_oracle);
-       
+
     % Create the ACG oracle.
     oracle_acg = copy(oracle_AL0);
     oracle_acg.proxify(lambda, z0);
@@ -151,11 +157,17 @@ function [model, history] = AIDAL(~, oracle, params)
     
     % Call the ACG algorithm and update parameters.
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
-    z = model_acg.y;
-    v = model_acg.u;
     iter = iter + history_acg.iter;
     
+    % Check for early failure.
+    if (strcmp(params.steptype, 'variable') && model_acg.status < 0)
+      lambda = lambda / params.adap_gamma;
+      continue;
+    end
+    
     % Apply the refinement.
+    z = model_acg.y;
+    v = model_acg.u;
     model_refine = refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
     
     % Check for termination.
@@ -169,7 +181,29 @@ function [model, history] = AIDAL(~, oracle, params)
       break;
     end
     
+    % Apply the dual update.
+    p = dual_update(z, p0, c, theta, chi);
+    
+%     % Check for the variable telescoping bound and increase lambda if it does not hold.
+%     if (strcmp(params.steptype, 'variable'))
+%       Psi = alp_fn(z, p, c, 1/2) - 3*norm_fn(p)^2 / (4*c) + 9*norm_fn(p-p0)^2 / (4*c);
+%       disp(table(outer_iter, c, c0, Psi, Psi0, norm_w_hat, norm_q_hat, lambda));
+%       disp(table(outer_iter, - 3*norm_fn(p)^2, - 3*norm_fn(p0)^2));
+%       if (outer_iter == 1)
+%         Psi0 = Psi;
+%       else
+%         v_hat_mult = lambda*(1-sigma^2) / (2*(1+3*nu)^2);
+%         if (c == c0 && v_hat_mult*norm_fn(w_hat)^2 > Psi0 - Psi)
+%           disp(table(v_hat_mult * norm_fn(w_hat) ^ 2, Psi0 - Psi));
+%           lambda = lambda / params.adap_gamma;
+%           continue;
+%         end
+%         Psi0 = Psi;
+%       end
+%     end    
+    
     % Check if we need to double c. 
+    c0 = c;
     if strcmp(params.incr_cond, "default")
       i_incr = ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) <= feas_tol / 2) && (norm_q_hat > feas_tol));
     elseif strcmp(params.incr_cond, "feas_alt1")
@@ -184,12 +218,8 @@ function [model, history] = AIDAL(~, oracle, params)
       stage = stage + 1;
     end
     
-    % Apply the dual update and create a new ALP oracle.
-    p = dual_update(z, p0, c, theta, chi);
-    
     % Update the other iterates.
     p00 = p0;
-    c0 = c;
     p0 = p;
     z0 = z;
     outer_iter = outer_iter + 1;
@@ -233,8 +263,8 @@ function params = set_default_params(params)
     params.theta = 0.01;
   end
   if (~isfield(params, 'c0'))
-    params.c0 = max([MIN_PENALTY_CONST, L / K_constr ^ 2]);
-  end  
+    params.c0 = max([MIN_PENALTY_CONST, params.L / params.K_constr ^ 2]);
+  end
   if (~isfield(params, 'chi'))
     theta = params.theta;
     params.chi = theta ^ 2 / (2 * (2 - theta) * (1 - theta));
@@ -247,6 +277,12 @@ function params = set_default_params(params)
   end  
   if (~isfield(params, 'incr_cond'))
     params.incr_cond = "default";
-  end  
+  end
+  if (~isfield(params, 'steptype'))
+    params.steptype = "constant";
+  end
+  if (~isfield(params, 'adap_gamma'))
+    params.adap_gamma = 2.0;
+  end
 
 end

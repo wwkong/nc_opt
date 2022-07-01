@@ -41,6 +41,9 @@ iapial_hparam.i_reset_multiplier = false;
 iapial_hparam.i_reset_prox_center = false;
 
 aidal_hparam = base_hparam;
+
+% DEBUG
+aidal_hparam.steptype = 'constant';
 aidal_hparam.acg_steptype = 'variable';
 aidal_hparam.sigma_type = 'constant';
 aidal_hparam.sigma_min = 0.3;
@@ -48,9 +51,11 @@ aidal0_hparam = aidal_hparam;
 aidal0_hparam.theta = 0;
 aidal0_hparam.chi = 1;
 aidal1_hparam = aidal_hparam;
-aidal1_hparam.theta = 0.5;
-aidal2_hparam = aidal_hparam;
-aidal2_hparam.theta = 0.7640;
+aidal1_hparam.theta = 1/2;
+aidal1_hparam.chi = 1/6;
+
+spa_hparam = base_hparam;
+spa_hparam.Gamma = 10;
 
 % End basic hparams.
 % .........................................................................
@@ -61,7 +66,7 @@ seed = 777;
 dimM = 10;
 dimN = 50;
 global_tol = 1e-3;
-time_limit = 4000;
+time_limit = 240;
 
 % -------------------------------------------------------------------------
 %% Table 1
@@ -71,11 +76,15 @@ disp('TABLE 1');
 disp('========')
 % Loop over the upper curvature M.
 M_vec = [1e2, 1e3, 1e4, 1e5, 1e6];
+
+% % DEBUG
+% M_vec = 1e3;
+
 for i = 1:length(M_vec)
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
   M = M_vec(i);
-  m = 1e1;
+  m = M / 3;
   [oracle, hparams] = test_fn_lin_cone_constr_01(N, M, m, seed, dimM, dimN);
 
   % Create the Model object and specify the solver.
@@ -108,10 +117,17 @@ for i = 1:length(M_vec)
   ialm_hparam.B_vec = hparams.K_constr_vec;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {aidal0_hparam, aidal1_hparam, aidal2_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
-  name_arr = {'ADL0', 'ADL1', 'ADL2', 'iALM', 'IPL', 'QP', 'RQP'};
-  framework_arr = {@AIDAL, @AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
-  solver_arr = {@ECG, @ECG, @ECG, @ECG, @ECG, @AIPP, @AIPP};
+  hparam_arr = {aidal0_hparam, aidal1_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam, spa_hparam};
+  name_arr = {'ADL0', 'ADL1', 'iALM', 'IPL', 'QP', 'SPA'};
+  framework_arr = {@AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @sProxALM};
+  solver_arr = {@ECG, @ECG, @ECG, @ECG, @AIPP, @ECG};
+  
+%   % DEBUG
+%   hparam_arr = {aidal0_hparam, iapial_hparam};
+%   name_arr = {'ADL0', 'IPL'};
+%   framework_arr = {@AIDAL, @IAIPAL};
+%   solver_arr = {@ECG, @ECG};
+  
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
@@ -125,3 +141,4 @@ end
 
 % Display final table for logging.
 disp(final_table);
+save('aidal_qvp.mat', 'final_table');
