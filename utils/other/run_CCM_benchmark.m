@@ -68,6 +68,12 @@ function [summary_tables, comp_models] = run_CCM_benchmark(base_cc_model, fw_arr
     if (isfield(constr_comp_model.history, 'c0'))
       summary_tables.mdata = add_column(['c0_', framework_name], constr_comp_model.history.c0, summary_tables.mdata);
     end
+    if (isfield(constr_comp_model.history, 'c'))
+      summary_tables.mdata = add_column(['c_', framework_name], constr_comp_model.history.c, summary_tables.mdata);
+    end
+    if (isfield(constr_comp_model.history, 'wavg_c'))
+      summary_tables.mdata = add_column(['wavg_c_', framework_name], constr_comp_model.history.wavg_c, summary_tables.mdata);
+    end
     if (isfield(constr_comp_model.history, 'stage'))
       summary_tables.mdata = add_column(['stage_', framework_name], constr_comp_model.history.stage, summary_tables.mdata);
     end

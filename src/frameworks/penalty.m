@@ -91,6 +91,9 @@ function [model, history] = penalty(solver, oracle, params)
   i_reset_prox_center = params.i_reset_prox_center;
   c_prev = params.c0;
   c = c_prev;
+  outer_iter = 0;
+  cycle_outer_iter = 0;
+  sum_wc = 0;
 
   %% MAIN ALGORITHM
   while true
@@ -126,6 +129,9 @@ function [model, history] = penalty(solver, oracle, params)
     end
     [solver_model, solver_history] = solver(solver_oracle, solver_params);
     iter = iter + solver_history.iter;
+    if (isfield(solver_history, 'outer_iter'))
+      outer_iter = outer_iter + solver_history.outer_iter;
+    end    
     
     % Update history.
     if params.i_logging
@@ -166,10 +172,16 @@ function [model, history] = penalty(solver, oracle, params)
     feas = feas_fn(solver_model.x);
     if (isempty(params.termination_fn) && ~params.check_all_terminations)
       if (feas <= feas_tol)
+        if (isfield(solver_history, 'outer_iter'))
+          sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
+        end
         break;
       end
     else
       if wrap_termination(params, solver_model.x, c)
+        if (isfield(solver_history, 'outer_iter'))
+          sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
+        end
         break;
       end
     end
@@ -180,6 +192,10 @@ function [model, history] = penalty(solver, oracle, params)
     end
 
     % Update iterates.
+    if (isfield(solver_history, 'outer_iter'))
+      sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
+      cycle_outer_iter = outer_iter + 1;
+    end
     c_prev = c;
     c = params.penalty_multiplier * c;
     stage = stage + 1;
@@ -195,9 +211,13 @@ function [model, history] = penalty(solver, oracle, params)
     [~, model.v, model.w] = wrap_termination(params, solver_model.x, c);
   end
   history.c0 = params.c0;
+  history.c = c;
   history.iter = iter;
   history.stage = stage;
   history.runtime = toc(t_start);
+  if (isfield(solver_history, 'outer_iter'))
+    history.wavg_c = sum_wc / outer_iter;
+  end
   
 end
 

@@ -93,6 +93,8 @@ function [model, history] = iALM(~, oracle, params)
   % Iterate.
   iter = 0; % Set to 0 because it calls an inner subroutine.
   outer_iter = 0;  
+  cycle_outer_iter = 0;
+  sum_wc = 0;
   stage = 1;
   while true
     
@@ -146,6 +148,7 @@ function [model, history] = iALM(~, oracle, params)
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
       if (norm_fn(q) <= feas_tol)
+        sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * beta0;
         break;
       end
     end
@@ -162,11 +165,14 @@ function [model, history] = iALM(~, oracle, params)
       end
       [tpred, v, q] = params.termination_fn(x_hat, y);
       if tpred
+        sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * beta0;
         break;
       end
     end
     
     % Update iterates
+    sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * beta0;
+    cycle_outer_iter = outer_iter + 1;
     beta0 = beta0 * sigma;
     x0 = x;
     y0 = y;
@@ -185,8 +191,9 @@ function [model, history] = iALM(~, oracle, params)
   history.stage = stage;
   history.first_L_hat = first_L_hat;
   history.last_L_hat = L_hat;
-  history.first_c0 = first_beta0;
-  history.last_c0 = beta0;
+  history.c0 = first_beta0;
+  history.c = beta0;
+  history.wavg_c = sum_wc / outer_iter;
   history.runtime = toc(t_start);
 
   % Add special logic for inequality constraints

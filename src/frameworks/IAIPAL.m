@@ -124,6 +124,8 @@ function [model, history] = IAIPAL(~, oracle, params)
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
+  cycle_outer_iter = 1;
+  sum_wc = 0;
   multiplier_iter = 0;
   possible_multiplier_updates = 0;
   stage = 1;
@@ -153,7 +155,7 @@ function [model, history] = IAIPAL(~, oracle, params)
   history.k0_max = k0;
   
   % Set up some parameters used to define Delta_k.
-  stage_outer_iter = 1;
+  cycle_outer_iter = 1;
   local_outer_iter = 1;
   
   %% MAIN ALGORITHM
@@ -244,12 +246,14 @@ function [model, history] = IAIPAL(~, oracle, params)
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
       if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
+        sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c0;
         break;
       end
     end
     if (~isempty(params.termination_fn) || params.check_all_terminations)
       [tpred, w_hat, q_hat] = params.termination_fn(model_refine.z_hat, p_hat);
       if tpred
+        sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c0;
         break;
       end
     end
@@ -276,20 +280,21 @@ function [model, history] = IAIPAL(~, oracle, params)
     oracle_Delta = create_al_oracle(p, c0);
     
     % Check if we need to double c0 (and do some useful precomputations).
-    if (outer_iter == stage_outer_iter)
+    if (outer_iter == cycle_outer_iter)
       oracle_Delta.eval(x);
       stage_al_base = oracle_Delta.f_s() + oracle_Delta.f_n();
-    elseif (outer_iter > stage_outer_iter)
+    elseif (outer_iter > cycle_outer_iter)
       % Compute Delta_k.
       oracle_Delta.eval(x);
       stage_al_val = oracle_Delta.f_s() + oracle_Delta.f_n();
-      Delta = 1 / (outer_iter - stage_outer_iter) * (stage_al_base - stage_al_val - norm_fn(p) ^ 2 / (2 * c0));
+      Delta = 1 / (outer_iter - cycle_outer_iter) * (stage_al_base - stage_al_val - norm_fn(p) ^ 2 / (2 * c0));
       % Check the update condition and update the relevant constants.
       Delta_mult = lambda * (1 - sigma ^ 2) / (2 * (1 + 2 * nu) ^ 2);
       if (Delta <= ((opt_tol ^ 2) * Delta_mult))
+        sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c0;
+        cycle_outer_iter = outer_iter + 1;
         c0 = penalty_multiplier * c0;
         stage = stage + 1;
-        stage_outer_iter = outer_iter + 1;
         local_outer_iter = 1;
         delta_p_avg = 0;
         delta_psqr_avg = 0;
@@ -330,8 +335,8 @@ function [model, history] = IAIPAL(~, oracle, params)
   history.last_L_psi = M_s;
   history.last_sigma = sigma;
   history.c0 = params.c0;
-  history.first_c0 = first_c0;
-  history.last_c0 = c0;
+  history.c = c0;
+  history.wavg_c = sum_wc / outer_iter;
   history.runtime = toc(t_start);
   
 end

@@ -98,12 +98,14 @@ function [model, history] = AIDAL(~, oracle, params)
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
+  cycle_outer_iter = 1;
+  sum_wc = 0;
   stage = 1;
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
   p00 = p0;
   c = params.c0;
-  c0 = c;
+  c_prev = c;
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
   
@@ -178,32 +180,35 @@ function [model, history] = AIDAL(~, oracle, params)
     norm_w_hat = norm_fn(w_hat);
     norm_q_hat = norm_fn(q_hat);
     if (norm_w_hat <= opt_tol && norm_q_hat <= feas_tol)
+      sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
       break;
     end
     
     % Apply the dual update.
     p = dual_update(z, p0, c, theta, chi);
     
-%     % Check for the variable telescoping bound and increase lambda if it does not hold.
-%     if (strcmp(params.steptype, 'variable'))
-%       Psi = alp_fn(z, p, c, 1/2) - 3*norm_fn(p)^2 / (4*c) + 9*norm_fn(p-p0)^2 / (4*c);
-%       disp(table(outer_iter, c, c0, Psi, Psi0, norm_w_hat, norm_q_hat, lambda));
-%       disp(table(outer_iter, - 3*norm_fn(p)^2, - 3*norm_fn(p0)^2));
-%       if (outer_iter == 1)
-%         Psi0 = Psi;
-%       else
-%         v_hat_mult = lambda*(1-sigma^2) / (2*(1+3*nu)^2);
-%         if (c == c0 && v_hat_mult*norm_fn(w_hat)^2 > Psi0 - Psi)
-%           disp(table(v_hat_mult * norm_fn(w_hat) ^ 2, Psi0 - Psi));
-%           lambda = lambda / params.adap_gamma;
-%           continue;
-%         end
-%         Psi0 = Psi;
-%       end
-%     end    
+    % Check for the variable telescoping bound and increase lambda if it does not hold.
+    if (strcmp(params.steptype, 'variable') && lambda > params.m)
+      a_theta = theta * (1-theta);
+      b_theta = (2-theta) * (1-theta);
+      if (chi == 0); alpha = 1; else; alpha = ((1-2*chi*b_theta) - (1-theta)^2) / (2*chi); end
+      oracle.eval(z);
+      Psi = oracle.f_s() + oracle.f_n() + alp_fn(z, p, c, 1/2) ...
+             - a_theta * norm_fn(p)^2 / (2 * chi *c) + alpha * norm_fn(p-p0)^2 / (4 * chi *c);
+      if (outer_iter == 1)
+        Psi0 = Psi;
+      else
+        v_hat_mult = lambda * (1-sigma^2) / (2*(1+3*nu)^2);
+        if (c == c_prev && v_hat_mult * norm_fn(w_hat)^2 > Psi0 - Psi + 1E-1)
+          lambda = lambda / params.adap_gamma;
+          continue;
+        end
+        Psi0 = Psi;
+      end
+    end    
     
     % Check if we need to double c. 
-    c0 = c;
+    c_prev = c;
     if strcmp(params.incr_cond, "default")
       i_incr = ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) <= feas_tol / 2) && (norm_q_hat > feas_tol));
     elseif strcmp(params.incr_cond, "feas_alt1")
@@ -214,8 +219,10 @@ function [model, history] = AIDAL(~, oracle, params)
       error("Unknown incr_cond parameter!")
     end
     if i_incr
+      sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
+      cycle_outer_iter = outer_iter + 1;
       c = 2 * c;
-      stage = stage + 1;
+      stage = stage + 1;      
     end
     
     % Update the other iterates.
@@ -233,6 +240,9 @@ function [model, history] = AIDAL(~, oracle, params)
   model.w = q_hat;
   history.iter = iter;
   history.stage = stage;
+  history.c0 = params.c0;
+  history.c = c;
+  history.wavg_c = sum_wc / outer_iter;
   history.runtime = toc(t_start);
   
 end

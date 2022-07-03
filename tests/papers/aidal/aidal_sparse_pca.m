@@ -50,13 +50,13 @@ aidal2_hparam.theta = 0.7640;
 % .........................................................................
 
 % Create global hyperparams
-b = 0.1;
+b = 0.005;
 nu = 100;
 p = 100;
 n = 100;
 k = 1;
 seed = 777;
-global_tol = 1e-3;
+global_tol = 1e-4;
 time_limit = 4000;
 
 % -------------------------------------------------------------------------
@@ -102,10 +102,10 @@ for i = 1:length(s_vec)
   spca.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {aidal0_hparam, aidal1_hparam, aidal2_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
-  name_arr = {'ADL0', 'ADL1', 'ADL2', 'iALM', 'IPL', 'QP', 'RQP'};
-  framework_arr = {@AIDAL, @AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
-  solver_arr = {@ECG, @ECG, @ECG, @ECG, @ECG, @AIPP, @AIPP};
+  hparam_arr = {aidal0_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam};
+  name_arr = {'ADL0', 'iALM', 'IPL', 'QP'};
+  framework_arr = {@AIDAL, @iALM, @IAIPAL, @penalty};
+  solver_arr = {@ECG, @ECG, @ECG, @AIPP};
   [summary_tables, comp_models] = run_CCM_benchmark(spca, framework_arr, solver_arr, hparam_arr, name_arr);
   
    % Set up the final table.
@@ -121,3 +121,5 @@ end
 
 % Display final table for logging.
 disp(final_table);
+writetable(final_table, 'aidal_spca.xlsx')
+

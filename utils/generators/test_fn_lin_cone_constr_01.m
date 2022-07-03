@@ -32,7 +32,6 @@ function [oracle, params] = test_fn_lin_cone_constr_01(N, M, m, seed, dimM, dimN
   A = rand(dimM, dimN);
   d = rand([dimM, 1]);
   
-   
   % Choose (xi, tau).
   [tau, xi, ~, ~] = eigen_bisection(M, m, C, D * B);
   

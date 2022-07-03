@@ -41,8 +41,6 @@ iapial_hparam.i_reset_multiplier = false;
 iapial_hparam.i_reset_prox_center = false;
 
 aidal_hparam = base_hparam;
-
-% DEBUG
 aidal_hparam.steptype = 'constant';
 aidal_hparam.acg_steptype = 'variable';
 aidal_hparam.sigma_type = 'constant';
@@ -122,11 +120,13 @@ for i = 1:length(M_vec)
   framework_arr = {@AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @sProxALM};
   solver_arr = {@ECG, @ECG, @ECG, @ECG, @AIPP, @ECG};
   
-%   % DEBUG
-%   hparam_arr = {aidal0_hparam, iapial_hparam};
-%   name_arr = {'ADL0', 'IPL'};
-%   framework_arr = {@AIDAL, @IAIPAL};
-%   solver_arr = {@ECG, @ECG};
+% %   % DEBUG
+%   aidal0_hparam.lambda = 1 / (3 * hparams.m);
+%   aidal0_hparam.steptype = 'variable';
+%   hparam_arr = {aidal0_hparam, rqp_aipp_hparam};
+%   name_arr = {'ADL0', 'RQP'};
+%   framework_arr = {@AIDAL, @penalty};
+%   solver_arr = {@ECG, @AIPP};
   
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
@@ -141,4 +141,4 @@ end
 
 % Display final table for logging.
 disp(final_table);
-save('aidal_qvp.mat', 'final_table');
+writetable(final_table, 'aidal_qvp.xlsx')
