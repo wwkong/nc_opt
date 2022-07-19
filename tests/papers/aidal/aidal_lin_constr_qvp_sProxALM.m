@@ -19,38 +19,8 @@ run('../../../init.m');
 % .........................................................................
 % Create basic hparams.
 base_hparam = struct();
-
-ialm_hparam = base_hparam;
-ialm_hparam.i_ineq_constr = false;
-
-qp_aipp_hparam = base_hparam;
-qp_aipp_hparam.aipp_type = 'aipp';
-qp_aipp_hparam.acg_steptype = 'variable';
-qp_aipp_hparam.i_reset_prox_center = true;
-
-rqp_aipp_hparam = base_hparam;
-rqp_aipp_hparam.aipp_type = 'aipp_v1';
-rqp_aipp_hparam.acg_steptype = 'variable';
-rqp_aipp_hparam.i_reset_prox_center = false;
-
-iapial_hparam = base_hparam;
-iapial_hparam.acg_steptype = 'variable';
-iapial_hparam.sigma_min = 0.3;
-iapial_hparam.penalty_multiplier = 2;
-iapial_hparam.i_reset_multiplier = false;
-iapial_hparam.i_reset_prox_center = false;
-
-aidal_hparam = base_hparam;
-aidal_hparam.steptype = 'variable';
-aidal_hparam.acg_steptype = 'variable';
-aidal_hparam.sigma_type = 'constant';
-aidal_hparam.sigma_min = 0.3;
-aidal0_hparam = aidal_hparam;
-aidal0_hparam.theta = 0;
-aidal0_hparam.chi = 1;
-aidal1_hparam = aidal_hparam;
-aidal1_hparam.theta = 1/2;
-aidal1_hparam.chi = 1/6;
+spa_hparam = base_hparam;
+spa_hparam.Gamma = 10;
 
 % End basic hparams.
 % .........................................................................
@@ -60,8 +30,8 @@ N = 1000;
 seed = 777;
 dimM = 10;
 dimN = 50;
-global_tol = 1e-2;
-time_limit = 240;
+global_tol = 1e-3;
+time_limit = 3600;
 
 % -------------------------------------------------------------------------
 %% Table 1
@@ -101,31 +71,12 @@ for i = 1:length(M_vec)
   ncvx_lc_qp.opt_tol = global_tol;
   ncvx_lc_qp.feas_tol = global_tol;
   ncvx_lc_qp.time_limit = time_limit;
-  
-  % Adaptive lambda
-  aidal0_hparam.lambda = 10 / hparams.m;
-  rqp_aipp_hparam.lambda = 10 / hparams.m;
-  
-  % Create the complicated iALM hparams.
-  ialm_hparam = base_hparam;
-  ialm_hparam.rho0 = hparams.m;
-  ialm_hparam.L0 = max([hparams.m, hparams.M]);
-  ialm_hparam.rho_vec = hparams.m_constr_vec;
-  ialm_hparam.L_vec = hparams.L_constr_vec;
-  % Note that we are using the fact that |X|_F <= 1 over the spectraplex.
-  ialm_hparam.B_vec = hparams.K_constr_vec;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {aidal0_hparam, aidal1_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam};
-  name_arr = {'ADL0', 'ADL1', 'iALM', 'IPL', 'QP'};
-  framework_arr = {@AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty};
-  solver_arr = {@ECG, @ECG, @ECG, @ECG, @AIPP};
-  
-  % DEBUG
-  hparam_arr = {aidal0_hparam, rqp_aipp_hparam};
-  name_arr = {'ADL0', 'RQP'};
-  framework_arr = {@AIDAL, @penalty};
-  solver_arr = {@ECG, @AIPP};
+  hparam_arr = {spa_hparam};
+  name_arr = {'SPA'};
+  framework_arr = { @sProxALM};
+  solver_arr = {@ECG};
   
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
@@ -140,4 +91,4 @@ end
 
 % Display final table for logging.
 disp(final_table);
-writetable(final_table, 'aidal_qvp.xlsx')
+writetable(final_table, 'aidal_qvp_sProxALM.xlsx')

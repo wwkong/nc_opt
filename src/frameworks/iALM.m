@@ -93,7 +93,7 @@ function [model, history] = iALM(~, oracle, params)
   % Iterate.
   iter = 0; % Set to 0 because it calls an inner subroutine.
   outer_iter = 0;  
-  cycle_outer_iter = 0;
+  cycle_outer_iter = 1;
   sum_wc = 0;
   stage = 1;
   while true
@@ -170,15 +170,17 @@ function [model, history] = iALM(~, oracle, params)
       end
     end
     
+    avg_beta0 = sum_wc / outer_iter;
+    disp(table(sum_wc, beta0, outer_iter, cycle_outer_iter, avg_beta0));
+    
     % Update iterates
-    sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * beta0;
+    sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * beta0;   
     cycle_outer_iter = outer_iter + 1;
     beta0 = beta0 * sigma;
     x0 = x;
     y0 = y;
     w0 = w;
-    stage = stage + 1;
-    
+    stage = stage + 1;    
   end
   
   % Get ready to output
@@ -382,8 +384,7 @@ function params = set_default_params(params)
   if (~isfield(params, 'sigma')) 
     params.sigma = 5;
   end
-  if (~isfield(params, 'beta0')) 
-%     params.beta0 = 0.01;
+  if (~isfield(params, 'beta0'))
     params.beta0 = max([1, params.L / params.K_constr ^ 2]);
   end
   if (~isfield(params, 'w0')) 

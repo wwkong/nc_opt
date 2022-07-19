@@ -213,7 +213,7 @@ function [model, history] = ACG(oracle, params)
       
       % Compute L_est and auxiliary quantities.
       L = max(L, mu);
-      [local_L_est, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
+      [~, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
       iter = iter + 1;
       
       % Update based on the value of the local L compared to the current estimate of L.

@@ -107,14 +107,10 @@ function [model, history] = AIDAL(~, oracle, params)
   c = params.c0;
   c_prev = c;
   params_acg = params;
-  params_acg.mu = 1 - lambda * m;
-  
-  if (strcmp(params.steptype, 'variable'))
-    params_acg.termination_type = 'adap_aidal'; 
-    Psi0 = -Inf; % For debugging purposes.
-  else
-    params_acg.termination_type = 'aipp_sqr';
-  end
+  params_acg.mu = 1/2;
+  params_acg.theta = Inf;
+  params_acg.termination_type = 'apd';
+  params_acg.eta_type = 'accumulative';
 
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
@@ -169,37 +165,37 @@ function [model, history] = AIDAL(~, oracle, params)
     
     % Apply the refinement.
     z = model_acg.y;
-    v = model_acg.u;
-    model_refine = refine_IPP(oracle_AL0, params, L_psi, lambda, z0, z, v);
+    v_hat = model_acg.u + z0 - z;
     
     % Check for termination.
-    z_hat = model_refine.z_hat;
-    p_hat = dual_update(z_hat, p0, c, theta, chi);
+    p_hat = dual_update(z, p0, c, theta, chi);
     q_hat = (1 / (chi * c)) * (p_hat - (1 - theta) * p0);
-    w_hat = model_refine.v_hat;
-    norm_w_hat = norm_fn(w_hat);
+    norm_v_hat = norm_fn(v_hat);
     norm_q_hat = norm_fn(q_hat);
-    if (norm_w_hat <= opt_tol && norm_q_hat <= feas_tol)
+    if (norm_v_hat <= opt_tol && norm_q_hat <= feas_tol)
       sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
       break;
     end
     
     % Apply the dual update.
-    p = dual_update(z, p0, c, theta, chi);
+    p = p_hat;
     
     % Check for the variable telescoping bound and increase lambda if it does not hold.
-    if (strcmp(params.steptype, 'variable') && lambda > params.m)
+    if (strcmp(params.steptype, 'variable') && lambda >  1 / (2 * params.m))
       a_theta = theta * (1-theta);
       b_theta = (2-theta) * (1-theta);
-      if (chi == 0); alpha = 1; else; alpha = ((1-2*chi*b_theta) - (1-theta)^2) / (2*chi); end
+      if (chi == 0)
+        alpha = 1; 
+      else
+        alpha = ((1-2*chi*b_theta) - (1-theta)^2) / (2*chi); 
+      end
       oracle.eval(z);
       Psi = oracle.f_s() + oracle.f_n() + alp_fn(z, p, c, 1/2) ...
              - a_theta * norm_fn(p)^2 / (2 * chi *c) + alpha * norm_fn(p-p0)^2 / (4 * chi *c);
       if (outer_iter == 1)
         Psi0 = Psi;
       else
-        v_hat_mult = lambda * (1-sigma^2) / (2*(1+3*nu)^2);
-        if (c == c_prev && v_hat_mult * norm_fn(w_hat)^2 > Psi0 - Psi + 1E-1)
+        if (c == c_prev && norm_fn(v_hat)^2 > 32 * lambda * (Psi0 - Psi) + 1E-3)
           lambda = lambda / params.adap_gamma;
           continue;
         end
@@ -210,11 +206,11 @@ function [model, history] = AIDAL(~, oracle, params)
     % Check if we need to double c. 
     c_prev = c;
     if strcmp(params.incr_cond, "default")
-      i_incr = ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) <= feas_tol / 2) && (norm_q_hat > feas_tol));
+      i_incr = ((norm_q_hat > feas_tol) && (norm_v_hat <= opt_tol));
     elseif strcmp(params.incr_cond, "feas_alt1")
       i_incr = ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && (norm_q_hat > feas_tol));
     elseif strcmp(params.incr_cond, "opt_alt1")
-      i_incr = ((norm_fn(params.constr_fn(z_hat) - params.constr_fn(z)) <= feas_tol / 2) && (norm_q_hat > feas_tol) && (norm_w_hat <= opt_tol));
+      i_incr = ((norm_q_hat > feas_tol) && (norm_v_hat <= opt_tol));
     else
       error("Unknown incr_cond parameter!")
     end
@@ -234,9 +230,9 @@ function [model, history] = AIDAL(~, oracle, params)
   end
   
   % Prepare to output
-  model.x = model_refine.z_hat;
+  model.x = z;
   model.y = p_hat;
-  model.v = w_hat;
+  model.v = v_hat;
   model.w = q_hat;
   history.iter = iter;
   history.stage = stage;
