@@ -38,12 +38,13 @@ aidal_hparam = base_hparam;
 aidal_hparam.acg_steptype = 'variable';
 aidal_hparam.sigma = 0.3;
 aidal0_hparam = aidal_hparam;
+aidal0_hparam.steptype = 'variable';
 aidal0_hparam.theta = 0;
 aidal0_hparam.chi = 1;
 
 % Adaptive stepsize
-rqp_aipp_hparam.lambda = 1;
-aidal0_hparam.lambda = 1;
+rqp_aipp_hparam.lambda = 10;
+aidal0_hparam.lambda = 10;
 
 % End basic hparams.
 % .........................................................................
@@ -101,10 +102,10 @@ for i = 1:length(s_vec)
   spca.time_limit = time_limit;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {aidal0_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam};
-  name_arr = {'ADL0', 'iALM', 'IPL', 'QP'};
-  framework_arr = {@AIDAL, @iALM, @IAIPAL, @penalty};
-  solver_arr = {@ECG, @ECG, @ECG, @AIPP};
+  hparam_arr = {aidal0_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
+  name_arr = {'ADL0', 'iALM', 'IPL', 'QP', 'RQP'};
+  framework_arr = {@AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
+  solver_arr = {@ECG, @ECG, @ECG, @AIPP, @AIPP};
   [summary_tables, comp_models] = run_CCM_benchmark(spca, framework_arr, solver_arr, hparam_arr, name_arr);
   
    % Set up the final table.

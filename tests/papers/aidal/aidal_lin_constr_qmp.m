@@ -43,12 +43,20 @@ iapial_hparam.i_reset_prox_center = false;
 aidal_hparam = base_hparam;
 aidal_hparam.acg_steptype = 'variable';
 aidal_hparam.sigma = 0.3;
+
+aidal0_hparam = aidal_hparam;
+aidal0_hparam.steptype = 'variable';
+aidal0_hparam.theta = 0;
+aidal0_hparam.chi = 1;
+
 aidal1_hparam = aidal_hparam;
+aidal1_hparam.steptype = 'variable';
 aidal1_hparam.theta = 1/2;
 aidal1_hparam.chi = 1/6;
 
 % Adaptive stepsize
 rqp_aipp_hparam.lambda = 10;
+aidal0_hparam.lambda = 10;
 aidal1_hparam.lambda = 10;
 
 % End basic hparams.
@@ -111,8 +119,16 @@ for i = 1:length(M_vec)
   name_arr = {'ADL0', 'iALM', 'IPL', 'QP', 'RQP'};
   framework_arr = {@AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
   solver_arr = {@ECG, @ECG, @ECG, @AIPP, @AIPP};
+  
+%   % DEBUG ONLY
+%   hparam_arr = {iapial_hparam};
+%   name_arr = {'IPL'};
+%   framework_arr = {@IAIPAL};
+%   solver_arr = {@ECG};
+  
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
+  
   
   % Set up the final table.
   if (i == 1)

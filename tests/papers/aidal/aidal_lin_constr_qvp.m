@@ -129,11 +129,17 @@ for i = 1:length(M_vec)
   solver_arr = {@ECG, @ECG,  @ECG, @ECG, @ECG, @AIPP, @AIPP};
   
 %   % DEBUG
-%   hparam_arr = {aidal0_hparam, aidal1_hparam, rqp_aipp_hparam};
-%   name_arr = {'ADL0', 'ADL1', 'RQP'};
+%   hparam_arr = {aidal0_hparam, aidal1_hparam, rqp_aipp_hparam}; 
+%   name_arr = {'ADL0', 'ADL1', 'RQP'}; 
 %   framework_arr = {@AIDAL, @AIDAL, @penalty};
 %   solver_arr = {@ECG, @ECG, @AIPP};
-  
+
+%   % DEBUG2
+%   hparam_arr = {aidal0_hparam};
+%   name_arr= {'ADL0'}; 
+%   framework_arr = {@AIDAL};
+%   solver_arr = {@ECG};
+
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   
