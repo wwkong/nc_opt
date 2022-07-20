@@ -29,8 +29,8 @@ function [model, history] = ACG(oracle, params)
 %
 
   % Set some ACG global tolerances.
-  INEQ_TOL = 1e-6;
-  CURV_TOL = 1e-6;
+  INEQ_TOL = 1e-3;
+  CURV_TOL = 1e-3;
 
   %% PRE-PROCESSING
 
@@ -243,7 +243,7 @@ function [model, history] = ACG(oracle, params)
           % Main check
           LHS = mu * A * norm_fn(y - x_tilde_prev)^2 / 2 + (1 + mu * A) * norm_fn(y_prev - x)^2 / 2;
           RHS = A * (q_at_y_prev - o_y.f_s() - o_y.f_n()) + (1 + mu * A_prev) * norm_fn(y - x)^2 / 2;
-          aux_struct.descent_cond = aux_struct.descent_cond && (LHS <= RHS + INEQ_TOL);
+          aux_struct.descent_cond = aux_struct.descent_cond && (LHS <= RHS + INEQ_TOL);          
         end
         
         if (L >= L_max && ~aux_struct.descent_cond)
@@ -350,12 +350,9 @@ function [model, history] = ACG(oracle, params)
         error(['eta is negative with a value of ', num2str(exact_eta)]);
       end
     end
-    
-    % Update status when we have a possible triple for termination.
-    i_early_stop = true;
         
     %% CHECK INVARIANTS.
-        
+    
     % Sufficient descent.
     if (any(strcmp(termination_type, {'gd', 'apd'})))
       large_gd = f_at_x0;
@@ -397,13 +394,16 @@ function [model, history] = ACG(oracle, params)
       q_tilde_at_y = f_s_at_x_tilde_prev + o_x_tilde_prev.f_n() + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ... 
                      mu * dist_xt_y^2 /2;
       q_at_y_prev = q_tilde_at_y + L * prod_fn(x_tilde_prev - y, y_prev - y) + mu * norm_fn(y - y_prev)^2;
-      if (q_at_y_prev > f_at_y_prev || Gamma(y_prev) > f_at_y_prev || Gamma(y) > f_at_y)
+      if (q_at_y_prev > f_at_y_prev + 1E-1 || Gamma(y_prev) > f_at_y_prev  + 1E-1 || Gamma(y) > f_at_y  + 1E-1)
         model.status = -2;
         break;
       end
     end
     
     %% CHECK FOR TERMINATION.
+
+    % Update status when we have a possible triple for termination. (NEW FIX)
+    i_early_stop = true;
     
     % Termination for the AIPP method (Phase 1).
     if strcmp(termination_type, "aipp")
@@ -460,10 +460,11 @@ function [model, history] = ACG(oracle, params)
       
     % Termination for the APD method.
     elseif strcmp(termination_type, "apd")
-      u_tilde = (L + mu) * (x_tilde_prev - y) + o_y.grad_f_s() - grad_f_s_at_x_tilde_prev;
-      cond1 = norm_fn(u_tilde + x0 - y)^2 <= theta * (f_at_x0 - f_at_y + norm_fn(y - x0)^2 / 2);
-      cond2 = norm_fn(u_tilde)^2 <= sigma^2 * norm_fn(y - x0)^2;
+      uTilde = (L + mu) * (x_tilde_prev - y) + o_y.grad_f_s() - grad_f_s_at_x_tilde_prev;
+      cond1 = norm_fn(uTilde + x0 - y)^2 <= theta * (f_at_x0 - f_at_y + norm_fn(y - x0)^2 / 2);
+      cond2 = norm_fn(uTilde)^2 <= sigma^2 * norm_fn(y - x0)^2;
       if (cond1 && cond2)
+        u = uTilde;
         break;
       end
     end

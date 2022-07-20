@@ -23,7 +23,7 @@ qp_aipp_hparam.acg_steptype = 'variable';
 qp_aipp_hparam.i_reset_prox_center = true;
 
 rqp_aipp_hparam = base_hparam;
-rqp_aipp_hparam.aipp_type = 'aipp_v2';
+rqp_aipp_hparam.aipp_type = 'aipp_v1';
 qp_aipp_hparam.acg_steptype = 'variable';
 rqp_aipp_hparam.i_reset_prox_center = false;
 
@@ -36,15 +36,14 @@ iapial_hparam.i_reset_prox_center = false;
 
 aidal_hparam = base_hparam;
 aidal_hparam.acg_steptype = 'variable';
-aidal_hparam.sigma_type = 'constant';
-aidal_hparam.sigma_min = 0.3;
+aidal_hparam.sigma = 0.3;
 aidal0_hparam = aidal_hparam;
 aidal0_hparam.theta = 0;
 aidal0_hparam.chi = 1;
-aidal1_hparam = aidal_hparam;
-aidal1_hparam.theta = 0.5;
-aidal2_hparam = aidal_hparam;
-aidal2_hparam.theta = 0.7640;
+
+% Adaptive stepsize
+rqp_aipp_hparam.lambda = 1;
+aidal0_hparam.lambda = 1;
 
 % End basic hparams.
 % .........................................................................

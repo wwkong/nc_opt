@@ -82,9 +82,7 @@ function [model, history] = AIDAL(~, oracle, params)
   
   % Initialize other params.
   lambda = params.lambda;
-  nu = params.nu;
-  sigma_min = params.sigma_min;
-  sigma_type = params.sigma_type;
+  sigma = params.sigma;
   theta = params.theta;
   chi = params.chi;
 
@@ -96,6 +94,7 @@ function [model, history] = AIDAL(~, oracle, params)
   end
 
   % Initialize framework parameters.
+  Psi0 = Inf;
   iter = 0;
   outer_iter = 1;
   cycle_outer_iter = 1;
@@ -103,15 +102,22 @@ function [model, history] = AIDAL(~, oracle, params)
   stage = 1;
   z0 = params.x0;
   p0 = zeros(size(params.constr_fn(z0)));
-  p00 = p0;
   c = params.c0;
   c_prev = c;
   params_acg = params;
   params_acg.mu = 1/2;
   params_acg.theta = Inf;
+  params_acg.sigma = sigma;
   params_acg.termination_type = 'apd';
   params_acg.eta_type = 'accumulative';
-
+  
+  % Initial ACG Lipshchitz estimate.
+  params_acg.L = lambda * (L + L_constr * norm_fn(p0) + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+  if (strcmp(params.steptype, 'constant'))
+    params_acg.L_est = lambda * (L + L_constr * norm_fn(p0) + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+  elseif (strcmp(params.steptype, 'variable'))
+    params_acg.L_est = lambda * (L + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+  end
   % -----------------------------------------------------------------------
   %% MAIN ALGORITHM
   % -----------------------------------------------------------------------
@@ -139,23 +145,19 @@ function [model, history] = AIDAL(~, oracle, params)
     oracle_acg.proxify(lambda, z0);
     
     % Create the ACG params.
-    L_psi = lambda * (L + L_constr * norm_fn(p0) + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
-    if (strcmp(sigma_type, 'constant'))
-      sigma = sigma_min;
-    elseif (strcmp(sigma_type, 'variable'))
-      sigma = min([nu / sqrt(L_psi), sigma_min]);
-    else 
-      error('Unknown sigma type!');
-    end
     params_acg.x0 = z0;
     params_acg.z0 = z0;
     params_acg.sigma = sigma;
-    params_acg.L = L_psi;
     params_acg.t_start = t_start;
+    params_acg.L = lambda * (L + L_constr * norm_fn(p0) + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    if (strcmp(params.steptype, 'constant'))
+      params_acg.L_est = lambda * (L + L_constr * norm_fn(p0) + c * (B_constr * L_constr + K_constr ^ 2)) + 1;
+    end
     
     % Call the ACG algorithm and update parameters.
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
+    params_acg.L_est = model_acg.L_est;
     
     % Check for early failure.
     if (strcmp(params.steptype, 'variable') && model_acg.status < 0)
@@ -165,7 +167,7 @@ function [model, history] = AIDAL(~, oracle, params)
     
     % Apply the refinement.
     z = model_acg.y;
-    v_hat = model_acg.u + z0 - z;
+    v_hat = (model_acg.u + z0 - z) / lambda;
     
     % Check for termination.
     p_hat = dual_update(z, p0, c, theta, chi);
@@ -181,21 +183,22 @@ function [model, history] = AIDAL(~, oracle, params)
     p = p_hat;
     
     % Check for the variable telescoping bound and increase lambda if it does not hold.
-    if (strcmp(params.steptype, 'variable') && lambda >  1 / (2 * params.m))
-      a_theta = theta * (1-theta);
-      b_theta = (2-theta) * (1-theta);
-      if (chi == 0)
-        alpha = 1; 
+    if (strcmp(params.steptype, 'variable'))
+      if (theta == 0)
+        alpha = 0;
+        a_theta = 1;
       else
+        a_theta = theta * (1-theta);
+        b_theta = (2-theta) * (1-theta);
         alpha = ((1-2*chi*b_theta) - (1-theta)^2) / (2*chi); 
       end
       oracle.eval(z);
-      Psi = oracle.f_s() + oracle.f_n() + alp_fn(z, p, c, 1/2) ...
+      Psi = oracle.f_s() + oracle.f_n() + alp_fn(z, p, c, theta) ...
              - a_theta * norm_fn(p)^2 / (2 * chi *c) + alpha * norm_fn(p-p0)^2 / (4 * chi *c);
       if (outer_iter == 1)
         Psi0 = Psi;
       else
-        if (c == c_prev && norm_fn(v_hat)^2 > 32 * lambda * (Psi0 - Psi) + 1E-3)
+        if (c == c_prev && norm_fn(model_acg.u + z0 - z)^2 > 32 * lambda * (Psi0 - Psi) + 1E-1)
           lambda = lambda / params.adap_gamma;
           continue;
         end
@@ -205,16 +208,7 @@ function [model, history] = AIDAL(~, oracle, params)
     
     % Check if we need to double c. 
     c_prev = c;
-    if strcmp(params.incr_cond, "default")
-      i_incr = ((norm_q_hat > feas_tol) && (norm_v_hat <= opt_tol));
-    elseif strcmp(params.incr_cond, "feas_alt1")
-      i_incr = ((nu * K_constr * norm_fn(v + z0 - z) <= feas_tol / 2) && (norm_q_hat > feas_tol));
-    elseif strcmp(params.incr_cond, "opt_alt1")
-      i_incr = ((norm_q_hat > feas_tol) && (norm_v_hat <= opt_tol));
-    else
-      error("Unknown incr_cond parameter!")
-    end
-    if i_incr
+    if ((norm_q_hat > feas_tol) && (norm_v_hat <= opt_tol))
       sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
       cycle_outer_iter = outer_iter + 1;
       c = 2 * c;
@@ -222,7 +216,6 @@ function [model, history] = AIDAL(~, oracle, params)
     end
     
     % Update the other iterates.
-    p00 = p0;
     p0 = p;
     z0 = z;
     outer_iter = outer_iter + 1;
@@ -255,15 +248,6 @@ function params = set_default_params(params)
   end
   if (~isfield(params, 'lambda'))
     params.lambda = 1 / (2 * params.m);
-  end
-  if (~isfield(params, 'sigma_min'))
-    params.sigma_min = 1 / sqrt(2);
-  end
-  if (~isfield(params, 'nu'))
-    params.nu = sqrt(params.sigma_min * (params.lambda * params.M + 1));
-  end
-  if (~isfield(params, 'sigma_type'))
-    params.sigma_type = 'constant';
   end
   if (~isfield(params, 'theta'))
     params.theta = 0.01;

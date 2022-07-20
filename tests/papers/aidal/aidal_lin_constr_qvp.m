@@ -41,16 +41,22 @@ iapial_hparam.i_reset_multiplier = false;
 iapial_hparam.i_reset_prox_center = false;
 
 aidal_hparam = base_hparam;
-aidal_hparam.steptype = 'variable';
-aidal_hparam.acg_steptype = 'variable';
-aidal_hparam.sigma_type = 'constant';
-aidal_hparam.sigma_min = 0.3;
+aidal_hparam.sigma = 0.3;
+
 aidal0_hparam = aidal_hparam;
+aidal0_hparam.steptype = 'variable';
 aidal0_hparam.theta = 0;
 aidal0_hparam.chi = 1;
+
 aidal1_hparam = aidal_hparam;
+aidal1_hparam.steptype = 'variable';
 aidal1_hparam.theta = 1/2;
 aidal1_hparam.chi = 1/6;
+
+aidal2_hparam = aidal1_hparam;
+aidal2_hparam.steptype = 'constant';
+aidal2_hparam.theta = 1/2;
+aidal2_hparam.chi = 1/6;
 
 % End basic hparams.
 % .........................................................................
@@ -60,7 +66,7 @@ N = 1000;
 seed = 777;
 dimM = 10;
 dimN = 50;
-global_tol = 1e-2;
+global_tol = 1e-3;
 time_limit = 240;
 
 % -------------------------------------------------------------------------
@@ -102,9 +108,10 @@ for i = 1:length(M_vec)
   ncvx_lc_qp.feas_tol = global_tol;
   ncvx_lc_qp.time_limit = time_limit;
   
-  % Adaptive lambda
-  aidal0_hparam.lambda = 10 / hparams.m;
-  rqp_aipp_hparam.lambda = 10 / hparams.m;
+  % Adaptive stepsize
+  rqp_aipp_hparam.lambda = 10;
+  aidal0_hparam.lambda = 10;
+  aidal1_hparam.lambda = 10;
   
   % Create the complicated iALM hparams.
   ialm_hparam = base_hparam;
@@ -116,16 +123,16 @@ for i = 1:length(M_vec)
   ialm_hparam.B_vec = hparams.K_constr_vec;
 
   % Run a benchmark test and print the summary.
-  hparam_arr = {aidal0_hparam, aidal1_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam};
-  name_arr = {'ADL0', 'ADL1', 'iALM', 'IPL', 'QP'};
-  framework_arr = {@AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty};
-  solver_arr = {@ECG, @ECG, @ECG, @ECG, @AIPP};
+  hparam_arr = {aidal0_hparam, aidal1_hparam, aidal2_hparam, ialm_hparam, iapial_hparam, qp_aipp_hparam, rqp_aipp_hparam};
+  name_arr = {'ADL0', 'ADL1', 'ADL2', 'iALM', 'IPL', 'QP', 'RQP'};
+  framework_arr = {@AIDAL, @AIDAL, @AIDAL, @iALM, @IAIPAL, @penalty, @penalty};
+  solver_arr = {@ECG, @ECG,  @ECG, @ECG, @ECG, @AIPP, @AIPP};
   
-  % DEBUG
-  hparam_arr = {aidal0_hparam, rqp_aipp_hparam};
-  name_arr = {'ADL0', 'RQP'};
-  framework_arr = {@AIDAL, @penalty};
-  solver_arr = {@ECG, @AIPP};
+%   % DEBUG
+%   hparam_arr = {aidal0_hparam, aidal1_hparam, rqp_aipp_hparam};
+%   name_arr = {'ADL0', 'ADL1', 'RQP'};
+%   framework_arr = {@AIDAL, @AIDAL, @penalty};
+%   solver_arr = {@ECG, @ECG, @AIPP};
   
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);

@@ -170,9 +170,6 @@ function [model, history] = iALM(~, oracle, params)
       end
     end
     
-    avg_beta0 = sum_wc / outer_iter;
-    disp(table(sum_wc, beta0, outer_iter, cycle_outer_iter, avg_beta0));
-    
     % Update iterates
     sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * beta0;   
     cycle_outer_iter = outer_iter + 1;
