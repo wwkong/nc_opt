@@ -29,8 +29,8 @@ function [model, history] = ACG(oracle, params)
 %
 
   % Set some ACG global tolerances.
-  INEQ_TOL = 1e-3;
-  CURV_TOL = 1e-3;
+  INEQ_TOL = 1e-6;
+  CURV_TOL = 1e-6;
 
   %% PRE-PROCESSING
 
@@ -243,7 +243,7 @@ function [model, history] = ACG(oracle, params)
           % Main check
           LHS = mu * A * norm_fn(y - x_tilde_prev)^2 / 2 + (1 + mu * A) * norm_fn(y_prev - x)^2 / 2;
           RHS = A * (q_at_y_prev - o_y.f_s() - o_y.f_n()) + (1 + mu * A_prev) * norm_fn(y - x)^2 / 2;
-          aux_struct.descent_cond = aux_struct.descent_cond && (LHS <= RHS + INEQ_TOL);          
+          aux_struct.descent_cond = (aux_struct.descent_cond && (LHS <= RHS + sqrt(INEQ_TOL))) || abs(max(LHS, RHS)) <= INEQ_TOL;
         end
         
         if (L >= L_max && ~aux_struct.descent_cond)

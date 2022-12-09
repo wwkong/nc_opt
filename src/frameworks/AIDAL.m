@@ -170,17 +170,14 @@ function [model, history] = AIDAL(~, oracle, params)
     v_hat = (model_acg.u + z0 - z) / lambda;
     
     % Check for termination.
-    p_hat = dual_update(z, p0, c, theta, chi);
-    q_hat = (1 / (chi * c)) * (p_hat - (1 - theta) * p0);
+    p = dual_update(z, p0, c, theta, chi); % dual update
+    q_hat = (1 / (chi * c)) * (p - (1 - theta) * p0);
     norm_v_hat = norm_fn(v_hat);
     norm_q_hat = norm_fn(q_hat);
     if (norm_v_hat <= opt_tol && norm_q_hat <= feas_tol)
       sum_wc = sum_wc + (outer_iter - cycle_outer_iter + 1) * c;
       break;
     end
-    
-    % Apply the dual update.
-    p = p_hat;
     
     % Check for the variable telescoping bound and increase lambda if it does not hold.
     if (strcmp(params.steptype, 'variable'))
@@ -224,7 +221,7 @@ function [model, history] = AIDAL(~, oracle, params)
   
   % Prepare to output
   model.x = z;
-  model.y = p_hat;
+  model.y = p;
   model.v = v_hat;
   model.w = q_hat;
   history.iter = iter;

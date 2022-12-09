@@ -78,7 +78,7 @@ disp('========')
 disp('TABLE 1');
 disp('========')
 % Loop over the upper curvature M.
-M_vec = [1e2, 1e3, 1e4, 1e5, 1e6];
+M_vec = [100, 200, 400, 1600, 3200];
 for i = 1:length(M_vec)
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
@@ -121,14 +121,13 @@ for i = 1:length(M_vec)
   solver_arr = {@ECG, @ECG, @ECG, @AIPP, @AIPP};
   
 %   % DEBUG ONLY
-%   hparam_arr = {iapial_hparam};
-%   name_arr = {'IPL'};
-%   framework_arr = {@IAIPAL};
-%   solver_arr = {@ECG};
+%   hparam_arr = {rqp_aipp_hparam};
+%   name_arr = {'RQP'};
+%   framework_arr = {@penalty};
+%   solver_arr = {@AIPP};
   
   [summary_tables, comp_models] = run_CCM_benchmark(ncvx_lc_qp, framework_arr, solver_arr, hparam_arr, name_arr);
-  disp(summary_tables.all);
-  
+  disp(summary_tables.all);  
   
   % Set up the final table.
   if (i == 1)

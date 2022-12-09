@@ -124,7 +124,6 @@ function [model, history] = IAIPAL(~, oracle, params)
   % Initialize framework parameters.
   iter = 0;
   outer_iter = 1;
-  cycle_outer_iter = 1;
   sum_wc = 0;
   multiplier_iter = 0;
   possible_multiplier_updates = 0;
@@ -136,7 +135,6 @@ function [model, history] = IAIPAL(~, oracle, params)
   o_p0 = p0;
   o_z0 = z0;
   c0 = params.c0;
-  first_c0 = c0;
   params_acg = params;
   params_acg.mu = 1 - lambda * m;
   params_acg.termination_type = 'aipp_sqr';
@@ -232,17 +230,7 @@ function [model, history] = IAIPAL(~, oracle, params)
     p_hat = cone_proj(z_hat, p0, c0);
     q_hat = (1 / c0) * (p0 - p_hat);
     w_hat = model_refine.v_hat;
-    
-    % Log some numbers if necessary.
-    if params.i_logging
-      logging_oracle.eval(z_hat);
-      history.function_values = [history.function_values; logging_oracle.f_s() + logging_oracle.f_n()];
-      history.norm_w_hat_values = [history.norm_w_hat_values; norm_fn(w_hat)];
-      history.norm_q_hat_values = [history.norm_q_hat_values; norm_fn(q_hat)];
-      history.iteration_values = [history.iteration_values; iter];
-      history.time_values = [history.time_values; toc(t_start)];
-    end
-        
+
     % Check for termination.
     if (isempty(params.termination_fn) || params.check_all_terminations)
       if (norm_fn(w_hat) <= opt_tol && norm_fn(q_hat) <= feas_tol)
@@ -276,7 +264,6 @@ function [model, history] = IAIPAL(~, oracle, params)
     if (params.k0_type == 3 && local_outer_iter >= 1)
       delta_psqr_avg = (delta_psqr_avg * (local_outer_iter - 1) + norm_fn(p - p0) ^ 2) / local_outer_iter;
     end
-    
     oracle_Delta = create_al_oracle(p, c0);
     
     % Check if we need to double c0 (and do some useful precomputations).
