@@ -24,8 +24,11 @@ global_tol = 1e-6;
 time_limit = 2400;
 iter_limit = 1E6;
 
+%% Generate Tables
+
 % Set hyperparameters.
 base_hparam = struct();
+base_hparam.i_logging = false;
 
 ncf_hparam = base_hparam;
 ncf_hparam.m0 = 1;
@@ -58,10 +61,10 @@ aipp_hparam.sigma = 1/4;
 % Loop over the curvature pair (m, M).
 base = 10;
 mM_vec = [base^2, base^4;  base^2, base^5;  base^2, base^6; ...
-          base^4, base^5;  base^3, base^5;  base^2, base^5; ];
+          base^4, base^5;  base^3, base^5; ];
 
 [nrows, ncols] = size(mM_vec);
-offset = 3;
+offset = 0;
 
 for i = 1:(nrows-offset)
   % Use a problem instance generator to create the oracle and
@@ -128,3 +131,54 @@ end
 % Display final table for logging.
 disp(final_table);
 writetable(final_table, "adp_qsdp.xlsx");
+
+%% Generate Plot data.
+
+m = 1E2;
+M = 1E6;
+
+upf_hparam.i_logging = true;
+ncf_hparam.i_logging = true;
+aipp_hparam.i_logging = true;
+apd2_hparam.i_logging = true;
+
+[oracle, hparams] =  test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density);
+ncvx_qp = CompModel(oracle);
+ncvx_qp.M = hparams.M;
+ncvx_qp.m = hparams.m;
+ncvx_qp.x0 = hparams.x0;
+
+aipp_hparam.m = hparams.m;
+aipp_hparam.M = hparams.M;
+
+ncvx_qp.opt_type = 'relative';
+ncvx_qp.opt_tol = 1E-6;
+ncvx_qp.time_limit = time_limit;
+ncvx_qp.iter_limit = 20000;
+
+solver_arr = {@UPFAG, @ADAP_FISTA, @AIPP, @APD};
+hparam_arr = {upf_hparam, ncf_hparam, aipp_hparam, apd2_hparam};
+name_arr = {'UPF', 'ANCF', 'AIPP', 'APD'};
+
+[summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
+
+%% Generate Plots
+oracle.eval(hparams.x0);
+tol_factor = 1 + hparams.norm_fn(oracle.grad_f_s());
+line_styles = {'-.', '--', ':', '-'};
+figure;
+for i=1:max(size(name_arr))
+  semilogy(cummin(comp_models.(name_arr{i}).history.stationarity_values) / tol_factor, ...
+           line_styles{i}, 'LineWidth', 1.5);
+  hold on;
+end
+title("QSDP Residuals vs. Iterations", 'Interpreter', 'latex');
+xlim([1, 1E4]);
+xlabel("Iteration Count", 'Interpreter', 'latex');
+ylim([1E-6, 1E-2]);
+ylabel("$$\min_{1\leq i \leq k} \|\bar{v}_i\| / (1 + \|\nabla f(z_0)\|)$$", 'Interpreter', 'latex');
+legend(name_arr);
+ax = gca;
+ax.FontSize = 16;
+hold off;
+saveas(gcf,'qsdp.svg')
