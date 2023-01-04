@@ -3,7 +3,7 @@
 
 % The function of interest is
 %
-%  f(z) :=  (1 / k) * sum_{i=1,..,k} (1 - tanh(v_i * <u_i, z>)) + (1 / 2*k) ||z|| ^ 2.
+%  ????
 
 %% Initialization
 
@@ -11,14 +11,20 @@
 run('../../../init.m');
 
 % Set up variables
-seed = 777;
-alpha = 1E-8;
-beta = 500.0;
+seed = 7777;
+alpha = 1E-7;
+beta = 450.0;
 theta = 1E-4;
 mu = 1.0;
-global_tol = 1e-6;
+global_tol = 1e-10;
 time_limit = 1200;
-iter_limit = 1000;
+iter_limit = 5000;
+img_names = {'35008.jpg',  '41004.jpg', '68077.jpg', '271031.jpg', '310007.jpg'};
+
+%% Generate Images
+
+h = montage(img_names, 'size', [1, NaN]);
+imwrite(h.CData, "mat_compl_images.jpg");
 
 %% Generate Tables
 
@@ -50,17 +56,17 @@ aipp_hparam.acg_steptype = 'constant';
 aipp_hparam.sigma = 1/4;
 
 % Loop over the curvature pair (m, M).
-img_names = {'moose.jpg'};
-[nrows, ncols] = size(img_names);
 offset = 0;
-
-for i = 1:(nrows-offset)
+for i = 1:length(img_names) - offset
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
+  disp(img_names{i + offset});
+  id = strrep(img_names{i}, ".jpg", "");
   rng(seed);
   snr = 200;
-  density = 0.25;
-  img_matrix = corrupt_im(imread(img_names{i}), snr, density);
+  density = 0.30;
+  raw_img = imread(img_names{i + offset});
+  img_matrix = corrupt_im(raw_img, snr, density);
   [oracle, hparams] = test_fn_penalty_mc_01(img_matrix, alpha, beta, theta, mu, seed);
 
   % Create the Model object and specify the solver.
@@ -85,94 +91,44 @@ for i = 1:(nrows-offset)
   solver_arr = {@UPFAG, @ADAP_FISTA, @AIPP, @APD};
   hparam_arr = {upf_hparam, ncf_hparam, aipp_hparam, apd2_hparam};
   name_arr = {'UPF', 'ANCF', 'AIPP', 'APD'};
-
-%   solver_arr = {@ADAP_FISTA, @APD};
-%   hparam_arr = {ncf_hparam, apd1_hparam};
-%   name_arr = {'ANCF', 'APD1'};
   
-%   solver_arr = {@APD};
-%   hparam_arr = {apd2_hparam};
-%   name_arr = {'APD2'};
+%   % Run a benchmark test and print the summary.
+%   solver_arr = {@AIPP};
+%   hparam_arr = {aipp_hparam};
+%   name_arr = {'AIPP'};
   
   [summary_tables, comp_models] = run_CM_benchmark(mat_compl, solver_arr, hparam_arr, name_arr);
-  disp(summary_tables.all);
-  writetable(summary_tables.all, "adp_mat_compl" + num2str(i + offset) + ".xlsx");
+  err_tbl = get_l2_err_tbl(comp_models, name_arr, raw_img);
+  tbl_row = [table(id), ...
+             summary_tables.pdata, ...
+             summary_tables.fval, ...
+             err_tbl, ...
+             summary_tables.runtime, ...
+             summary_tables.mdata];
+  disp(tbl_row);
+  writetable(tbl_row, "adp_mat_compl_" + strrep(img_names{i + offset}, ".jpg", "") + ".xlsx");
+  
+  % Make a montage and save.
+  nplots = length(name_arr) + 2;
+  tiledlayout(1, nplots + 1);
+  img_array = {uint8(img_matrix)};
+  for j=1:length(name_arr)
+    img_array{end + 1} = uint8(comp_models.(name_arr{j}).model.x);
+  end
+  h = montage(img_array, 'size', [1, NaN]);
+  imwrite(h.CData, "mat_compl_" + strrep(img_names{i + offset}, ".jpg", "") + ".jpg")
   
   % Set up the final table.
   if (i == 1)
-    final_table = summary_tables.all;
+    final_table = tbl_row;
   else
-    final_table = [final_table; summary_tables.all];
+    final_table = [final_table; tbl_row];
   end
 end
 
 % Display final table for logging.
 disp(final_table);
 writetable(final_table, "adp_mat_compl.xlsx");
-
-%% 
-nplots = length(name_arr) + 2;
-subplot(1, nplots, 1);
-imshow(imread(img_names{i}))
-subplot(1, nplots, 2);
-imshow(uint8(img_matrix));
-for j=1:length(name_arr)
-  im_diff = imread(img_names{i}) - uint8(comp_models.(name_arr{j}).model.x);
-  disp(norm(double(im_diff), 'fro'))
-  subplot(1, nplots, 2 + j);
-  imshow(uint8(comp_models.(name_arr{i}).model.x));
-end 
-
-%% Generate Plot data.
-% 
-% m = 1E2;
-% M = 1E6;
-% 
-% upf_hparam.i_logging = true;
-% ncf_hparam.i_logging = true;
-% aipp_hparam.i_logging = true;
-% apd2_hparam.i_logging = true;
-% 
-% [oracle, hparams] =  test_fn_unconstr_02(N, M, m, seed, dimM, dimN, density);
-% ncvx_svm = CompModel(oracle);
-% ncvx_svm.M = hparams.M;
-% ncvx_svm.m = hparams.m;
-% ncvx_svm.x0 = hparams.x0;
-% 
-% aipp_hparam.m = hparams.m;
-% aipp_hparam.M = hparams.M;
-% 
-% ncvx_svm.opt_type = 'relative';
-% ncvx_svm.opt_tol = 1E-6;
-% ncvx_svm.time_limit = time_limit;
-% ncvx_svm.iter_limit = 20000;
-% 
-% solver_arr = {@UPFAG, @ADAP_FISTA, @AIPP, @APD};
-% hparam_arr = {upf_hparam, ncf_hparam, aipp_hparam, apd2_hparam};
-% name_arr = {'UPF', 'ANCF', 'AIPP', 'APD'};
-% 
-% [summary_tables, comp_models] = run_CM_benchmark(ncvx_svm, solver_arr, hparam_arr, name_arr);
-% 
-% %% Generate Plots
-% oracle.eval(hparams.x0);
-% tol_factor = 1 + hparams.norm_fn(oracle.grad_f_s());
-% line_styles = {'-.', '--', ':', '-'};
-% figure;
-% for i=1:max(size(name_arr))
-%   semilogy(cummin(comp_models.(name_arr{i}).history.stationarity_values) / tol_factor, ...
-%            line_styles{i}, 'LineWidth', 1.5);
-%   hold on;
-% end
-% title("QSDP Residuals vs. Iterations", 'Interpreter', 'latex');
-% xlim([1, 1E4]);
-% xlabel("Iteration Count", 'Interpreter', 'latex');
-% ylim([1E-6, 1E-2]);
-% ylabel("$$\min_{1\leq i \leq k} \|\bar{v}_i\| / (1 + \|\nabla f(z_0)\|)$$", 'Interpreter', 'latex');
-% legend(name_arr);
-% ax = gca;
-% ax.FontSize = 16;
-% hold off;
-% saveas(gcf,'qsdp.svg')
 
 %% Helper functions.
 
@@ -186,16 +142,10 @@ function err = compute_l2_err(I1, I2)
 end
 
 function tbl = get_l2_err_tbl(comp_models, name_arr, ref_img)
-  varnames = {};
+  tbl = table();
   for j=1:length(name_arr)
     name = name_arr{j} + "_l2_err";
-    varnames{end + 1} = name;
-    err = comput_l2_err(ref_img, comp_models.(name_arr{j}).model.x);
-    if (j == 1)
-      tbl = table(err);
-    else
-      tbl = [tbl, table(err)];
-    end
+    err = compute_l2_err(ref_img, comp_models.(name_arr{j}).model.x);
+    tbl.(name) = err;
   end
-  tbl.Properties.VariableNames = varnames;
 end
