@@ -1,5 +1,5 @@
 % SPDX-License-Identifier: MIT
-% Copyright © 2021 Weiwei "William" Kong
+% Copyright © 2022 Weiwei "William" Kong
 
 % Solve a multivariate nonconvex quadratic programming problem constrained to the unit spectraplex.
 
@@ -61,10 +61,10 @@ aipp_hparam.sigma = 1/4;
 % Loop over the curvature pair (m, M).
 base = 10;
 mM_vec = [base^2, base^4;  base^2, base^5;  base^2, base^6; ...
-          base^4, base^5;  base^3, base^5; ];
+          base^3, base^7;  base^2, base^7;  base^1, base^7;];
 
 [nrows, ncols] = size(mM_vec);
-offset = 0;
+offset = 3;
 
 for i = 1:(nrows-offset)
   % Use a problem instance generator to create the oracle and
@@ -116,7 +116,7 @@ for i = 1:(nrows-offset)
 %   hparam_arr = {aipp_hparam, apd2_hparam};
 %   name_arr = {'AIPP', 'APD2'};
   
-  [summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
+  [summary_tables, ~] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   writetable(summary_tables.all, "adp_qsdp" + num2str(i + offset) + ".xlsx");
   
