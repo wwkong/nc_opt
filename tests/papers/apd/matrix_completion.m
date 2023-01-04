@@ -98,7 +98,7 @@ for i = 1:length(img_names) - offset
 %   name_arr = {'AIPP'};
   
   [summary_tables, comp_models] = run_CM_benchmark(mat_compl, solver_arr, hparam_arr, name_arr);
-  err_tbl = get_l2_err_tbl(comp_models, name_arr, raw_img);
+  err_tbl = get_rel_err_tbl(comp_models, name_arr, raw_img);
   tbl_row = [table(id), ...
              summary_tables.pdata, ...
              summary_tables.fval, ...
@@ -141,11 +141,13 @@ function err = compute_l2_err(I1, I2)
   err = norm(double(im_diff), 'fro');
 end
 
-function tbl = get_l2_err_tbl(comp_models, name_arr, ref_img)
+function tbl = get_rel_err_tbl(comp_models, name_arr, ref_img)
   tbl = table();
   for j=1:length(name_arr)
     name = name_arr{j} + "_l2_err";
-    err = compute_l2_err(ref_img, comp_models.(name_arr{j}).model.x);
-    tbl.(name) = err;
+    abs_err = compute_l2_err(ref_img, comp_models.(name_arr{j}).model.x);
+    flipped_img = 256 - ref_img;
+    max_err = norm(double(max(ref_img, flipped_img)), 'fro');
+    tbl.(name) = abs_err / max_err;
   end
 end
