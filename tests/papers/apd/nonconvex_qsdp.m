@@ -20,7 +20,7 @@ seed = 7777777;
 dimM = 10;
 dimN = 20;
 density = 1.0;
-global_tol = 1e-6;
+global_tol = 1e1;
 time_limit = 2400;
 iter_limit = 1E6;
 
@@ -54,7 +54,7 @@ pgd_hparam.M0 = 1;
 pgd_hparam.steptype = 'adaptive';
 
 aipp_hparam = base_hparam;
-aipp_hparam.steptype = 'aipp';
+aipp_hparam.aipp_type = 'aipp';
 aipp_hparam.acg_steptype = 'constant';
 aipp_hparam.sigma = 1/4;
 
@@ -64,7 +64,7 @@ mM_vec = [base^2, base^4;  base^2, base^5;  base^2, base^6; ...
           base^3, base^7;  base^2, base^7;  base^1, base^7;];
 
 [nrows, ncols] = size(mM_vec);
-offset = 3;
+offset = 2;
 
 for i = 1:(nrows-offset)
   % Use a problem instance generator to create the oracle and

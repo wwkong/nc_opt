@@ -18,7 +18,7 @@ theta = 1E-4;
 mu = 1.0;
 global_tol = 1e-10;
 time_limit = 1200;
-iter_limit = 5000;
+iter_limit = 10000;
 img_names = {'35008.jpg',  '41004.jpg', '68077.jpg', '271031.jpg', '310007.jpg'};
 
 %% Generate Images
@@ -51,7 +51,7 @@ apd2_hparam = apd_hparam;
 apd2_hparam.line_search_type = 'optimistic';
 
 aipp_hparam = base_hparam;
-aipp_hparam.steptype = 'aipp';
+aipp_hparam.aipp_type = 'aipp';
 aipp_hparam.acg_steptype = 'constant';
 aipp_hparam.sigma = 1/4;
 
@@ -93,6 +93,7 @@ for i = 1:length(img_names) - offset
   name_arr = {'UPF', 'ANCF', 'AIPP', 'APD'};
   
 %   % Run a benchmark test and print the summary.
+%   aipp_hparam.aipp_type = 'aipp';
 %   solver_arr = {@AIPP};
 %   hparam_arr = {aipp_hparam};
 %   name_arr = {'AIPP'};
