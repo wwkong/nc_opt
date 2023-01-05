@@ -65,8 +65,13 @@ function [model, history] = APD(oracle, params)
   params_acg.mult_L = params.beta;
   params_acg.termination_type = 'apd';
   params_acg.acg_steptype = 'variable';
-  params_acg.eta_type = 'accumulative';
+  params_acg.eta_type = 'none';
   params_acg.L = Inf; % Upper bound of L_est.
+  
+  if (params.i_logging)
+    history.stationarity_values = Inf;
+    history.stationarity_iters = 0;
+  end
      
   %% MAIN ALGORITHM
 
@@ -89,10 +94,12 @@ function [model, history] = APD(oracle, params)
     oracle_acg.proxify(1 / (2 * m), z0);
     
     % Set ACG parameters.
+    params_acg.base_iter = iter;
     params_acg.x0 = z0;
     params_acg.z0 = z0;
     params_acg.L_est = M / (2 * m) + 1;
     params_acg.time_limit = max([0, time_limit - toc(t_start)]);
+    params_acg.stationarity_fn = @(u, y) norm_fn(2 * m * (u + z0 - y));
         
     % Repeatedly call the ACG.
     if strcmp(params.line_search_type, 'optimistic')
@@ -101,10 +108,15 @@ function [model, history] = APD(oracle, params)
     end
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
+    if (params.i_logging)
+      history.stationarity_values = [history.stationarity_values, history_acg.stationarity_values];
+      history.stationarity_iters = [history.stationarity_iters, history_acg.stationarity_iters];
+    end
+    
     if (model_acg.status < 0)
       m = params.alpha * m;
       continue;
-    end     
+    end
       
     % Check for termination.
     x = model_acg.y;
@@ -135,9 +147,9 @@ end % function end
 
 % Fills in parameters that were not set as input
 function params = set_default_params(params)
-  
+
   % M0 = 1
-  if(~isfield(params, 'm0'))
+  if(~isfield(params, 'M0'))
     params.M0 = 1;
   end
 
@@ -148,7 +160,7 @@ function params = set_default_params(params)
   
   % theta = 4
   if(~isfield(params, 'theta'))
-    params.theta = 1;
+    params.theta = 4;
   end
 
   % alpha = 3

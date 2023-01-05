@@ -48,6 +48,8 @@ function [model, history] = ADAP_FISTA(oracle, params)
     iteration_values = 0;
     time_values = 0;
     vnorm_values = Inf;
+    history.stationarity_values = Inf;
+    history.stationarity_iters = 0;
   end
   history.min_norm_of_v = Inf;
   
@@ -66,8 +68,6 @@ function [model, history] = ADAP_FISTA(oracle, params)
   A = A0;
   x = z0;
   y = z0;
-  m = params.m0;
-  M = params.M0;
     
   %% LOCAL FUNCTIONS
   function [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, count)
@@ -110,21 +110,30 @@ function [model, history] = ADAP_FISTA(oracle, params)
     theta = abs(curv_f(2 * x0, x0));
     while abs(C) <= theta
         theta = theta/2;
-        x = prox_f_n(x0 - grad_f_s(x0)/theta, theta);
-        C = curv_f(x,x0); 
+        x1 = prox_f_n(x0 - grad_f_s(x0)/theta, theta);
+        C = curv_f(x1, x0); 
         count = count + 1;
     end
-    M = theta / scale;
-    m = M;
-    lam = 1 / M;
-    xi = 2 * m;
+    M1 = theta / scale;
+    m1 = M1;
+    lam = 1 / M1;
+    xi = 2 * m1;
     
   end % End CURV.
 
   % Use Jiaming's subroutine for choosing (lambda, xi).
-  [lam, xi, count] = CURV(z0);
-  iter = iter + count;
-
+  m = 0;
+  M = 0;
+  if (isfield(params, "M0") && isfield(params, "m0"))
+    m = params.m0;
+    M = params.M0;
+    lam = 1 / M;
+    xi = 2 * m;
+  else
+    [lam, xi, count] = CURV(z0);
+    iter = iter + count;
+  end
+  
   %% MAIN ALGORITHM
   while true
     
@@ -142,21 +151,24 @@ function [model, history] = ADAP_FISTA(oracle, params)
     a = (1+sqrt(1+4*A))/2;
     ANext = A + a;
     tx = A/ANext*y + a/ANext*x;
-    ty = A/ANext*y + a/ANext*z0;    
+    ty = A/ANext*y + a/ANext*z0;
     if norm_fn(ty - tx) < 1e-20
         mNext = 0;
     else
         mNext = max(2*(ell_f(ty,tx)-f(ty))/norm_fn(ty-tx)^2,0);
     end
         
-    [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, count);
+    [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, 0);
     xNext = (a+xi*lam)/(xi*lam+1)*yNext - (a-1)/(xi*lam+1)*y;
-    v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);
+    v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);        
     iter = iter + count;
-
     % Check for early termination.
     norm_v = norm_fn(v);
     history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
+    if (params.i_logging)
+      history.stationarity_values = [history.stationarity_values, norm_v];
+      history.stationarity_iters = [history.stationarity_iters, iter];
+    end
     if (norm_v <= opt_tol)
       break
     end
@@ -193,7 +205,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
   end
 
   % Count backtracking iterations.
-  history.iter = count;
+  history.iter = iter;
   
 end
 

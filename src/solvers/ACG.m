@@ -56,7 +56,8 @@ function [model, history] = ACG(oracle, params)
   
   % Check for logging requirements.
   if params.i_logging
-    history.function_values = [];
+    history.stationarity_iters = [];
+    history.stationarity_values = [];
     history.iteration_values = [];
     history.time_values = [];
   end
@@ -107,6 +108,8 @@ function [model, history] = ACG(oracle, params)
     scSum = 0;
     svSum = zeros(size(x0), 'like', x0);
     snSum = 0;
+  elseif strcmp(params.eta_type, 'none')
+    % Do nothing.
   else
     error('Unknown eta type!');
   end
@@ -126,7 +129,6 @@ function [model, history] = ACG(oracle, params)
   % Set up the oracle at x0
   o_x0 = oracle.eval(x0);
   f_at_x0 = o_x0.f_s() + o_x0.f_n();
-  f_at_y_prev = f_at_x0;
   
   %% LOCAL FUNCTIONS
   
@@ -235,15 +237,6 @@ function [model, history] = ACG(oracle, params)
           dist_xt_y = aux_struct.dist_xt_y;
           o_x_tilde_prev = aux_struct.o_x_tilde_prev;
           o_y = aux_struct.o_y;
-          x = 1 / (1 + mu * A) * (x_prev  - a_prev / lamK * (x_tilde_prev - y) + mu * (A_prev * x_prev + a_prev * y));
-          % Computation of the minorants.
-          q_tilde_at_y = f_s_at_x_tilde_prev + o_x_tilde_prev.f_n() + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ... 
-                         mu * dist_xt_y^2 /2; 
-          q_at_y_prev = q_tilde_at_y + L * prod_fn(x_tilde_prev - y, y_prev - y) + mu * norm_fn(y - y_prev)^2;       
-          % Main check
-          LHS = mu * A * norm_fn(y - x_tilde_prev)^2 / 2 + (1 + mu * A) * norm_fn(y_prev - x)^2 / 2;
-          RHS = A * (q_at_y_prev - o_y.f_s() - o_y.f_n()) + (1 + mu * A_prev) * norm_fn(y - x)^2 / 2;
-          aux_struct.descent_cond = (aux_struct.descent_cond && (LHS <= RHS + sqrt(INEQ_TOL))) || abs(max(LHS, RHS)) <= INEQ_TOL;
         end
         
         if (L >= L_max && ~aux_struct.descent_cond)
@@ -297,19 +290,30 @@ function [model, history] = ACG(oracle, params)
     f_n_at_y = o_y.f_n();
     f_at_y = f_s_at_y + f_n_at_y;
     
+    %% COMPUTE (u, η), Γ, and x.
+           
+    % Compute x and other helper variables.
+    x = 1 / (1 + mu * A) * (x_prev  - a_prev / lamK * (x_tilde_prev - y) + mu * (A_prev * x_prev + a_prev * y));
+    if strcmp(termination_type, "apd")
+      y_xT = y - x_tilde_prev;
+      r = -(L + mu) * y_xT + o_y.grad_f_s() - grad_f_s_at_x_tilde_prev;
+      norm_y_xT = norm_fn(y_xT);
+      y_y0 = y - x0;
+      norm_y_y0 = norm_fn(y_y0);
+      u = r;
+    else
+      u = (x0 - x) / A;
+    end
+        
     % Add metrics for the current outer iteration if needed.
     if params.i_logging
-      oracle.eval(y);
-      history.function_values(end + 1) = f_at_y;
+      if (isfield(params, "stationarity_fn"))
+        history.stationarity_values(end + 1) = params.stationarity_fn(u, y);
+        history.stationarity_iters(end + 1) = params.base_iter + iter;
+      end
       history.iteration_values(end + 1) = iter;
       history.time_values(end + 1) = toc(t_start);
     end
-    
-    %% COMPUTE (u, η), Γ, and x.
-           
-    % Compute x and u.
-    x = 1 / (1 + mu * A) * (x_prev  - a_prev / lamK * (x_tilde_prev - y) + mu * (A_prev * x_prev + a_prev * y));
-    u = (x0 - x) / A;
 
     % Compute eta.
     if strcmp(params.eta_type, 'recursive')
@@ -334,6 +338,8 @@ function [model, history] = ACG(oracle, params)
       Gamma_at_x = Gamma(x);
       eta_acc = f_at_y - Gamma_at_x - prod_fn(u, y - x);
       eta = eta_acc;
+    elseif strcmp(params.eta_type, 'none')
+      eta = 0;
     else
       error('Unknown eta type!');
     end
@@ -350,11 +356,20 @@ function [model, history] = ACG(oracle, params)
         error(['eta is negative with a value of ', num2str(exact_eta)]);
       end
     end
+    
+    %% CHECK EARLY STATIONARITY.
+    if (any(strcmp(termination_type, {'apd'})))
+      v = params.stationarity_fn(u, y);
+      if (norm_fn(v) <= params.opt_tol)
+        i_early_stop = true;
+        break
+      end
+    end
         
     %% CHECK INVARIANTS.
     
     % Sufficient descent.
-    if (any(strcmp(termination_type, {'gd', 'apd'})))
+    if (any(strcmp(termination_type, {'gd'})))
       large_gd = f_at_x0;
       small_gd = f_at_y + prod_fn(u, x0 - y) - eta;
       del_gd = large_gd - small_gd;
@@ -391,10 +406,15 @@ function [model, history] = ACG(oracle, params)
     end
     
     if (any(strcmp(termination_type, {'apd'})))
-      q_tilde_at_y = f_s_at_x_tilde_prev + o_x_tilde_prev.f_n() + prod_fn(grad_f_s_at_x_tilde_prev, y - x_tilde_prev) + ... 
-                     mu * dist_xt_y^2 /2;
-      q_at_y_prev = q_tilde_at_y + L * prod_fn(x_tilde_prev - y, y_prev - y) + mu * norm_fn(y - y_prev)^2;
-      if (q_at_y_prev > f_at_y_prev + 1E-1 || Gamma(y_prev) > f_at_y_prev  + 1E-1 || Gamma(y) > f_at_y  + 1E-1)
+      large_gd = f_at_x0;
+      small_gd = f_at_y - prod_fn(r, y_y0);
+      del_gd = large_gd - small_gd;
+      base = max([abs(large_gd), abs(small_gd), 0.01]);
+      if (del_gd / base < -INEQ_TOL)
+        model.status = -1;
+        break;
+      end
+      if (mu * A * norm_y_xT ^2 > norm_y_y0 ^2)
         model.status = -2;
         break;
       end
@@ -460,11 +480,9 @@ function [model, history] = ACG(oracle, params)
       
     % Termination for the APD method.
     elseif strcmp(termination_type, "apd")
-      uTilde = (L + mu) * (x_tilde_prev - y) + o_y.grad_f_s() - grad_f_s_at_x_tilde_prev;
-      cond1 = norm_fn(uTilde + x0 - y)^2 <= theta * (f_at_x0 - f_at_y + norm_fn(y - x0)^2 / 2);
-      cond2 = norm_fn(uTilde)^2 <= sigma^2 * norm_fn(y - x0)^2;
+      cond1 = norm_fn(r - y_y0)^2 <= theta * (f_at_x0 - f_at_y + norm_y_y0^2 / 2);
+      cond2 = norm_fn(r) <= sigma * norm_y_y0;
       if (cond1 && cond2)
-        u = uTilde;
         break;
       end
     end
@@ -478,7 +496,6 @@ function [model, history] = ACG(oracle, params)
       Gamma_at_x_prev = Gamma_at_x;
       grad_Gamma_at_x_prev = grad_Gamma_at_x;
     end
-    f_at_y_prev = f_at_y;
     A_prev = A;
     y_prev = y;
     x_prev = x;

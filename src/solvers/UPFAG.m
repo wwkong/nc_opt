@@ -60,6 +60,8 @@ function [model, history] = UPFAG(oracle, params)
     iteration_values = 0;
     time_values = 0;
     vnorm_values = Inf;
+    history.stationarity_values = Inf;
+    history.stationarity_iters = 0;
   end
   history.min_norm_of_v = Inf;
 
@@ -170,6 +172,10 @@ function [model, history] = UPFAG(oracle, params)
     
     % Check for termination.
     norm_v = norm_fn(v);
+    if (params.i_logging)
+      history.stationarity_values = [history.stationarity_values, norm_v];
+      history.stationarity_iters = [history.stationarity_iters, iter];
+    end
     history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
     if (norm_v <= opt_tol)
       break;

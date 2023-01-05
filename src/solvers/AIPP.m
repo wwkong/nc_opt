@@ -86,6 +86,8 @@ function [model, history] = AIPP(oracle, params)
     iteration_values = 0;
     time_values = 0;
     vnorm_values = Inf;
+    history.stationarity_iters = 0;
+    history.stationarity_values = Inf;
   end  
   history.min_norm_of_v = Inf;
   
@@ -132,6 +134,12 @@ function [model, history] = AIPP(oracle, params)
     history.L_est = [];
     history.norm_v = [];
   end
+  
+  % Define a stationarity residual function.
+  function norm_v = stationarity_aux_fn(zHat, u, y)
+    model_refine = refine_IPP(oracle, params, L, lambda, zHat, y, u);
+    norm_v = norm_fn(model_refine.v_hat);
+  end
      
   %% MAIN ALGORITHM
 
@@ -154,6 +162,8 @@ function [model, history] = AIPP(oracle, params)
     oracle_acg.proxify(lambda, z0);
     
     % Set ACG parameters.
+    params_acg.stationarity_fn = @(u, y) stationarity_aux_fn(z0, u, y);
+    params_acg.base_iter = iter;
     params_acg.lambda = lambda;
     params_acg.x0 = z0;
     params_acg.z0 = z0;
@@ -172,10 +182,16 @@ function [model, history] = AIPP(oracle, params)
     
     % Parse ACG outputs that are invariant of output status.
     iter = iter + history_acg.iter;
-    M_est = (model_acg.L_est - 1) / lambda;   
+    M_est = (model_acg.L_est - 1) / lambda;
+    
+    if (params.i_logging)
+      history.stationarity_values = [history.stationarity_values, history_acg.stationarity_values];
+      history.stationarity_iters = [history.stationarity_iters, history_acg.stationarity_iters];
+    end
     
     % Refine if the ACG has a solution.
     if (isfield(model_acg, 'y') && isfield(model_acg, 'u'))
+      iter = iter + 1;
       model_refine = refine_IPP(oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
       x = model_refine.z_hat;
       v = model_refine.v_hat;
