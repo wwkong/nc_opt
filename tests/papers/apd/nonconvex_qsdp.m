@@ -115,6 +115,8 @@ writetable(final_table, "adp_qsdp.xlsx");
 
 %% Generate Plots.
 exp_indices = [1, 2, 3];
+plot_x_vals = {};
+plot_y_vals = {};
 figure;
 for l=exp_indices
 
@@ -152,15 +154,17 @@ oracle.eval(hparams.x0);
 tol_factor = 1 + hparams.norm_fn(oracle.grad_f_s());
 line_styles = {'-.', '--', ':', '-'};
 for i=1:max(size(name_arr))
-  semilogy(comp_models.(name_arr{i}).history.stationarity_iters, ...
-    cummin(comp_models.(name_arr{i}).history.stationarity_values) / tol_factor, ...
-    line_styles{i}, 'LineWidth', 1.5);
+  x = comp_models.(name_arr{i}).history.stationarity_iters;
+  y = cummin(comp_models.(name_arr{i}).history.stationarity_values) / tol_factor;
+  plot_x_vals{l, i} = x;
+  plot_y_vals{l, i} = y;
+  semilogy(x, y, line_styles{i}, 'LineWidth', 1.5);
   hold on;
 end
 title("QSDP Residuals vs. Iterations", 'Interpreter', 'latex');
 xlim([1, ncvx_qp.iter_limit]);
 xlabel("Iteration Count", 'Interpreter', 'latex');
-ylim([1E-6, 1E-2]);
+ylim([ncvx_qp.opt_tol, 1E-2]);
 ylabel("$$\min_{1\leq i \leq k} \|\bar{v}_i\| / (1 + \|\nabla f(z_0)\|)$$", 'Interpreter', 'latex');
 legend(name_arr);
 ax = gca;
