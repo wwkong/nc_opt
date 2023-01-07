@@ -13,7 +13,7 @@ run('../../../init.m');
 % Set up variables
 seed = 777;
 alpha = 1E-2;
-beta = 10;
+beta = 1E1;
 theta = 1E-1;
 mu = 1.0;
 global_tol = 1e-8;
@@ -56,7 +56,7 @@ aipp_hparam.sigma = 1/4;
 %% Generate Tables
 
 % Loop over the curvature pair (m, M).
-offset = 0;
+offset = 4;
 for i = 1:length(data_names) - offset
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
@@ -64,7 +64,7 @@ for i = 1:length(data_names) - offset
   disp(id);
   load(id);
   rng(seed);
-  [oracle, hparams] = test_fn_penalty_spca_01(data, alpha, beta, theta, mu, seed);
+  [oracle, hparams] = test_fn_penalty_svr_01(data, alpha, beta, theta, mu, seed);
 
   % Create the Model object and specify the solver.
   spca = CompModel(oracle);
@@ -102,7 +102,7 @@ for i = 1:length(data_names) - offset
   [summary_tables, comp_models] = run_CM_benchmark(spca, solver_arr, hparam_arr, name_arr);
   tbl_row = [table(id), summary_tables.all];
   disp(tbl_row);
-  writetable(tbl_row, "adp_sparse_pca_" + id + ".xlsx");
+  writetable(tbl_row, "adp_svr_" + id + ".xlsx");
   
   % Set up the final table.
   if (i == 1)
@@ -114,11 +114,11 @@ end
 
 % Display final table for logging.
 disp(final_table);
-writetable(final_table, "adp_sparse_pca.xlsx");
+writetable(final_table, "adp_svr.xlsx");
 
 %% Generate Plots.
-exp_indices = [3, 4, 5];
-iter_limits = [10000, 30000, 45000];
+exp_indices = [1, 2, 3];
+iter_limits = [6000, 8000, 12000];
 plot_x_vals = {};
 plot_y_vals = {};
 figure;
@@ -135,7 +135,7 @@ ncf_hparam.i_logging = true;
 aipp_hparam.i_logging = true;
 apd2_hparam.i_logging = true;
 
-[oracle, hparams] =  test_fn_penalty_spca_01(data, alpha, beta, theta, mu, seed);
+[oracle, hparams] =  test_fn_penalty_svr_01(data, alpha, beta, theta, mu, seed);
 M = hparams.M;
 m = hparams.m;
 spca = CompModel(oracle);
@@ -171,12 +171,12 @@ end
 title("QSDP Residuals vs. Iterations", 'Interpreter', 'latex');
 xlim([1, spca.iter_limit]);
 xlabel("Iteration Count", 'Interpreter', 'latex');
-ylim([spca.opt_tol, 1E-4]);
+ylim([spca.opt_tol, 1E-2]);
 ylabel("$$\min_{1\leq i \leq k} \|\bar{v}_i\| / (1 + \|\nabla f(z_0)\|)$$", 'Interpreter', 'latex');
 legend(name_arr);
 ax = gca;
 ax.FontSize = 12;
-saveas(gcf, "spca_" + num2str(l) + ".svg");
+saveas(gcf, "svr_" + num2str(l) + ".svg");
 
 end
-saveas(gcf, "spca.svg");
+saveas(gcf, "svr.svg");
