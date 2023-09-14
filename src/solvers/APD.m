@@ -57,6 +57,8 @@ function [model, history] = APD(oracle, params)
   
   % Initialize some auxillary functions and constants.
   iter = 0;
+  fn_iter = 0;
+  grad_iter = 0;
   outer_iter = 1;
   params_acg = params;
   params_acg.mu = 1.0 / 2.0;
@@ -71,6 +73,7 @@ function [model, history] = APD(oracle, params)
   if (params.i_logging)
     history.stationarity_values = Inf;
     history.stationarity_iters = 0;
+    history.stationarity_grad_iters = 0;
   end
      
   %% MAIN ALGORITHM
@@ -95,6 +98,7 @@ function [model, history] = APD(oracle, params)
     
     % Set ACG parameters.
     params_acg.base_iter = iter;
+    params_acg.base_grad_iter = grad_iter;
     params_acg.x0 = z0;
     params_acg.z0 = z0;
     params_acg.L_est = M / (2 * m) + 1;
@@ -108,9 +112,12 @@ function [model, history] = APD(oracle, params)
     end
     [model_acg, history_acg] = ACG(oracle_acg, params_acg);
     iter = iter + history_acg.iter;
+    fn_iter = fn_iter + history_acg.fn_iter;
+    grad_iter = grad_iter + history_acg.grad_iter;
     if (params.i_logging)
       history.stationarity_values = [history.stationarity_values, history_acg.stationarity_values];
       history.stationarity_iters = [history.stationarity_iters, history_acg.stationarity_iters];
+      history.stationarity_grad_iters = [history.stationarity_grad_iters, history_acg.stationarity_grad_iters];
     end
     
     if (model_acg.status < 0)
@@ -138,6 +145,8 @@ function [model, history] = APD(oracle, params)
   model.x = x;
   model.v = v;
   history.iter = iter;
+  history.fn_iter = fn_iter;
+  history.grad_iter = grad_iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
 

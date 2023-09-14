@@ -62,12 +62,15 @@ function [model, history] = UPFAG(oracle, params)
     vnorm_values = Inf;
     history.stationarity_values = Inf;
     history.stationarity_iters = 0;
+    history.stationarity_grad_iters = 0;
   end
   history.min_norm_of_v = Inf;
 
   % Initialize
   k = 0;
   iter = 0;
+  fn_iter = 0;
+  grad_iter = 0;
   cvx_iter = 0;
   nocvx_iter = 0;
   x_k = z0;
@@ -104,6 +107,7 @@ function [model, history] = UPFAG(oracle, params)
     else
       sk = x_ag_tilde - x_md;
       yk = grad_f_s(x_ag_tilde) - grad_f_s(x_md);
+      grad_iter = grad_iter + 2;
       sty = prod_fn(sk, yk);
       if sty > 0.
         lambda_bb = max(norm_fn(sk) ^ 2 / sty, sigma);
@@ -125,6 +129,7 @@ function [model, history] = UPFAG(oracle, params)
                            norm_fn(x_ag_tilde - x_md) ^ 2 / (2 * alpha_k * lambda_k) + delta * alpha_k) % (2.6)
         line_search_cvx = 1;
       end
+      fn_iter = fn_iter + 2;
       itr_cvx = itr_cvx + 1;
       if (toc(t_start) > time_limit)
         break;
@@ -138,7 +143,8 @@ function [model, history] = UPFAG(oracle, params)
     else
       sk = x_ag - x_agold;
       yk = grad_f_s(x_ag) - grad_f_s(x_agold);
-      sty = prod_fn(sk,yk);
+      grad_iter = grad_iter + 2;
+      sty = prod_fn(sk, yk);
       if sty > 0.
         beta_bb = max(norm_fn(sk) ^ 2 / sty, sigma);
       else
@@ -155,13 +161,16 @@ function [model, history] = UPFAG(oracle, params)
       if (f(x_ag_bar) <= f(x_ag) - norm_fn(x_ag_bar - x_ag) ^ 2 / (2 * beta_k) + 1 / (k + 1)) % gamma_3 = 1 % (2.9)
         line_search_nocvx = 1;
       end
+      fn_iter = fn_iter + 2;
       itr_nocvx = itr_nocvx + 1;
       if (toc(t_start) > time_limit)
         break;
       end
     end
     v = (x_ag - x_ag_bar) / beta_k + grad_f_s(x_ag) - grad_f_s(x_ag_bar);
+    grad_iter = grad_iter + 1;
     [~, min_idx] = min([f(x_ag), f(x_ag_bar), f(x_ag_tilde)]);
+    fn_iter = fn_iter + 1;
     if (min_idx == 2)
       x_ag = x_ag_bar;
     elseif (min_idx == 3) % (2.11)
@@ -175,6 +184,7 @@ function [model, history] = UPFAG(oracle, params)
     if (params.i_logging)
       history.stationarity_values = [history.stationarity_values, norm_v];
       history.stationarity_iters = [history.stationarity_iters, iter];
+      history.stationarity_grad_iters = [history.stationarity_grad_iters, grad_iter];
     end
     history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
     if (norm_v <= opt_tol)
@@ -203,6 +213,8 @@ function [model, history] = UPFAG(oracle, params)
   model.x = x_ag;
   history.k = k;
   history.iter = iter;
+  history.fn_iter = fn_iter;
+  history.grad_iter = grad_iter;
   history.cvx_iter = cvx_iter;
   history.nocvx_iter = nocvx_iter;
   history.runtime = toc(t_start);

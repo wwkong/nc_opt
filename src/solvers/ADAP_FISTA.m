@@ -50,6 +50,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
     vnorm_values = Inf;
     history.stationarity_values = Inf;
     history.stationarity_iters = 0;
+    history.stationarity_grad_iters = 0;
   end
   history.min_norm_of_v = Inf;
   
@@ -63,6 +64,8 @@ function [model, history] = ADAP_FISTA(oracle, params)
   norm_fn = params.norm_fn;
   ell_f = @(a,b) f(b) + prod_fn(grad_f_s(b), a - b);
   iter = 0;
+  fn_iter = 0;
+  grad_iter = 0;
   count = 0;
   A0 = 0;
   A = A0;
@@ -74,8 +77,10 @@ function [model, history] = ADAP_FISTA(oracle, params)
 
     stepsize = lam*a/(a+2*lam*xi);
     yNext = prox_f_n(tx - stepsize * grad_f_s(tx), stepsize);
+    grad_iter = grad_iter + 1;
     count = count + 1;
     MNext =  2*(f_s(yNext)-f_s(tx)-prod_fn(grad_f_s(tx),yNext-tx)) / norm_fn(yNext-tx)^2;
+    fn_iter = fn_iter + 2;
     lamk = lam;
 
     while (lam*MNext > 0.9) || (xi*(lamk - lam/a) < mNext*lam/2)
@@ -88,6 +93,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
         stepsize = lam*a/(a+2*lam*xi);
         yNext = prox_f_n(tx- stepsize * grad_f_s(tx), stepsize);
         MNext = 2*(f_s(yNext)-f_s(tx)-prod_fn(grad_f_s(tx),yNext-tx)) / norm_fn(yNext-tx)^2;
+        fn_iter = fn_iter + 1;
         count = count + 1;
     end
   end % End SUB.
@@ -108,10 +114,14 @@ function [model, history] = ADAP_FISTA(oracle, params)
     end
     
     theta = abs(curv_f(2 * x0, x0));
+    fn_iter = fn_iter + 2;
+    grad_iter = grad_iter + 1;
     while abs(C) <= theta
         theta = theta/2;
         x1 = prox_f_n(x0 - grad_f_s(x0)/theta, theta);
-        C = curv_f(x1, x0); 
+        C = curv_f(x1, x0);
+        fn_iter = fn_iter + 1;
+        grad_iter = grad_iter + 1;
         count = count + 1;
     end
     M1 = theta / scale;
@@ -155,12 +165,15 @@ function [model, history] = ADAP_FISTA(oracle, params)
     if norm_fn(ty - tx) < 1e-20
         mNext = 0;
     else
-        mNext = max(2*(ell_f(ty,tx)-f(ty))/norm_fn(ty-tx)^2,0);
+        mNext = max(2*(ell_f(ty, tx)-f(ty))/norm_fn(ty-tx)^2,0);
+        fn_iter = fn_iter + 2;
+        grad_iter = grad_iter + 1;
     end
         
     [yNext, MNext, lam, xi, count] = SUB(tx, lam, xi, theta, mNext, a, 0);
     xNext = (a+xi*lam)/(xi*lam+1)*yNext - (a-1)/(xi*lam+1)*y;
-    v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);        
+    v = (1/lam + xi/a)*(tx-yNext)+grad_f_s(yNext)-grad_f_s(tx);
+    grad_iter = grad_iter + 1;
     iter = iter + count;
     % Check for early termination.
     norm_v = norm_fn(v);
@@ -168,6 +181,7 @@ function [model, history] = ADAP_FISTA(oracle, params)
     if (params.i_logging)
       history.stationarity_values = [history.stationarity_values, norm_v];
       history.stationarity_iters = [history.stationarity_iters, iter];
+      history.stationarity_grad_iters = [history.stationarity_grad_iters, grad_iter];
     end
     if (norm_v <= opt_tol)
       break
@@ -206,7 +220,8 @@ function [model, history] = ADAP_FISTA(oracle, params)
 
   % Count backtracking iterations.
   history.iter = iter;
-  
+  history.fn_iter = fn_iter;
+  history.grad_iter = grad_iter;
 end
 
 % Fills in parameters that were not set as input.

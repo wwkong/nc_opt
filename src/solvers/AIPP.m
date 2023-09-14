@@ -86,6 +86,7 @@ function [model, history] = AIPP(oracle, params)
     iteration_values = 0;
     time_values = 0;
     vnorm_values = Inf;
+    history.stationarity_grad_iters = 0;
     history.stationarity_iters = 0;
     history.stationarity_values = Inf;
   end  
@@ -109,6 +110,8 @@ function [model, history] = AIPP(oracle, params)
   
   % Initialize some auxillary functions and constants.
   iter = 0; % Set to zero to offset ACG iterations
+  fn_iter = 0;
+  grad_iter = 0;
   outer_iter = 1;
   i_early_stop = false;
   M_est = M;
@@ -164,6 +167,7 @@ function [model, history] = AIPP(oracle, params)
     % Set ACG parameters.
     params_acg.stationarity_fn = @(u, y) stationarity_aux_fn(z0, u, y);
     params_acg.base_iter = iter;
+    params_acg.base_grad_iter = grad_iter;
     params_acg.lambda = lambda;
     params_acg.x0 = z0;
     params_acg.z0 = z0;
@@ -182,9 +186,12 @@ function [model, history] = AIPP(oracle, params)
     
     % Parse ACG outputs that are invariant of output status.
     iter = iter + history_acg.iter;
+    fn_iter = fn_iter + history_acg.fn_iter;
+    grad_iter = grad_iter + history_acg.grad_iter;
     M_est = (model_acg.L_est - 1) / lambda;
     
     if (params.i_logging)
+      history.stationarity_grad_iters = [history.stationarity_grad_iters, history_acg.stationarity_grad_iters];
       history.stationarity_values = [history.stationarity_values, history_acg.stationarity_values];
       history.stationarity_iters = [history.stationarity_iters, history_acg.stationarity_iters];
     end
@@ -193,6 +200,7 @@ function [model, history] = AIPP(oracle, params)
     if (isfield(model_acg, 'y') && isfield(model_acg, 'u'))
       iter = iter + 1;
       model_refine = refine_IPP(oracle, params, L, lambda, z0, model_acg.y, model_acg.u);
+      grad_iter = grad_iter + 2; % Refinement needs two additional gradient evaluations.
       x = model_refine.z_hat;
       v = model_refine.v_hat;
       i_early_stop = true;
@@ -306,6 +314,8 @@ function [model, history] = AIPP(oracle, params)
   norm_v = norm_fn(v);
   history.min_norm_of_v = min([history.min_norm_of_v, norm_v]);
   history.iter = iter;
+  history.fn_iter = fn_iter;
+  history.grad_iter = grad_iter;
   history.outer_iter = outer_iter;
   history.runtime = toc(t_start);
   if params.i_logging

@@ -3,7 +3,7 @@
 
 % The function of interest is
 %
-%  ????
+%  (see paper)
 
 %% Initialization
 
@@ -16,7 +16,7 @@ alpha = 1E-2;
 beta = 1E1;
 theta = 1E-1;
 mu = 1.0;
-global_tol = 1e-8;
+global_tol = 1e-10;
 time_limit = 2400;
 iter_limit = 500000;
 data_names = {"music_1429u_900m", ...
@@ -56,7 +56,7 @@ aipp_hparam.sigma = 1/4;
 %% Generate Tables
 
 % Loop over the curvature pair (m, M).
-offset = 4;
+offset = 0;
 for i = 1:length(data_names) - offset
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
@@ -64,7 +64,7 @@ for i = 1:length(data_names) - offset
   disp(id);
   load(id);
   rng(seed);
-  [oracle, hparams] = test_fn_penalty_svr_01(data, alpha, beta, theta, mu, seed);
+  [oracle, hparams] = test_fn_penalty_spca_01(data, alpha, beta, theta, mu, seed);
 
   % Create the Model object and specify the solver.
   spca = CompModel(oracle);
@@ -117,8 +117,9 @@ disp(final_table);
 writetable(final_table, "adp_svr.xlsx");
 
 %% Generate Plots.
-exp_indices = [1, 2, 3];
-iter_limits = [6000, 8000, 12000];
+exp_indices = [1, 2, 4];
+iter_limits = [20000, 20000, 120000];
+plot_xlimits = [4000, 8000, 48000];
 plot_x_vals = {};
 plot_y_vals = {};
 figure;
@@ -135,7 +136,7 @@ ncf_hparam.i_logging = true;
 aipp_hparam.i_logging = true;
 apd2_hparam.i_logging = true;
 
-[oracle, hparams] =  test_fn_penalty_svr_01(data, alpha, beta, theta, mu, seed);
+[oracle, hparams] =  test_fn_penalty_spca_01(data, alpha, beta, theta, mu, seed);
 M = hparams.M;
 m = hparams.m;
 spca = CompModel(oracle);
@@ -147,7 +148,7 @@ aipp_hparam.m = m;
 aipp_hparam.M = M;
 
 spca.opt_type = 'relative';
-spca.opt_tol = 1E-8;
+spca.opt_tol = 1E-9;
 spca.time_limit = time_limit;
 spca.iter_limit = iter_limits(l);
 
@@ -161,16 +162,16 @@ oracle.eval(hparams.x0);
 tol_factor = 1 + hparams.norm_fn(oracle.grad_f_s());
 line_styles = {'-.', '--', ':', '-'};
 for i=1:max(size(name_arr))
-  x = comp_models.(name_arr{i}).history.stationarity_iters;
-  y = cummin(comp_models.(name_arr{i}).history.stationarity_values) / tol_factor;
+  x = comp_models.(name_arr{i}).history.stationarity_grad_iters;
+  y = cummin(comp_models.(name_arr{i}).history.stationarity_values + 1E-20) / tol_factor;
   plot_x_vals{l, i} = x;
   plot_y_vals{l, i} = y;
   semilogy(x, y, line_styles{i}, 'LineWidth', 1.5);
   hold on;
 end
-title("QSDP Residuals vs. Iterations", 'Interpreter', 'latex');
-xlim([1, spca.iter_limit]);
-xlabel("Iteration Count", 'Interpreter', 'latex');
+title("SVR Residuals vs. Gradient Iterations", 'Interpreter', 'latex');
+xlim([1, plot_xlimits(l)]);
+xlabel("Gradient Iteration Count", 'Interpreter', 'latex');
 ylim([spca.opt_tol, 1E-2]);
 ylabel("$$\min_{1\leq i \leq k} \|\bar{v}_i\| / (1 + \|\nabla f(z_0)\|)$$", 'Interpreter', 'latex');
 legend(name_arr);
@@ -180,3 +181,6 @@ saveas(gcf, "svr_" + num2str(l) + ".svg");
 
 end
 saveas(gcf, "svr.svg");
+
+%% Save figure.
+savefig(gcf, "svr.fig")

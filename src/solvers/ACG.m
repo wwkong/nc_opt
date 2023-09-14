@@ -48,6 +48,8 @@ function [model, history] = ACG(oracle, params)
   termination_type = params.termination_type;
   i_early_stop = false;
   iter = 1;
+  fn_iter = 0;
+  grad_iter = 0;
   L_grad_f_s_est = params.L_grad_f_s_est;
   local_L_est = params.L_est;
   x_prev = params.x_prev;
@@ -57,6 +59,7 @@ function [model, history] = ACG(oracle, params)
   % Check for logging requirements.
   if params.i_logging
     history.stationarity_iters = [];
+    history.stationarity_grad_iters = [];
     history.stationarity_values = [];
     history.iteration_values = [];
     history.time_values = [];
@@ -129,6 +132,7 @@ function [model, history] = ACG(oracle, params)
   % Set up the oracle at x0
   o_x0 = oracle.eval(x0);
   f_at_x0 = o_x0.f_s() + o_x0.f_n();
+  fn_iter = fn_iter + 1;
   
   %% LOCAL FUNCTIONS
   
@@ -217,12 +221,16 @@ function [model, history] = ACG(oracle, params)
       L = max(L, mu);
       [~, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
       iter = iter + 1;
+      fn_iter = fn_iter + 1;
+      grad_iter = grad_iter + 1;
       
       % Update based on the value of the local L compared to the current estimate of L.
       while (~aux_struct.descent_cond)        
         L = min(L_max, L * params.mult_L);
         [~, aux_struct] = compute_approx_iter(L, mu, A_prev, y_prev, x_prev);
         iter = iter + 1;
+        fn_iter = fn_iter + 1;
+        grad_iter = grad_iter + 1;
         
         % Additional APD descent condition.
         if strcmp(termination_type, 'apd')
@@ -273,6 +281,8 @@ function [model, history] = ACG(oracle, params)
       o_x_tilde_prev = oracle.eval(x_tilde_prev); 
       f_s_at_x_tilde_prev = o_x_tilde_prev.f_s();
       grad_f_s_at_x_tilde_prev = o_x_tilde_prev.grad_f_s();
+      fn_iter = fn_iter + 1;
+      grad_iter = grad_iter + 1;
       
       % Oracle at y.
       y_prox_mult = lamK / (1 + lamK * mu);
@@ -297,6 +307,7 @@ function [model, history] = ACG(oracle, params)
     if strcmp(termination_type, "apd")
       y_xT = y - x_tilde_prev;
       r = -(L + mu) * y_xT + o_y.grad_f_s() - grad_f_s_at_x_tilde_prev;
+      grad_iter = grad_iter + 1;
       norm_y_xT = norm_fn(y_xT);
       y_y0 = y - x0;
       norm_y_y0 = norm_fn(y_y0);
@@ -310,6 +321,7 @@ function [model, history] = ACG(oracle, params)
       if (isfield(params, "stationarity_fn"))
         history.stationarity_values(end + 1) = params.stationarity_fn(u, y);
         history.stationarity_iters(end + 1) = params.base_iter + iter;
+        history.stationarity_grad_iters(end + 1) = params.base_grad_iter + grad_iter;
       end
       history.iteration_values(end + 1) = iter;
       history.time_values(end + 1) = toc(t_start);
@@ -324,6 +336,7 @@ function [model, history] = ACG(oracle, params)
       Gamma_at_x = a_prev / A * gamma_at_x + A_prev / A * Gamma_at_x_prev + A_prev / A * prod_fn(grad_Gamma_at_x_prev, x - x_prev) + ...
                    (mu / 2) * A_prev / A * norm_fn(x - x_prev) ^ 2;
       eta_rcr = f_at_y - Gamma_at_x - prod_fn(u, y - x);
+      fn_iter = fn_iter + 1;
       eta = eta_rcr;
     elseif strcmp(params.eta_type, 'accumulative')
       % Accumulative
@@ -337,6 +350,7 @@ function [model, history] = ACG(oracle, params)
       Gamma = @(xG) (scSum + prod_fn(svSum, xG) + snSum * norm_fn(xG) ^ 2) / A;
       Gamma_at_x = Gamma(x);
       eta_acc = f_at_y - Gamma_at_x - prod_fn(u, y - x);
+      fn_iter = fn_iter + 1;
       eta = eta_acc;
     elseif strcmp(params.eta_type, 'none')
       eta = 0;
@@ -460,6 +474,7 @@ function [model, history] = ACG(oracle, params)
       eta2 = eta + mu * norm_fn(y - x) ^ 2 / 2;
       phi_at_Z_approx = f1_at_Z0 + o_y.orig_f2_s() + o_y.orig_f_n() + prod_fn(Dg_Pt_grad_f1_at_Z0_Q, y - x0) + ...
                         aicg_M1 / 2 * norm_fn(y - x0) ^ 2;
+      fn_iter = fn_iter + 1;
       delta_phi = phi_at_Z0 - phi_at_Z_approx;
       % Main condition checks
       cond1 = (norm_fn(u2) ^ 2 <= 4 * lambda * delta_phi);
@@ -525,6 +540,8 @@ function [model, history] = ACG(oracle, params)
   % Other outputs.
   model.L_est = L;
   history.iter = iter;
+  history.fn_iter = fn_iter;
+  history.grad_iter = grad_iter;
   history.runtime = toc(t_start);
           
 end

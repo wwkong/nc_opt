@@ -62,7 +62,7 @@ aipp_hparam.sigma = 1/4;
 
 %% Generate Tables (Loop over the curvature pair (m, M)).
 [nrows, ncols] = size(mM_vec);
-offset = 2;
+offset = 0;
 for i = 1:(nrows-offset)
   % Use a problem instance generator to create the oracle and
   % hyperparameters.
@@ -77,7 +77,7 @@ for i = 1:(nrows-offset)
   ncvx_qp.M = hparams.M;
   ncvx_qp.m = hparams.m;
   ncvx_qp.x0 = hparams.x0;
-  
+
   % Adjustments for AIPP.
   aipp_hparam.m = hparams.m;
   aipp_hparam.M = hparams.M;
@@ -93,14 +93,18 @@ for i = 1:(nrows-offset)
   hparam_arr = {upf_hparam, ncf_hparam, aipp_hparam, apd2_hparam};
   name_arr = {'UPF', 'ANCF', 'AIPP', 'APD'};
 
-%   solver_arr = {@ECG, @APD};
-%   hparam_arr = {pgd_hparam, apd2_hparam};
-%   name_arr = {'APGD', 'APD2'};
-  
+  % solver_arr = {@ADAP_FISTA, @APD};
+  % hparam_arr = {ncf_hparam, apd2_hparam};
+  % name_arr = {'ANCF', 'APD'};
+  % 
+  % solver_arr = {@APD};
+  % hparam_arr = {apd2_hparam};
+  % name_arr = {'APD'};
+
   [summary_tables, ~] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
   disp(summary_tables.all);
   writetable(summary_tables.all, "adp_qsdp" + num2str(i + offset) + ".xlsx");
-  
+
   % Set up the final table.
   if (i == 1)
     final_table = summary_tables.all;
@@ -140,30 +144,30 @@ aipp_hparam.m = m;
 aipp_hparam.M = M;
 
 ncvx_qp.opt_type = 'relative';
-ncvx_qp.opt_tol = 1E-6;
+ncvx_qp.opt_tol = global_tol;
 ncvx_qp.time_limit = time_limit;
-ncvx_qp.iter_limit = 10000;
+ncvx_qp.iter_limit = 50000;
 
 solver_arr = {@UPFAG, @ADAP_FISTA, @AIPP, @APD};
 hparam_arr = {upf_hparam, ncf_hparam, aipp_hparam, apd2_hparam};
 name_arr = {'UPF', 'ANCF', 'AIPP', 'APD'};
 
-[summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
+% [summary_tables, comp_models] = run_CM_benchmark(ncvx_qp, solver_arr, hparam_arr, name_arr);
 
 oracle.eval(hparams.x0);
 tol_factor = 1 + hparams.norm_fn(oracle.grad_f_s());
 line_styles = {'-.', '--', ':', '-'};
 for i=1:max(size(name_arr))
-  x = comp_models.(name_arr{i}).history.stationarity_iters;
+  x = comp_models.(name_arr{i}).history.stationarity_grad_iters;
   y = cummin(comp_models.(name_arr{i}).history.stationarity_values) / tol_factor;
   plot_x_vals{l, i} = x;
   plot_y_vals{l, i} = y;
   semilogy(x, y, line_styles{i}, 'LineWidth', 1.5);
   hold on;
 end
-title("QSDP Residuals vs. Iterations", 'Interpreter', 'latex');
-xlim([1, ncvx_qp.iter_limit]);
-xlabel("Iteration Count", 'Interpreter', 'latex');
+title("QSDP Residuals vs. Gradient Iterations", 'Interpreter', 'latex');
+xlim([1, 20000]);
+xlabel("Gradient Iteration Count", 'Interpreter', 'latex');
 ylim([ncvx_qp.opt_tol, 1E-2]);
 ylabel("$$\min_{1\leq i \leq k} \|\bar{v}_i\| / (1 + \|\nabla f(z_0)\|)$$", 'Interpreter', 'latex');
 legend(name_arr);
@@ -173,3 +177,6 @@ saveas(gcf, "qsdp_" + num2str(l) + ".svg");
 
 end
 saveas(gcf, "qsdp.svg");
+
+%% Save figure.
+savefig(gcf, "qsdp.fig")

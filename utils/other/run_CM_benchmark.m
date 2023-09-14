@@ -27,6 +27,8 @@ function [summary_tables, comp_models] = run_CM_benchmark(base_c_model, solver_a
   n_solvers = length(solver_arr);
   summary_tables.runtime = table();
   summary_tables.iter = table();
+  summary_tables.fn_iter = table();
+  summary_tables.grad_iter = table();
   summary_tables.fval = table();
   summary_tables.normV = table();
   summary_tables.pdata = table(); % Problem data.
@@ -56,6 +58,8 @@ function [summary_tables, comp_models] = run_CM_benchmark(base_c_model, solver_a
     comp_models.(solver_name) = comp_model;
     summary_tables.runtime = add_column(['t_', solver_name], comp_model.runtime, summary_tables.runtime);
     summary_tables.iter = add_column(['iter_', solver_name], comp_model.iter, summary_tables.iter);
+    summary_tables.fn_iter = add_column(['fn_iter_', solver_name], comp_model.fn_iter, summary_tables.fn_iter);
+    summary_tables.grad_iter = add_column(['grad_iter_', solver_name], comp_model.grad_iter, summary_tables.grad_iter);
     summary_tables.fval = add_column(['fval_', solver_name], comp_model.f_at_x, summary_tables.fval);
   end
   
@@ -67,7 +71,8 @@ function [summary_tables, comp_models] = run_CM_benchmark(base_c_model, solver_a
 
   % Merge summary tables for easy reading
   summary_tables.all = ...
-    [summary_tables.pdata, summary_tables.fval, summary_tables.normV, summary_tables.iter, summary_tables.runtime, summary_tables.mdata];
+    [summary_tables.pdata, summary_tables.fval, summary_tables.normV, summary_tables.iter, summary_tables.fn_iter, ...
+     summary_tables.grad_iter, summary_tables.runtime, summary_tables.mdata];
 
 end
 

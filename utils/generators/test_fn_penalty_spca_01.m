@@ -2,7 +2,7 @@
 % Copyright © 2021 Weiwei "William" Kong
 
 function [oracle, params] = test_fn_penalty_spca_01(data_matrix, alpha, beta, theta, mu, seed)
-% Generates the needed functions for the data-driven sparse PCA problem under SCAD 
+% Generates the needed functions for the data-driven sparse PCA problem under Laplace 
 % sparsity regularization.
 %
 %

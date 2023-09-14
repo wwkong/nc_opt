@@ -109,6 +109,8 @@ classdef CompModel < matlab.mixin.Copyable
   end
   properties (SetAccess = protected)
     iter  int64 {mustBeReal, mustBeFinite} = 0
+    fn_iter  int64 {mustBeReal, mustBeFinite} = 0
+    grad_iter  int64 {mustBeReal, mustBeFinite} = 0
     runtime double {mustBeReal, mustBeFinite} = 0.0
   end
   properties (Access = public)
@@ -179,6 +181,8 @@ classdef CompModel < matlab.mixin.Copyable
   methods (Access = public, Hidden = true)
     function reset(obj)
       obj.iter = 0;
+      obj.fn_iter = 0;
+      obj.grad_iter = 0;
       obj.runtime = 0.0;
       obj.x = [];
       obj.v = [];
@@ -223,6 +227,12 @@ classdef CompModel < matlab.mixin.Copyable
         if (obj.iter >= obj.iter_limit)
           obj.status = 104; % ITER_LIMIT_EXCEEDED
         end
+      end
+      if isfield(obj.history, 'fn_iter')
+        obj.fn_iter = obj.fn_iter + obj.history.fn_iter;
+      end
+      if isfield(obj.history, 'grad_iter')
+        obj.grad_iter = obj.grad_iter + obj.history.grad_iter;
       end
     end
     function post_process(obj)
